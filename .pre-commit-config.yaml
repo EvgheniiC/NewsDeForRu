@@ -1,0 +1,27 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-merge-conflict
+
+  - repo: local
+    hooks:
+      - id: backend-ruff
+        name: backend ruff
+        entry: powershell -Command "cd backend; ruff check app tests"
+        language: system
+        pass_filenames: false
+
+      - id: backend-mypy
+        name: backend mypy
+        entry: powershell -Command "cd backend; mypy app"
+        language: system
+        pass_filenames: false
+
+      - id: frontend-eslint
+        name: frontend eslint
+        entry: powershell -Command "cd frontend; npm run lint"
+        language: system
+        pass_filenames: false

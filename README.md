@@ -35,3 +35,15 @@
 - `GET /moderation/queue` — очередь модерации
 - `POST /moderation/{id}/action` — approve/reject
 - `POST /pipeline/run` — запуск полного ingestion pipeline
+
+## Engineering standards
+
+- Python: strict typing, `ruff`, `mypy`, `pytest`
+- Frontend: strict TypeScript, `eslint`, `prettier`
+- All code comments must be in English
+- Pre-commit checks are configured in `.pre-commit-config.yaml`
+
+### Run checks
+
+- Backend: `cd backend && ruff check app tests && mypy app && pytest`
+- Frontend: `cd frontend && npm run lint && npm run build`
