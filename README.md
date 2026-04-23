@@ -1,29 +1,37 @@
 # newsForGermanyRU
 
-Базовый монорепозиторий для старта приложения с разделением на:
+Приложение для понятной русскоязычной ленты новостей из Германии:
+`RSS -> нормализация -> фильтрация -> дедупликация -> AI-обработка -> публикация`.
 
-- `frontend` — клиентская часть.
-- `backend` — серверная часть на Python.
+## Текущая структура
 
-## Структура
+- `backend/` — FastAPI + pipeline + scheduler + тесты
+- `frontend/` — React (TypeScript) лента, детали, модерация
 
-- `frontend/`
-- `backend/`
-  - `app/`
-  - `tests/`
+## Backend quick start
 
-## Быстрый старт (backend)
-
-1. Перейдите в папку `backend`.
-2. Создайте виртуальное окружение:
-   - Windows PowerShell: `python -m venv .venv`
-3. Активируйте окружение:
-   - Windows PowerShell: `.\.venv\Scripts\Activate.ps1`
-4. Установите зависимости:
-   - `pip install -r requirements.txt`
-5. Запустите сервер:
-   - `uvicorn app.main:app --reload`
+1. `cd backend`
+2. `python -m venv .venv`
+3. `.\.venv\Scripts\Activate.ps1`
+4. `pip install -r requirements.txt`
+5. `uvicorn app.main:app --reload`
 
 Проверка:
+- `GET http://127.0.0.1:8000/health`
+- `POST http://127.0.0.1:8000/pipeline/run`
 
-- Откройте `http://127.0.0.1:8000/health`
+## Frontend quick start
+
+1. `cd frontend`
+2. `npm install`
+3. `npm run dev`
+4. Открыть `http://127.0.0.1:5173`
+
+## Основные API
+
+- `GET /news` — опубликованная лента
+- `GET /news/{id}` — карточка новости
+- `GET /news/{id}/impact?role=owner|tenant|buyer` — персонализированный блок
+- `GET /moderation/queue` — очередь модерации
+- `POST /moderation/{id}/action` — approve/reject
+- `POST /pipeline/run` — запуск полного ingestion pipeline
