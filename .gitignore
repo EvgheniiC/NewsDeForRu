@@ -30,3 +30,9 @@ Thumbs.db
 # Frontend
 frontend/node_modules/
 frontend/dist/
+frontend/*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
+
+# Local database
+backend/news.db
