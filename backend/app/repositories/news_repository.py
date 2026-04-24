@@ -1,7 +1,10 @@
+import json
 from datetime import datetime
 
-from sqlalchemy import Select, select
+from sqlalchemy import Select, and_, select
 from sqlalchemy.orm import Session
+
+import numpy as np
 
 from app.models.news import ClusterItem, NewsCluster, PipelineStatus, ProcessedNews, RawNewsItem, Source
 
@@ -10,13 +13,19 @@ class NewsRepository:
     def __init__(self, db_session: Session) -> None:
         self.db_session: Session = db_session
 
-    def get_or_create_source(self, name: str, rss_url: str) -> Source:
-        query: Select[tuple[Source]] = select(Source).where(Source.name == name)
+    def upsert_source(self, source_key: str, name: str, rss_url: str) -> Source:
+        query: Select[tuple[Source]] = select(Source).where(Source.source_key == source_key)
         source: Source | None = self.db_session.execute(query).scalar_one_or_none()
         if source is not None:
+            if source.name != name or source.rss_url != rss_url:
+                source.name = name
+                source.rss_url = rss_url
+                self.db_session.add(source)
+                self.db_session.commit()
+                self.db_session.refresh(source)
             return source
 
-        source = Source(name=name, rss_url=rss_url)
+        source = Source(source_key=source_key, name=name, rss_url=rss_url)
         self.db_session.add(source)
         self.db_session.commit()
         self.db_session.refresh(source)
@@ -54,6 +63,59 @@ class NewsRepository:
     def get_cluster_by_key(self, cluster_key: str) -> NewsCluster | None:
         query: Select[tuple[NewsCluster]] = select(NewsCluster).where(NewsCluster.cluster_key == cluster_key)
         return self.db_session.execute(query).scalar_one_or_none()
+
+    def list_clusters_with_centroid_since(
+        self,
+        since: datetime,
+        limit: int = 10_000,
+    ) -> list[NewsCluster]:
+        query: Select[tuple[NewsCluster]] = (
+            select(NewsCluster)
+            .where(
+                and_(
+                    NewsCluster.centroid_embedding_json.is_not(None),
+                    NewsCluster.updated_at >= since,
+                ),
+            )
+            .order_by(NewsCluster.updated_at.desc())
+            .limit(limit)
+        )
+        return list(self.db_session.execute(query).scalars().all())
+
+    def set_cluster_centroid_embedding(self, cluster_id: int, embedding: list[float]) -> None:
+        cluster: NewsCluster | None = self.db_session.get(NewsCluster, cluster_id)
+        if cluster is None:
+            return
+        cluster.centroid_embedding_json = json.dumps(embedding)
+        cluster.updated_at = datetime.utcnow()
+        self.db_session.add(cluster)
+        self.db_session.commit()
+
+    def merge_cluster_centroid_embedding(
+        self,
+        cluster_id: int,
+        new_embedding: list[float],
+        previous_item_count: int,
+    ) -> None:
+        cluster: NewsCluster | None = self.db_session.get(NewsCluster, cluster_id)
+        if cluster is None:
+            return
+        new_arr: np.ndarray = np.asarray(new_embedding, dtype=np.float32)
+        if previous_item_count <= 0 or cluster.centroid_embedding_json is None:
+            merged: np.ndarray = new_arr
+        else:
+            old_arr: np.ndarray = np.asarray(
+                json.loads(cluster.centroid_embedding_json),
+                dtype=np.float32,
+            )
+            merged = (old_arr * float(previous_item_count) + new_arr) / float(previous_item_count + 1)
+        norm: float = float(np.linalg.norm(merged))
+        if norm > 1e-9:
+            merged = merged / norm
+        cluster.centroid_embedding_json = json.dumps(merged.astype(float).tolist())
+        cluster.updated_at = datetime.utcnow()
+        self.db_session.add(cluster)
+        self.db_session.commit()
 
     def upsert_cluster(self, cluster_key: str, canonical_title: str, summary: str) -> NewsCluster:
         cluster: NewsCluster | None = self.get_cluster_by_key(cluster_key)

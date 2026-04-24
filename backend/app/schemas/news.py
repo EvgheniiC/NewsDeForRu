@@ -46,6 +46,7 @@ class RoleImpactResponse(BaseModel):
 
 class PipelineRunResponse(BaseModel):
     fetched: int
+    feeds_failed: int
     filtered_out: int
     clustered: int
     processed: int

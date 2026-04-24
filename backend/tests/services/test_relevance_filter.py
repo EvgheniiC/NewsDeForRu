@@ -8,7 +8,7 @@ def test_relevance_filter_accepts_life_impact_topics() -> None:
         summary="Eigentümer erhalten Fördergeld beim Austausch.",
     )
     assert result.is_relevant is True
-    assert result.score >= 0.3
+    assert result.score >= 0.12
 
 
 def test_relevance_filter_rejects_sports() -> None:

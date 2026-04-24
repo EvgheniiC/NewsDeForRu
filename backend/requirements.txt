@@ -3,7 +3,11 @@ uvicorn[standard]
 pydantic
 sqlalchemy
 feedparser
+httpx
 pydantic-settings
 apscheduler
 alembic
 psycopg[binary]
+numpy
+sentence-transformers
+torch

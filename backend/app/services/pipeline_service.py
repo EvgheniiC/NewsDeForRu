@@ -4,6 +4,7 @@ from app.models.news import PipelineStatus, ProcessedNews, RawNewsItem
 from app.repositories.news_repository import NewsRepository
 from app.schemas.news import PipelineRunResponse
 from app.services.dedup_service import DedupService
+from app.services.embedding_service import create_embedding_encoder
 from app.services.llm_provider import LLMProvider, StubLLMProvider
 from app.services.publication_service import PublicationService
 from app.services.relevance_filter_service import RelevanceFilterService
@@ -22,10 +23,11 @@ class PipelineContext:
 class PipelineService:
     def __init__(self, repository: NewsRepository) -> None:
         self.repository: NewsRepository = repository
+        encoder = create_embedding_encoder()
         self.context: PipelineContext = PipelineContext(
             ingestion=RSSIngestionService(repository),
-            relevance_filter=RelevanceFilterService(),
-            dedup=DedupService(),
+            relevance_filter=RelevanceFilterService(encoder),
+            dedup=DedupService(encoder),
             llm_provider=StubLLMProvider(),
             publication=PublicationService(),
         )
@@ -51,7 +53,11 @@ class PipelineService:
                 )
                 continue
 
-            dedup_result = self.context.dedup.cluster(raw_item.title, raw_item.summary)
+            dedup_result = self.context.dedup.assign_cluster(
+                self.repository,
+                raw_item.title,
+                raw_item.summary,
+            )
             clustered += 1
             self.repository.update_raw_status(
                 raw_item=raw_item,
@@ -65,7 +71,21 @@ class PipelineService:
                 canonical_title=raw_item.title,
                 summary=raw_item.summary,
             )
-            self.repository.attach_raw_to_cluster(raw_item=raw_item, cluster=cluster)
+            previous_cluster_size: int = cluster.size
+            self.repository.attach_raw_to_cluster(
+                raw_item=raw_item,
+                cluster=cluster,
+                similarity_score=dedup_result.similarity,
+            )
+            embedding_list: list[float] = list(dedup_result.embedding)
+            if dedup_result.is_new_cluster:
+                self.repository.set_cluster_centroid_embedding(cluster.id, embedding_list)
+            else:
+                self.repository.merge_cluster_centroid_embedding(
+                    cluster.id,
+                    embedding_list,
+                    previous_cluster_size,
+                )
 
             llm_output = self.context.llm_provider.process_news(raw_item.title, raw_item.summary)
             publication_status = self.context.publication.decide_status(llm_output.confidence_score)
@@ -103,6 +123,7 @@ class PipelineService:
 
         return PipelineRunResponse(
             fetched=ingestion_stats.fetched,
+            feeds_failed=ingestion_stats.feeds_failed,
             filtered_out=filtered_out,
             clustered=clustered,
             processed=processed_count,

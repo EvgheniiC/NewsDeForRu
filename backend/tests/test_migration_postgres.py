@@ -77,14 +77,19 @@ def test_alembic_upgrade_creates_expected_schema(postgres_test_db_url: str) -> N
         raw_columns: set[str] = {column["name"] for column in inspector.get_columns("raw_news_items")}
         processed_columns: set[str] = {column["name"] for column in inspector.get_columns("processed_news")}
         cluster_item_columns: set[str] = {column["name"] for column in inspector.get_columns("cluster_items")}
+        cluster_columns: set[str] = {column["name"] for column in inspector.get_columns("news_clusters")}
 
         assert {"guid", "pipeline_status", "cluster_key", "processed_at"} <= raw_columns
         assert {"raw_item_id", "cluster_id", "version", "publication_status"} <= processed_columns
         assert {"cluster_id", "raw_item_id", "is_primary", "similarity_score"} <= cluster_item_columns
+        assert "centroid_embedding_json" in cluster_columns
+
+        source_columns: set[str] = {column["name"] for column in inspector.get_columns("sources")}
+        assert {"source_key", "name", "rss_url"} <= source_columns
 
         with engine.connect() as connection:
             version_rows = connection.execute(text("SELECT version_num FROM alembic_version")).all()
         assert len(version_rows) == 1
-        assert version_rows[0][0] == "20260424_01"
+        assert version_rows[0][0] == "20260424_03"
     finally:
         engine.dispose()
