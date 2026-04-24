@@ -5,3 +5,4 @@ sqlalchemy
 feedparser
 pydantic-settings
 apscheduler
+alembic

@@ -60,6 +60,12 @@ class PipelineService:
                 relevance_reason=relevance.reason,
                 cluster_key=dedup_result.cluster_key,
             )
+            cluster = self.repository.upsert_cluster(
+                cluster_key=dedup_result.cluster_key,
+                canonical_title=raw_item.title,
+                summary=raw_item.summary,
+            )
+            self.repository.attach_raw_to_cluster(raw_item=raw_item, cluster=cluster)
 
             llm_output = self.context.llm_provider.process_news(raw_item.title, raw_item.summary)
             publication_status = self.context.publication.decide_status(llm_output.confidence_score)
@@ -81,6 +87,7 @@ class PipelineService:
                 spoiler=llm_output.spoiler,
                 source_url=raw_item.url,
                 confidence_score=llm_output.confidence_score,
+                cluster_id=cluster.id,
                 publication_status=publication_status,
                 read_time_minutes=2,
             )

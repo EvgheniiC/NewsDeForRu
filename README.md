@@ -14,11 +14,19 @@
 2. `python -m venv .venv`
 3. `.\.venv\Scripts\Activate.ps1`
 4. `pip install -r requirements.txt`
-5. `uvicorn app.main:app --reload`
+5. `alembic upgrade head`
+6. `uvicorn app.main:app --reload`
 
 Проверка:
 - `GET http://127.0.0.1:8000/health`
 - `POST http://127.0.0.1:8000/pipeline/run`
+
+### Database migrations
+
+- Apply migrations: `cd backend && alembic upgrade head`
+- Create migration: `cd backend && alembic revision -m "your_message"`
+- Auto-generate diff: `cd backend && alembic revision --autogenerate -m "your_message"`
+- Rollback one step: `cd backend && alembic downgrade -1`
 
 ## Frontend quick start
 

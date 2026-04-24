@@ -1,7 +1,16 @@
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -33,6 +42,7 @@ class Source(Base):
 
 class RawNewsItem(Base):
     __tablename__ = "raw_news_items"
+    __table_args__ = (UniqueConstraint("source_id", "guid", name="uq_raw_news_source_guid"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     source_id: Mapped[int] = mapped_column(ForeignKey("sources.id"), nullable=False)
@@ -47,9 +57,11 @@ class RawNewsItem(Base):
     relevance_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     relevance_reason: Mapped[str] = mapped_column(String(256), default="", nullable=False)
     cluster_key: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     source: Mapped[Source] = relationship()
+    cluster_items: Mapped[list["ClusterItem"]] = relationship(back_populates="raw_item")
 
 
 class ProcessedNews(Base):
@@ -68,6 +80,8 @@ class ProcessedNews(Base):
     spoiler: Mapped[str] = mapped_column(Text, default="", nullable=False)
     source_url: Mapped[str] = mapped_column(String(1024), nullable=False)
     confidence_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    cluster_id: Mapped[int | None] = mapped_column(ForeignKey("news_clusters.id"), nullable=True, index=True)
+    version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     publication_status: Mapped[PipelineStatus] = mapped_column(
         Enum(PipelineStatus), default=PipelineStatus.NEEDS_REVIEW, nullable=False
     )
@@ -75,3 +89,38 @@ class ProcessedNews(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     raw_item: Mapped[RawNewsItem] = relationship()
+    cluster: Mapped["NewsCluster | None"] = relationship(back_populates="processed_items")
+
+
+class NewsCluster(Base):
+    __tablename__ = "news_clusters"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    cluster_key: Mapped[str] = mapped_column(String(128), unique=True, nullable=False, index=True)
+    canonical_title: Mapped[str] = mapped_column(String(512), nullable=False)
+    summary: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    centroid_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    size: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    items: Mapped[list["ClusterItem"]] = relationship(back_populates="cluster")
+    processed_items: Mapped[list[ProcessedNews]] = relationship(back_populates="cluster")
+
+
+class ClusterItem(Base):
+    __tablename__ = "cluster_items"
+    __table_args__ = (
+        UniqueConstraint("cluster_id", "raw_item_id", name="uq_cluster_item_pair"),
+        UniqueConstraint("raw_item_id", name="uq_cluster_item_raw"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    cluster_id: Mapped[int] = mapped_column(ForeignKey("news_clusters.id"), nullable=False, index=True)
+    raw_item_id: Mapped[int] = mapped_column(ForeignKey("raw_news_items.id"), nullable=False, index=True)
+    is_primary: Mapped[bool] = mapped_column(default=False, nullable=False)
+    similarity_score: Mapped[float] = mapped_column(Float, default=1.0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    cluster: Mapped[NewsCluster] = relationship(back_populates="items")
+    raw_item: Mapped[RawNewsItem] = relationship(back_populates="cluster_items")

@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy import Select, select
 from sqlalchemy.orm import Session
 
-from app.models.news import PipelineStatus, ProcessedNews, RawNewsItem, Source
+from app.models.news import ClusterItem, NewsCluster, PipelineStatus, ProcessedNews, RawNewsItem, Source
 
 
 class NewsRepository:
@@ -51,6 +51,74 @@ class NewsRepository:
         self.db_session.refresh(item)
         return item
 
+    def get_cluster_by_key(self, cluster_key: str) -> NewsCluster | None:
+        query: Select[tuple[NewsCluster]] = select(NewsCluster).where(NewsCluster.cluster_key == cluster_key)
+        return self.db_session.execute(query).scalar_one_or_none()
+
+    def upsert_cluster(self, cluster_key: str, canonical_title: str, summary: str) -> NewsCluster:
+        cluster: NewsCluster | None = self.get_cluster_by_key(cluster_key)
+        if cluster is None:
+            cluster = NewsCluster(
+                cluster_key=cluster_key,
+                canonical_title=canonical_title[:512],
+                summary=summary,
+                size=0,
+                updated_at=datetime.utcnow(),
+            )
+            self.db_session.add(cluster)
+            self.db_session.commit()
+            self.db_session.refresh(cluster)
+            return cluster
+
+        cluster.canonical_title = canonical_title[:512]
+        cluster.summary = summary
+        cluster.updated_at = datetime.utcnow()
+        self.db_session.add(cluster)
+        self.db_session.commit()
+        self.db_session.refresh(cluster)
+        return cluster
+
+    def attach_raw_to_cluster(
+        self,
+        raw_item: RawNewsItem,
+        cluster: NewsCluster,
+        similarity_score: float = 1.0,
+    ) -> ClusterItem:
+        query: Select[tuple[ClusterItem]] = select(ClusterItem).where(ClusterItem.raw_item_id == raw_item.id)
+        existing: ClusterItem | None = self.db_session.execute(query).scalar_one_or_none()
+        if existing is not None:
+            if existing.cluster_id != cluster.id:
+                existing.cluster_id = cluster.id
+                existing.is_primary = False
+            existing.similarity_score = similarity_score
+            self.db_session.add(existing)
+            self.db_session.commit()
+            self.db_session.refresh(existing)
+            self.recalculate_cluster_size(cluster.id)
+            return existing
+
+        item: ClusterItem = ClusterItem(
+            cluster_id=cluster.id,
+            raw_item_id=raw_item.id,
+            is_primary=cluster.size == 0,
+            similarity_score=similarity_score,
+        )
+        self.db_session.add(item)
+        self.db_session.commit()
+        self.db_session.refresh(item)
+        self.recalculate_cluster_size(cluster.id)
+        return item
+
+    def recalculate_cluster_size(self, cluster_id: int) -> None:
+        cluster: NewsCluster | None = self.db_session.get(NewsCluster, cluster_id)
+        if cluster is None:
+            return
+        query: Select[tuple[ClusterItem]] = select(ClusterItem).where(ClusterItem.cluster_id == cluster_id)
+        cluster.size = len(list(self.db_session.execute(query).scalars().all()))
+        cluster.updated_at = datetime.utcnow()
+        self.db_session.add(cluster)
+        self.db_session.commit()
+
     def list_raw_items_for_processing(self) -> list[RawNewsItem]:
         query: Select[tuple[RawNewsItem]] = (
             select(RawNewsItem)
@@ -71,6 +139,8 @@ class NewsRepository:
         raw_item.relevance_score = relevance_score
         raw_item.relevance_reason = relevance_reason
         raw_item.cluster_key = cluster_key
+        if status == PipelineStatus.PROCESSED:
+            raw_item.processed_at = datetime.utcnow()
         self.db_session.add(raw_item)
         self.db_session.commit()
 
