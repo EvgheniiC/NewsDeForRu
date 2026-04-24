@@ -5,7 +5,7 @@ from app.repositories.news_repository import NewsRepository
 from app.schemas.news import PipelineRunResponse
 from app.services.dedup_service import DedupService
 from app.services.embedding_service import create_embedding_encoder
-from app.services.llm_provider import LLMProvider, StubLLMProvider
+from app.services.llm_provider import LLMProvider, create_llm_provider
 from app.services.publication_service import PublicationService
 from app.services.relevance_filter_service import RelevanceFilterService
 from app.services.rss_ingestion_service import RSSIngestionService
@@ -28,7 +28,7 @@ class PipelineService:
             ingestion=RSSIngestionService(repository),
             relevance_filter=RelevanceFilterService(encoder),
             dedup=DedupService(encoder),
-            llm_provider=StubLLMProvider(),
+            llm_provider=create_llm_provider(),
             publication=PublicationService(),
         )
 

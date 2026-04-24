@@ -1,19 +1,9 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 
-
-@dataclass(frozen=True)
-class LLMNewsOutput:
-    title: str
-    one_sentence_summary: str
-    plain_language: str
-    impact_owner: str
-    impact_tenant: str
-    impact_buyer: str
-    action_items: str
-    bonus_block: str
-    spoiler: str
-    confidence_score: float
+from app.core.config import settings
+from app.schemas.llm_output import LLMNewsOutput
 
 
 class LLMProvider(ABC):
@@ -26,8 +16,8 @@ class StubLLMProvider(LLMProvider):
     def process_news(self, title: str, summary: str) -> LLMNewsOutput:
         simplified: str = summary.strip() or "Новость обработана и упрощена."
         return LLMNewsOutput(
-            title=title[:120],
-            one_sentence_summary=simplified[:220],
+            title=title[:500],
+            one_sentence_summary=simplified[:2000],
             plain_language=(
                 "Если коротко: это изменение повлияет на расходы и правила для жителей Германии."
             ),
@@ -39,3 +29,31 @@ class StubLLMProvider(LLMProvider):
             spoiler="Политический компромисс смягчил первоначальный вариант реформы.",
             confidence_score=0.82,
         )
+
+
+def create_llm_provider() -> LLMProvider:
+    name: str = settings.llm_provider
+    if name == "stub":
+        return StubLLMProvider()
+    if name == "openai":
+        key: str = settings.openai_api_key.strip()
+        if not key:
+            msg: str = "Set OPENAI_API_KEY (or openai_api_key) when LLM_PROVIDER=openai"
+            raise ValueError(msg)
+        from app.services.llm_openai_provider import OpenAILLMProvider
+
+        return OpenAILLMProvider(
+            api_key=key,
+            model=settings.openai_model,
+            base_url=settings.openai_base_url,
+        )
+    err: str = f"Unknown llm_provider: {name!r} (use stub or openai)"
+    raise ValueError(err)
+
+
+__all__ = [
+    "LLMNewsOutput",
+    "LLMProvider",
+    "StubLLMProvider",
+    "create_llm_provider",
+]

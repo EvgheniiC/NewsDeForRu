@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,6 +14,11 @@ class Settings(BaseSettings):
     rss_max_response_bytes: int = 5_000_000
     rss_user_agent: str = "newsForGermanyRU/1.0 (+https://example.local)"
     auto_publish_threshold: float = 0.85
+
+    llm_provider: Literal["stub", "openai"] = "stub"
+    openai_api_key: str = ""
+    openai_model: str = "gpt-4o-mini"
+    openai_base_url: str = "https://api.openai.com/v1"
 
     semantic_embedding_backend: str = "sentence_transformers"
     semantic_embedding_model: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
