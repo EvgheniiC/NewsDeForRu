@@ -6,3 +6,4 @@ feedparser
 pydantic-settings
 apscheduler
 alembic
+psycopg[binary]

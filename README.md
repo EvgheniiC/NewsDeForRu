@@ -28,6 +28,27 @@
 - Auto-generate diff: `cd backend && alembic revision --autogenerate -m "your_message"`
 - Rollback one step: `cd backend && alembic downgrade -1`
 
+### Local PostgreSQL (Docker)
+
+- Start DB: `docker compose up -d postgres`
+- Stop DB: `docker compose down`
+- Backend DB URL: `postgresql+psycopg://news:news@127.0.0.1:55432/newsdb`
+- Run migration on PostgreSQL:
+  - PowerShell: `$env:DATABASE_URL="postgresql+psycopg://news:news@127.0.0.1:55432/newsdb"; cd backend; alembic upgrade head`
+- Run integration migration test:
+  - PowerShell: `$env:MIGRATION_TEST_ADMIN_URL="postgresql+psycopg://news:news@127.0.0.1:55432/postgres"; cd backend; pytest tests/test_migration_postgres.py`
+
+### Plan status: пункт 2 (DB schema raw/processed/clustered)
+
+Status: done locally.
+
+Definition of Done checklist:
+- [x] PostgreSQL schema for `raw_news_items`, `processed_news`, `news_clusters`, `cluster_items`, `sources` is defined in Alembic migration.
+- [x] `alembic upgrade head` succeeds on a clean PostgreSQL database.
+- [x] Integration migration test exists: `backend/tests/test_migration_postgres.py`.
+- [x] End-to-end pipeline path works on PostgreSQL: `raw -> clustered -> processed`.
+- [x] Backend quality checks pass locally: `ruff`, `mypy`, `pytest`.
+
 ## Frontend quick start
 
 1. `cd frontend`

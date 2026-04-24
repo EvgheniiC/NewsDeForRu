@@ -20,6 +20,45 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
+def _create_base_tables_if_missing() -> None:
+    bind = op.get_bind()
+    inspector = inspect(bind)
+
+    if not inspector.has_table("sources"):
+        op.create_table(
+            "sources",
+            sa.Column("id", sa.Integer(), primary_key=True),
+            sa.Column("name", sa.String(length=128), nullable=False),
+            sa.Column("rss_url", sa.String(length=512), nullable=False),
+            sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
+            sa.UniqueConstraint("name", name="uq_sources_name"),
+            sa.UniqueConstraint("rss_url", name="uq_sources_rss_url"),
+        )
+        op.create_index("ix_sources_id", "sources", ["id"])
+
+    if not inspector.has_table("raw_news_items"):
+        op.create_table(
+            "raw_news_items",
+            sa.Column("id", sa.Integer(), primary_key=True),
+            sa.Column("source_id", sa.Integer(), nullable=False),
+            sa.Column("guid", sa.String(length=512), nullable=False),
+            sa.Column("title", sa.String(length=512), nullable=False),
+            sa.Column("summary", sa.Text(), nullable=False),
+            sa.Column("url", sa.String(length=1024), nullable=False),
+            sa.Column("published_at", sa.DateTime(), nullable=False),
+            sa.Column("pipeline_status", sa.String(length=20), nullable=False, server_default="ingested"),
+            sa.Column("relevance_score", sa.Float(), nullable=False, server_default="0.0"),
+            sa.Column("relevance_reason", sa.String(length=256), nullable=False, server_default=""),
+            sa.Column("cluster_key", sa.String(length=128), nullable=True),
+            sa.Column("processed_at", sa.DateTime(), nullable=True),
+            sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
+            sa.ForeignKeyConstraint(["source_id"], ["sources.id"]),
+            sa.UniqueConstraint("source_id", "guid", name="uq_raw_news_source_guid"),
+        )
+        op.create_index("ix_raw_news_items_id", "raw_news_items", ["id"])
+        op.create_index("ix_raw_news_items_guid", "raw_news_items", ["guid"])
+        op.create_index("ix_raw_news_items_cluster_key", "raw_news_items", ["cluster_key"])
+
 def _create_clusters_tables() -> None:
     op.create_table(
         "news_clusters",
@@ -41,7 +80,7 @@ def _create_clusters_tables() -> None:
         sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("cluster_id", sa.Integer(), nullable=False),
         sa.Column("raw_item_id", sa.Integer(), nullable=False),
-        sa.Column("is_primary", sa.Boolean(), nullable=False, server_default=sa.text("0")),
+        sa.Column("is_primary", sa.Boolean(), nullable=False, server_default=sa.text("false")),
         sa.Column("similarity_score", sa.Float(), nullable=False, server_default="1.0"),
         sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
         sa.ForeignKeyConstraint(["cluster_id"], ["news_clusters.id"]),
@@ -52,6 +91,45 @@ def _create_clusters_tables() -> None:
     op.create_index("ix_cluster_items_cluster_id", "cluster_items", ["cluster_id"])
     op.create_index("ix_cluster_items_raw_item_id", "cluster_items", ["raw_item_id"])
     op.create_index("ix_cluster_items_cluster_id_is_primary", "cluster_items", ["cluster_id", "is_primary"])
+
+
+def _create_processed_news_if_missing() -> None:
+    bind = op.get_bind()
+    inspector = inspect(bind)
+    if inspector.has_table("processed_news"):
+        return
+
+    op.create_table(
+        "processed_news",
+        sa.Column("id", sa.Integer(), primary_key=True),
+        sa.Column("raw_item_id", sa.Integer(), nullable=False),
+        sa.Column("title", sa.String(length=300), nullable=False),
+        sa.Column("one_sentence_summary", sa.Text(), nullable=False),
+        sa.Column("plain_language", sa.Text(), nullable=False),
+        sa.Column("impact_owner", sa.Text(), nullable=False),
+        sa.Column("impact_tenant", sa.Text(), nullable=False),
+        sa.Column("impact_buyer", sa.Text(), nullable=False),
+        sa.Column("action_items", sa.Text(), nullable=False),
+        sa.Column("bonus_block", sa.Text(), nullable=False, server_default=""),
+        sa.Column("spoiler", sa.Text(), nullable=False, server_default=""),
+        sa.Column("source_url", sa.String(length=1024), nullable=False),
+        sa.Column("confidence_score", sa.Float(), nullable=False, server_default="0.0"),
+        sa.Column("cluster_id", sa.Integer(), nullable=True),
+        sa.Column("version", sa.Integer(), nullable=False, server_default="1"),
+        sa.Column("publication_status", sa.String(length=20), nullable=False, server_default="needs_review"),
+        sa.Column("read_time_minutes", sa.Integer(), nullable=False, server_default="1"),
+        sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
+        sa.ForeignKeyConstraint(["raw_item_id"], ["raw_news_items.id"]),
+        sa.ForeignKeyConstraint(["cluster_id"], ["news_clusters.id"]),
+        sa.UniqueConstraint("raw_item_id", name="uq_processed_news_raw_item_id"),
+    )
+    op.create_index("ix_processed_news_id", "processed_news", ["id"])
+    op.create_index("ix_processed_news_cluster_id", "processed_news", ["cluster_id"])
+    op.create_index(
+        "ix_processed_news_publication_status_created_at",
+        "processed_news",
+        ["publication_status", "created_at"],
+    )
 
 
 def _alter_existing_tables() -> None:
@@ -125,13 +203,18 @@ def _backfill_clusters() -> None:
         if cluster is None:
             continue
 
-        bind.execute(
-            text(
-                "INSERT OR IGNORE INTO cluster_items (cluster_id, raw_item_id, is_primary, similarity_score, created_at) "
-                "VALUES (:cluster_id, :raw_item_id, 0, 1.0, CURRENT_TIMESTAMP)"
-            ),
-            {"cluster_id": int(cluster["id"]), "raw_item_id": int(row["id"])},
-        )
+        existing_cluster_item = bind.execute(
+            text("SELECT 1 FROM cluster_items WHERE raw_item_id = :raw_item_id"),
+            {"raw_item_id": int(row["id"])},
+        ).first()
+        if existing_cluster_item is None:
+            bind.execute(
+                text(
+                    "INSERT INTO cluster_items (cluster_id, raw_item_id, is_primary, similarity_score, created_at) "
+                    "VALUES (:cluster_id, :raw_item_id, false, 1.0, CURRENT_TIMESTAMP)"
+                ),
+                {"cluster_id": int(cluster["id"]), "raw_item_id": int(row["id"])},
+            )
         bind.execute(
             text("UPDATE processed_news SET cluster_id = :cluster_id WHERE raw_item_id = :raw_item_id"),
             {"cluster_id": int(cluster["id"]), "raw_item_id": int(row["id"])},
@@ -163,8 +246,11 @@ def upgrade() -> None:
     bind = op.get_bind()
     inspector = inspect(bind)
 
+    _create_base_tables_if_missing()
+
     if not inspector.has_table("news_clusters") and not inspector.has_table("cluster_items"):
         _create_clusters_tables()
+    _create_processed_news_if_missing()
 
     _alter_existing_tables()
     _backfill_clusters()

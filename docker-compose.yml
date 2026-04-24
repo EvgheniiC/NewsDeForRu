@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: newsforgermanyru-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: newsdb
+      POSTGRES_USER: news
+      POSTGRES_PASSWORD: news
+    ports:
+      - "55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U news -d newsdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
