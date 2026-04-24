@@ -1,6 +1,7 @@
 from datetime import datetime
+from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from app.models.news import PipelineStatus, UserRole
 
@@ -36,7 +37,7 @@ class NewsFeedItem(BaseModel):
 
 
 class ModerationActionRequest(BaseModel):
-    action: str = Field(pattern="^(approve|reject)$")
+    action: Literal["approve", "reject"]
 
 
 class RoleImpactResponse(BaseModel):

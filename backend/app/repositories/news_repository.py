@@ -1,12 +1,21 @@
 import json
 from datetime import datetime
+from typing import Literal
 
 from sqlalchemy import Select, and_, select
 from sqlalchemy.orm import Session
 
 import numpy as np
 
-from app.models.news import ClusterItem, NewsCluster, PipelineStatus, ProcessedNews, RawNewsItem, Source
+from app.models.news import (
+    ClusterItem,
+    ModerationEvent,
+    NewsCluster,
+    PipelineStatus,
+    ProcessedNews,
+    RawNewsItem,
+    Source,
+)
 
 
 class NewsRepository:
@@ -233,12 +242,24 @@ class NewsRepository:
         query: Select[tuple[ProcessedNews]] = select(ProcessedNews).where(ProcessedNews.id == news_id)
         return self.db_session.execute(query).scalar_one_or_none()
 
-    def set_publication_status(self, news_id: int, status: PipelineStatus) -> ProcessedNews | None:
+    def apply_moderation(
+        self,
+        news_id: int,
+        status: PipelineStatus,
+        audit_action: Literal["approve", "reject"],
+    ) -> ProcessedNews | None:
+        """Update publication status and record an audit row (manual moderation only)."""
         processed: ProcessedNews | None = self.get_processed_by_id(news_id)
         if processed is None:
             return None
         processed.publication_status = status
         self.db_session.add(processed)
+        self.db_session.add(
+            ModerationEvent(
+                processed_news_id=processed.id,
+                action=audit_action,
+            )
+        )
         self.db_session.commit()
         self.db_session.refresh(processed)
         return processed

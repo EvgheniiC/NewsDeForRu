@@ -25,7 +25,11 @@ def moderate_news(
     target_status = (
         PipelineStatus.PUBLISHED if request.action == "approve" else PipelineStatus.FILTERED_OUT
     )
-    item = repository.set_publication_status(news_id=news_id, status=target_status)
+    item = repository.apply_moderation(
+        news_id=news_id,
+        status=target_status,
+        audit_action=request.action,
+    )
     if item is None:
         raise HTTPException(status_code=404, detail="News item not found.")
     return ProcessedNewsResponse.model_validate(item)

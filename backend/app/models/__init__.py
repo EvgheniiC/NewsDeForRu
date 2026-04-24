@@ -1,5 +1,6 @@
 from app.models.news import (
     ClusterItem,
+    ModerationEvent,
     NewsCluster,
     PipelineStatus,
     ProcessedNews,
@@ -16,4 +17,5 @@ __all__ = [
     "UserRole",
     "NewsCluster",
     "ClusterItem",
+    "ModerationEvent",
 ]

@@ -6,7 +6,7 @@ from app.schemas.news import PipelineRunResponse
 from app.services.dedup_service import DedupService
 from app.services.embedding_service import create_embedding_encoder
 from app.services.llm_provider import LLMProvider, create_llm_provider
-from app.services.publication_service import PublicationService
+from app.services.publication_service import PublicationDecisionInput, PublicationService
 from app.services.relevance_filter_service import RelevanceFilterService
 from app.services.rss_ingestion_service import RSSIngestionService
 
@@ -88,7 +88,14 @@ class PipelineService:
                 )
 
             llm_output = self.context.llm_provider.process_news(raw_item.title, raw_item.summary)
-            publication_status = self.context.publication.decide_status(llm_output.confidence_score)
+            decision_inp = PublicationDecisionInput(
+                confidence_score=llm_output.confidence_score,
+                relevance_score=relevance.score,
+                is_new_cluster=dedup_result.is_new_cluster,
+                title=raw_item.title,
+                summary=raw_item.summary,
+            )
+            publication_status, _ = self.context.publication.decide_status(decision_inp)
             if publication_status == PipelineStatus.PUBLISHED:
                 published += 1
             else:

@@ -91,6 +91,24 @@ class ProcessedNews(Base):
 
     raw_item: Mapped[RawNewsItem] = relationship()
     cluster: Mapped["NewsCluster | None"] = relationship(back_populates="processed_items")
+    moderation_events: Mapped[list["ModerationEvent"]] = relationship(
+        back_populates="processed_news",
+    )
+
+
+class ModerationEvent(Base):
+    __tablename__ = "moderation_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    processed_news_id: Mapped[int] = mapped_column(
+        ForeignKey("processed_news.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    action: Mapped[str] = mapped_column(String(16), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    processed_news: Mapped[ProcessedNews] = relationship(back_populates="moderation_events")
 
 
 class NewsCluster(Base):
