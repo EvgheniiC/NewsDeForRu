@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any
 
 import httpx
 from pydantic import ValidationError
 
+from app.core.config import settings
 from app.schemas.llm_output import LLMNewsOutput, fallback_after_validation_failure
 from app.services.llm_json import build_repair_user_message, parse_llm_news_json
 from app.services.llm_provider import LLMProvider
@@ -39,16 +41,36 @@ class OpenAILLMProvider(LLMProvider):
             "temperature": 0.35,
             "response_format": {"type": "json_object"},
         }
-        r: httpx.Response = self._client.post("chat/completions", json=body)
-        r.raise_for_status()
-        data: Any = r.json()
-        try:
-            return str(data["choices"][0]["message"]["content"])
-        except (KeyError, IndexError, TypeError) as e:
-            msg: str = "Unexpected OpenAI response shape"
-            raise ValueError(msg) from e
+        max_retries: int = max(0, settings.openai_request_retries)
+        for attempt in range(max_retries + 1):
+            try:
+                r: httpx.Response = self._client.post("chat/completions", json=body)
+                r.raise_for_status()
+                data: Any = r.json()
+                try:
+                    return str(data["choices"][0]["message"]["content"])
+                except (KeyError, IndexError, TypeError) as e:
+                    msg: str = "Unexpected OpenAI response shape"
+                    raise ValueError(msg) from e
+            except httpx.HTTPStatusError as e:
+                code: int = e.response.status_code
+                if (
+                    attempt < max_retries
+                    and code
+                    in (
+                        429,
+                        500,
+                        502,
+                        503,
+                        504,
+                    )
+                ):
+                    time.sleep(0.8 * (attempt + 1))
+                    continue
+                raise
+        raise RuntimeError("OpenAI: chat request could not be completed")
 
-    def process_news(self, title: str, summary: str) -> LLMNewsOutput:
+    def _process_news_inner(self, title: str, summary: str) -> LLMNewsOutput:
         system: str = (
             "You are an editor. Rewrite German news for Russian-speaking readers in Germany. "
             "Output only valid JSON, no surrounding prose. " + LLMNewsOutput.system_prompt_addendum()
@@ -78,3 +100,17 @@ class OpenAILLMProvider(LLMProvider):
             except (ValueError, TypeError, ValidationError) as e2:
                 logger.error("LLM failed after repair: %s", e2)
                 return fallback_after_validation_failure(title, summary, str(e2))
+
+    def process_news(self, title: str, summary: str) -> LLMNewsOutput:
+        try:
+            return self._process_news_inner(title, summary)
+        except (httpx.HTTPError, httpx.RequestError) as e:
+            logger.warning("OpenAI transport error, using validation fallback: %s", e)
+            return fallback_after_validation_failure(
+                title, summary, f"OpenAI request failed: {e!s}"[:200]
+            )
+        except Exception as e:
+            logger.exception("OpenAI processing failed, using validation fallback: %s", e)
+            return fallback_after_validation_failure(
+                title, summary, f"OpenAI error: {e!s}"[:200]
+            )

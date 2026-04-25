@@ -1,7 +1,9 @@
+import logging
 from dataclasses import dataclass
 
 from app.models.news import PipelineStatus, ProcessedNews, RawNewsItem
 from app.repositories.news_repository import NewsRepository
+from app.schemas.llm_output import fallback_after_validation_failure
 from app.schemas.news import PipelineRunResponse
 from app.services.dedup_service import DedupService
 from app.services.embedding_service import create_embedding_encoder
@@ -9,6 +11,8 @@ from app.services.llm_provider import LLMProvider, create_llm_provider
 from app.services.publication_service import PublicationDecisionInput, PublicationService
 from app.services.relevance_filter_service import RelevanceFilterService
 from app.services.rss_ingestion_service import RSSIngestionService
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -39,6 +43,7 @@ class PipelineService:
         processed_count: int = 0
         published: int = 0
         needs_review: int = 0
+        item_errors: int = 0
 
         raw_items: list[RawNewsItem] = self.repository.list_raw_items_for_processing()
         for raw_item in raw_items:
@@ -87,7 +92,14 @@ class PipelineService:
                     previous_cluster_size,
                 )
 
-            llm_output = self.context.llm_provider.process_news(raw_item.title, raw_item.summary)
+            try:
+                llm_output = self.context.llm_provider.process_news(raw_item.title, raw_item.summary)
+            except Exception as e:
+                logger.exception("LLM step failed for raw_item_id=%s", raw_item.id)
+                llm_output = fallback_after_validation_failure(
+                    raw_item.title, raw_item.summary, str(e)[:200]
+                )
+                item_errors += 1
             decision_inp = PublicationDecisionInput(
                 confidence_score=llm_output.confidence_score,
                 relevance_score=relevance.score,
@@ -128,7 +140,7 @@ class PipelineService:
             )
             processed_count += 1
 
-        return PipelineRunResponse(
+        out: PipelineRunResponse = PipelineRunResponse(
             fetched=ingestion_stats.fetched,
             feeds_failed=ingestion_stats.feeds_failed,
             filtered_out=filtered_out,
@@ -136,4 +148,18 @@ class PipelineService:
             processed=processed_count,
             published=published,
             needs_review=needs_review,
+            item_errors=item_errors,
         )
+        logger.info(
+            "Pipeline finished: fetched=%s feeds_failed=%s filtered=%s "
+            "clustered=%s processed=%s published=%s needs_review=%s item_errors=%s",
+            out.fetched,
+            out.feeds_failed,
+            out.filtered_out,
+            out.clustered,
+            out.processed,
+            out.published,
+            out.needs_review,
+            out.item_errors,
+        )
+        return out

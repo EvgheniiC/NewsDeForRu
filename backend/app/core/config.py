@@ -35,6 +35,17 @@ class Settings(BaseSettings):
     # Comma-separated origins for browser clients (e.g. Vite dev server). Empty disables CORS middleware.
     cors_origins: str = "http://127.0.0.1:5173,http://localhost:5173"
 
+    # In-process background RSS/pipeline (single-worker dev). Use external cron/beat for multi-replica.
+    pipeline_scheduler_enabled: bool = False
+    pipeline_interval_minutes: int = 30
+    # Per-feed fetch attempts; exponential delay between attempts (base below).
+    rss_feed_max_attempts: int = 3
+    rss_feed_retry_base_delay_seconds: float = 0.5
+    # One extra HTTP attempt on 429/5xx to OpenAI chat completions.
+    openai_request_retries: int = 1
+    # When the scheduled pipeline raises, the task can return a failure envelope instead of propagating.
+    pipeline_task_swallow_errors: bool = True
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 

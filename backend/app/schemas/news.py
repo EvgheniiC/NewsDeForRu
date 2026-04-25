@@ -53,3 +53,6 @@ class PipelineRunResponse(BaseModel):
     processed: int
     published: int
     needs_review: int
+    item_errors: int = 0
+    ok: bool = True
+    error: str | None = None

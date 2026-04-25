@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+import httpx
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
@@ -52,6 +53,40 @@ def test_rss_ingestion_persists_stripped_summary() -> None:
 
         sources: list[Source] = list(session.execute(select(Source)).scalars().all())
         assert all(s.source_key for s in sources)
+
+
+def test_rss_ingestion_retries_then_succeeds() -> None:
+    engine = create_engine("sqlite:///:memory:", future=True)
+    Base.metadata.create_all(engine)
+    session_factory = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+
+    mock_response: MagicMock = MagicMock()
+    mock_response.content = _MINIMAL_RSS
+    mock_response.raise_for_status = MagicMock()
+
+    fail: bool = True
+
+    def get_side_effect(_: str) -> MagicMock:
+        nonlocal fail
+        if fail:
+            fail = False
+            err: httpx.ReadTimeout = httpx.ReadTimeout("timeout", request=MagicMock())
+            raise err
+        return mock_response
+
+    client_instance: MagicMock = MagicMock()
+    client_instance.get = MagicMock(side_effect=get_side_effect)
+    client_cm: MagicMock = MagicMock()
+    client_cm.__enter__ = MagicMock(return_value=client_instance)
+    client_cm.__exit__ = MagicMock(return_value=False)
+
+    with session_factory() as session:
+        repo: NewsRepository = NewsRepository(session)
+        with patch("app.services.rss_ingestion_service.httpx.Client", return_value=client_cm):
+            service: RSSIngestionService = RSSIngestionService(repo)
+            stats = service.run()
+        assert stats.feeds_failed == 0
+        assert client_instance.get.call_count >= 2
 
 
 def test_upsert_source_updates_name_and_url() -> None:

@@ -1,3 +1,5 @@
+import logging
+import time
 from dataclasses import dataclass
 
 import feedparser  # type: ignore[import-untyped]
@@ -7,6 +9,8 @@ from app.core.config import settings
 from app.repositories.news_repository import NewsRepository
 from app.services.rss_entry_normalization import normalize_feedparser_entry
 from app.services.rss_sources import DEFAULT_RSS_SOURCES
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -21,15 +25,29 @@ class RSSIngestionService:
 
     @staticmethod
     def _fetch_feed_body(client: httpx.Client, url: str) -> bytes | None:
-        try:
-            response: httpx.Response = client.get(url)
-            response.raise_for_status()
-            body: bytes = response.content
-            if len(body) > settings.rss_max_response_bytes:
-                return None
-            return body
-        except httpx.HTTPError:
-            return None
+        max_attempts: int = max(1, settings.rss_feed_max_attempts)
+        base_delay: float = max(0.0, settings.rss_feed_retry_base_delay_seconds)
+        last_reason: str = ""
+        for attempt in range(max_attempts):
+            try:
+                response: httpx.Response = client.get(url)
+                response.raise_for_status()
+                body: bytes = response.content
+                if len(body) > settings.rss_max_response_bytes:
+                    logger.warning(
+                        "RSS response too large (url=%s, bytes=%s max=%s)",
+                        url,
+                        len(body),
+                        settings.rss_max_response_bytes,
+                    )
+                    return None
+                return body
+            except httpx.HTTPError as e:
+                last_reason = repr(e)
+                if attempt < max_attempts - 1 and base_delay > 0:
+                    time.sleep(base_delay * (2**attempt))
+        logger.warning("RSS fetch failed after %s attempts (url=%s): %s", max_attempts, url, last_reason)
+        return None
 
     def run(self) -> IngestionStats:
         fetched: int = 0
