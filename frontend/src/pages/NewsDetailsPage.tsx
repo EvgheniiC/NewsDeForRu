@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { getNews, getNewsImpact } from "../api/client";
+import { ApiError, getNews, getNewsImpact } from "../api/client";
 import type { ProcessedNews, RoleImpact, UserRole } from "../types/news";
 
 export function NewsDetailsPage(): JSX.Element {
@@ -8,24 +8,77 @@ export function NewsDetailsPage(): JSX.Element {
   const [news, setNews] = useState<ProcessedNews | null>(null);
   const [impact, setImpact] = useState<RoleImpact | null>(null);
   const [role, setRole] = useState<UserRole>("tenant");
+  const [loadingNews, setLoadingNews] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string>("");
+  const [notFound, setNotFound] = useState<boolean>(false);
+  const [impactError, setImpactError] = useState<string>("");
   const newsId: number = Number(params.id);
 
   useEffect(() => {
     if (!Number.isFinite(newsId)) {
+      setLoadingNews(false);
+      setLoadError("Некорректный идентификатор новости.");
+      setNotFound(false);
+      setNews(null);
       return;
     }
-    void getNews(newsId).then(setNews);
+    setLoadingNews(true);
+    setLoadError("");
+    setNotFound(false);
+    void getNews(newsId)
+      .then((data: ProcessedNews) => {
+        setNews(data);
+      })
+      .catch((error: unknown) => {
+        setNews(null);
+        if (error instanceof ApiError && error.status === 404) {
+          setNotFound(true);
+        } else {
+          setLoadError(error instanceof Error ? error.message : "Не удалось загрузить новость.");
+        }
+      })
+      .finally(() => {
+        setLoadingNews(false);
+      });
   }, [newsId]);
 
   useEffect(() => {
-    if (!Number.isFinite(newsId)) {
+    if (!Number.isFinite(newsId) || news === null) {
       return;
     }
-    void getNewsImpact(newsId, role).then(setImpact);
-  }, [newsId, role]);
+    setImpactError("");
+    void getNewsImpact(newsId, role)
+      .then((data: RoleImpact) => {
+        setImpact(data);
+      })
+      .catch((error: unknown) => {
+        setImpact(null);
+        setImpactError(
+          error instanceof Error ? error.message : "Не удалось загрузить блок для роли.",
+        );
+      });
+  }, [newsId, role, news]);
 
-  if (news === null) {
+  if (loadingNews) {
     return <p>Загрузка деталей...</p>;
+  }
+
+  if (loadError) {
+    return (
+      <section>
+        <Link to="/">← Назад</Link>
+        <p className="error">{loadError}</p>
+      </section>
+    );
+  }
+
+  if (notFound || news === null) {
+    return (
+      <section>
+        <Link to="/">← Назад</Link>
+        <p>Новость не найдена.</p>
+      </section>
+    );
   }
 
   return (
@@ -46,6 +99,7 @@ export function NewsDetailsPage(): JSX.Element {
           <option value="buyer">Покупатель</option>
         </select>
       </div>
+      {impactError && <p className="error">{impactError}</p>}
       <p>
         <strong>Что это значит для тебя:</strong> {impact?.text ?? ""}
       </p>

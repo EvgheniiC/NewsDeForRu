@@ -1,11 +1,21 @@
 import type { NewsFeedItem, ProcessedNews, RoleImpact } from "../types/news";
 
-const API_BASE_URL: string = "http://127.0.0.1:8000";
+const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
+
+export class ApiError extends Error {
+  public readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response: Response = await fetch(`${API_BASE_URL}${path}`, init);
   if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`);
+    throw new ApiError(`Request failed with status ${response.status}`, response.status);
   }
   return (await response.json()) as T;
 }

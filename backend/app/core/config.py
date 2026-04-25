@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     semantic_dedup_min_similarity: float = 0.88
     semantic_dedup_lookback_days: int = 21
 
+    # Comma-separated origins for browser clients (e.g. Vite dev server). Empty disables CORS middleware.
+    cors_origins: str = "http://127.0.0.1:5173,http://localhost:5173"
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 

@@ -26,8 +26,13 @@ export function FeedPage(): JSX.Element {
   }, []);
 
   const handleRefresh = async (): Promise<void> => {
-    await runPipeline();
-    await loadFeed();
+    try {
+      setError("");
+      await runPipeline();
+      await loadFeed();
+    } catch (fetchError: unknown) {
+      setError(fetchError instanceof Error ? fetchError.message : "Не удалось обновить данные.");
+    }
   };
 
   return (
