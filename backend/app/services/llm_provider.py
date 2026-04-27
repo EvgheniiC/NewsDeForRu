@@ -3,6 +3,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from app.core.config import settings
+from typing import Literal
+
 from app.schemas.llm_output import LLMNewsOutput
 
 
@@ -17,6 +19,12 @@ class StubLLMProvider(LLMProvider):
         # Do not pass German RSS text through as the published title/summary: the UI is Russian.
         # Stub has no translation model; we emit Russian placeholders. Use LLM_PROVIDER=openai to translate.
         key: int = abs(hash((title, summary)))
+        roll: tuple[Literal["politics"], Literal["economy"], Literal["life"]] = (
+            "politics",
+            "economy",
+            "life",
+        )
+        topic: Literal["politics", "economy", "life"] = roll[key % 3]
         return LLMNewsOutput(
             title=(f"Новость из Германии (черновик {key % 1_000_000:06d})")[:500],
             one_sentence_summary=(
@@ -33,6 +41,7 @@ class StubLLMProvider(LLMProvider):
             action_items="- Проверьте текущий статус\n- Изучите официальные субсидии",
             bonus_block="Одна цифра: итоговые расходы зависят от земли и типа жилья.",
             spoiler="Политический компромисс смягчил первоначальный вариант реформы.",
+            topic=topic,
             confidence_score=0.82,
         )
 

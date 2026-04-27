@@ -31,6 +31,8 @@ export async function installApiMock(page: Page): Promise<void> {
     title: "E2E Test News",
     subtitle: "Тестовый подзаголовок",
     read_time_minutes: 2,
+    topic: "life",
+    is_urgent: false,
     created_at: "2024-01-15T10:00:00"
   };
 
@@ -49,6 +51,8 @@ export async function installApiMock(page: Page): Promise<void> {
     confidence_score: 0.9,
     publication_status: "needs_review",
     read_time_minutes: 2,
+    topic: "life",
+    is_urgent: false,
     created_at: "2024-01-15T10:00:00"
   };
 

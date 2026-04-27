@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db_session
-from app.models.news import UserRole
+from app.models.news import NewsTopic, UserRole
 from app.repositories.news_repository import NewsRepository
 from app.schemas.news import NewsFeedItem, ProcessedNewsResponse, RoleImpactResponse
 
@@ -12,16 +12,31 @@ router: APIRouter = APIRouter()
 @router.get("", response_model=list[NewsFeedItem])
 def list_news(
     limit: int = Query(default=30, ge=1, le=100),
+    topic: NewsTopic | None = Query(
+        default=None,
+        description="Filter by primary topic. Ignored when urgent=true.",
+    ),
+    urgent: bool = Query(
+        default=False,
+        description="Only items flagged as urgent / breaking (⚡ Срочно).",
+    ),
     db_session: Session = Depends(get_db_session),
 ) -> list[NewsFeedItem]:
     repository = NewsRepository(db_session)
-    news_items = repository.list_published(limit=limit)
+    topic_filter: NewsTopic | None = None if urgent else topic
+    news_items = repository.list_published(
+        limit=limit,
+        topic=topic_filter,
+        urgent_only=urgent,
+    )
     return [
         NewsFeedItem(
             id=item.id,
             title=item.title,
             subtitle=item.one_sentence_summary,
             read_time_minutes=item.read_time_minutes,
+            topic=item.topic,
+            is_urgent=item.is_urgent,
             created_at=item.created_at,
         )
         for item in news_items

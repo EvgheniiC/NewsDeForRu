@@ -1,4 +1,8 @@
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+NewsTopicLiteral = Literal["politics", "economy", "life"]
 
 
 def _llm_string(v: str) -> str:
@@ -23,6 +27,10 @@ class LLMNewsOutput(BaseModel):
     action_items: str = Field(..., min_length=1, max_length=4000)
     bonus_block: str = Field(..., min_length=1, max_length=2000)
     spoiler: str = Field(..., min_length=1, max_length=2000)
+    topic: NewsTopicLiteral = Field(
+        ...,
+        description="Primary category: politics, economy, or everyday life in Germany.",
+    )
     confidence_score: float = Field(..., ge=0.0, le=1.0)
 
     @field_validator(
@@ -49,8 +57,9 @@ class LLMNewsOutput(BaseModel):
         return (
             "Return exactly one JSON object (no markdown, no extra text) with these keys: "
             "title, one_sentence_summary, plain_language, impact_owner, impact_tenant, "
-            "impact_buyer, action_items, bonus_block, spoiler, confidence_score. "
-            "All string values must be in Russian. confidence_score is a number from 0 to 1."
+            "impact_buyer, action_items, bonus_block, spoiler, topic, confidence_score. "
+            "topic must be one of: politics, economy, life (classify the story). "
+            "All other string values must be in Russian. confidence_score is a number from 0 to 1."
         )
 
 
@@ -77,5 +86,6 @@ def fallback_after_validation_failure(
         action_items="- Проверьте текущий статус\n- Изучите официальные субсидии",
         bonus_block="Редакция отметила ошибку в ответе ИИ; материал уйдёт на ручную проверку.",
         spoiler="Политический компромисс мог смягчить первоначальный вариант реформы.",
+        topic="life",
         confidence_score=0.12,
     )

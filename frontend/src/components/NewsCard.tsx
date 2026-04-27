@@ -8,6 +8,7 @@ interface NewsCardProps {
 export function NewsCard({ item }: NewsCardProps): JSX.Element {
   return (
     <article className="news-card">
+      {item.is_urgent ? <span className="news-urgent-badge">⚡ Срочно</span> : null}
       <h3>{item.title}</h3>
       <p>{item.subtitle}</p>
       <div className="news-card-footer">

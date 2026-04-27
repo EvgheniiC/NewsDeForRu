@@ -1,10 +1,16 @@
 export type UserRole = "owner" | "tenant" | "buyer";
 
+export type NewsTopic = "politics" | "economy" | "life";
+
+export type FeedFilterKey = NewsTopic | "urgent";
+
 export interface NewsFeedItem {
   id: number;
   title: string;
   subtitle: string;
   read_time_minutes: number;
+  topic: NewsTopic;
+  is_urgent: boolean;
   created_at: string;
 }
 
@@ -23,6 +29,8 @@ export interface ProcessedNews {
   confidence_score: number;
   publication_status: string;
   read_time_minutes: number;
+  topic: NewsTopic;
+  is_urgent: boolean;
   created_at: string;
 }
 

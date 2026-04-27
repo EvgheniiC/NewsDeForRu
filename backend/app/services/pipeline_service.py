@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 
-from app.models.news import PipelineStatus, ProcessedNews, RawNewsItem
+from app.models.news import NewsTopic, PipelineStatus, ProcessedNews, RawNewsItem
 from app.repositories.news_repository import NewsRepository
 from app.schemas.llm_output import fallback_after_validation_failure
 from app.schemas.news import PipelineRunResponse
@@ -11,6 +11,7 @@ from app.services.llm_provider import LLMProvider, create_llm_provider
 from app.services.publication_service import PublicationDecisionInput, PublicationService
 from app.services.relevance_filter_service import RelevanceFilterService
 from app.services.rss_ingestion_service import RSSIngestionService
+from app.services.urgent_news import ev_is_urgent_news
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -113,6 +114,8 @@ class PipelineService:
             else:
                 needs_review += 1
 
+            topic: NewsTopic = NewsTopic(llm_output.topic)
+            is_urgent: bool = ev_is_urgent_news(raw_item.title, raw_item.summary, llm_output)
             processed_item = ProcessedNews(
                 raw_item_id=raw_item.id,
                 title=llm_output.title,
@@ -129,6 +132,8 @@ class PipelineService:
                 cluster_id=cluster.id,
                 publication_status=publication_status,
                 read_time_minutes=2,
+                topic=topic,
+                is_urgent=is_urgent,
             )
             self.repository.create_processed_news(processed_item)
             self.repository.update_raw_status(

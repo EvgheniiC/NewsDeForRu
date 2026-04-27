@@ -21,6 +21,7 @@ def _valid_payload() -> dict[str, object]:
         "action_items": "- сделать",
         "bonus_block": "факт",
         "spoiler": "интрига",
+        "topic": "life",
         "confidence_score": 0.9,
     }
 

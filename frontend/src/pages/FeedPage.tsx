@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { NewsCard } from "../components/NewsCard";
-import { ApiError, getFeed, getHealth, NetworkError, runPipeline } from "../api/client";
-import type { NewsFeedItem } from "../types/news";
+import { ApiError, getFeed, getHealth, NetworkError, runPipeline, type GetFeedOptions } from "../api/client";
+import type { FeedFilterKey, NewsFeedItem } from "../types/news";
 import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
 
 function formatHealthTime(iso: string | null): string {
@@ -23,6 +23,7 @@ export function FeedPage(): JSX.Element {
   const [items, setItems] = useState<NewsFeedItem[]>([]);
   const [feedError, setFeedError] = useState<string>("");
   const [feedLoading, setFeedLoading] = useState<boolean>(true);
+  const [feedFilter, setFeedFilter] = useState<FeedFilterKey>("life");
 
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [healthError, setHealthError] = useState<string>("");
@@ -53,7 +54,9 @@ export function FeedPage(): JSX.Element {
   const loadFeed = useCallback(async (): Promise<void> => {
     setFeedLoading(true);
     try {
-      const response: NewsFeedItem[] = await getFeed();
+      const feedOptions: GetFeedOptions =
+        feedFilter === "urgent" ? { urgent: true } : { topic: feedFilter };
+      const response: NewsFeedItem[] = await getFeed(feedOptions);
       setItems(response);
       setFeedError("");
     } catch (e: unknown) {
@@ -69,7 +72,7 @@ export function FeedPage(): JSX.Element {
     } finally {
       setFeedLoading(false);
     }
-  }, []);
+  }, [feedFilter]);
 
   useEffect(() => {
     void loadFeed();
@@ -111,6 +114,32 @@ export function FeedPage(): JSX.Element {
           {pipelineRunning ? "Выполняется pipeline…" : "Обновить через pipeline"}
         </button>
       </header>
+
+      <div className="feed-topic-bar" role="tablist" aria-label="Темы ленты">
+        {(
+          [
+            { key: "politics" as const, label: "Политика" },
+            { key: "economy" as const, label: "Экономика" },
+            { key: "life" as const, label: "Жизнь" },
+            { key: "urgent" as const, label: "⚡ Срочно" }
+          ] as const
+        ).map((opt, index) => (
+          <span key={opt.key} className="feed-topic-cell">
+            {index > 0 ? <span className="feed-topic-sep" aria-hidden="true" /> : null}
+            <button
+              type="button"
+              className={feedFilter === opt.key ? "feed-topic-pill is-active" : "feed-topic-pill"}
+              role="tab"
+              aria-selected={feedFilter === opt.key}
+              onClick={() => {
+                setFeedFilter(opt.key);
+              }}
+            >
+              {opt.label}
+            </button>
+          </span>
+        ))}
+      </div>
 
       <div className="panel health-panel">
         <h2 className="panel-title">Состояние сервера</h2>
@@ -202,6 +231,7 @@ export function FeedPage(): JSX.Element {
 
       {feedLoading && <p className="loading-inline">Загрузка ленты…</p>}
       {feedError && <p className="error">{feedError}</p>}
+
       <div className={`news-grid ${feedLoading ? "news-grid-dim" : ""}`}>
         {items.map((item) => (
           <NewsCard item={item} key={item.id} />

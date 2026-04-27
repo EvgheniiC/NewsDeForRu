@@ -1,4 +1,4 @@
-import type { NewsFeedItem, ProcessedNews, RoleImpact } from "../types/news";
+import type { NewsFeedItem, NewsTopic, ProcessedNews, RoleImpact } from "../types/news";
 import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
 
 const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -69,8 +69,20 @@ export async function getHealth(): Promise<HealthResponse> {
   return fetchJson<HealthResponse>("/health");
 }
 
-export async function getFeed(): Promise<NewsFeedItem[]> {
-  return fetchJson<NewsFeedItem[]>("/news");
+export interface GetFeedOptions {
+  topic?: NewsTopic;
+  urgent?: boolean;
+}
+
+export async function getFeed(options?: GetFeedOptions): Promise<NewsFeedItem[]> {
+  const params: URLSearchParams = new URLSearchParams();
+  if (options?.urgent) {
+    params.set("urgent", "true");
+  } else if (options?.topic) {
+    params.set("topic", options.topic);
+  }
+  const q: string = params.toString();
+  return fetchJson<NewsFeedItem[]>(`/news${q ? `?${q}` : ""}`);
 }
 
 export async function getNews(newsId: number): Promise<ProcessedNews> {

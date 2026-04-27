@@ -11,6 +11,7 @@ from app.models.news import (
     ClusterItem,
     ModerationEvent,
     NewsCluster,
+    NewsTopic,
     PipelineStatus,
     ProcessedNews,
     RawNewsItem,
@@ -221,13 +222,21 @@ class NewsRepository:
         self.db_session.refresh(processed)
         return processed
 
-    def list_published(self, limit: int = 50) -> list[ProcessedNews]:
-        query: Select[tuple[ProcessedNews]] = (
-            select(ProcessedNews)
-            .where(ProcessedNews.publication_status == PipelineStatus.PUBLISHED)
-            .order_by(ProcessedNews.created_at.desc())
-            .limit(limit)
+    def list_published(
+        self,
+        limit: int = 50,
+        *,
+        topic: NewsTopic | None = None,
+        urgent_only: bool = False,
+    ) -> list[ProcessedNews]:
+        query: Select[tuple[ProcessedNews]] = select(ProcessedNews).where(
+            ProcessedNews.publication_status == PipelineStatus.PUBLISHED
         )
+        if urgent_only:
+            query = query.where(ProcessedNews.is_urgent.is_(True))
+        elif topic is not None:
+            query = query.where(ProcessedNews.topic == topic)
+        query = query.order_by(ProcessedNews.created_at.desc()).limit(limit)
         return list(self.db_session.execute(query).scalars().all())
 
     def list_needs_review(self) -> list[ProcessedNews]:

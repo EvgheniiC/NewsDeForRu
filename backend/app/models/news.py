@@ -31,6 +31,12 @@ class UserRole(StrEnum):
     BUYER = "buyer"
 
 
+class NewsTopic(StrEnum):
+    POLITICS = "politics"
+    ECONOMY = "economy"
+    LIFE = "life"
+
+
 class Source(Base):
     __tablename__ = "sources"
 
@@ -87,6 +93,17 @@ class ProcessedNews(Base):
         Enum(PipelineStatus), default=PipelineStatus.NEEDS_REVIEW, nullable=False
     )
     read_time_minutes: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    topic: Mapped[NewsTopic] = mapped_column(
+        Enum(
+            NewsTopic,
+            native_enum=False,
+            length=32,
+            values_callable=lambda t: [m.value for m in t],
+        ),
+        default=NewsTopic.LIFE,
+        nullable=False,
+    )
+    is_urgent: Mapped[bool] = mapped_column(default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     raw_item: Mapped[RawNewsItem] = relationship()

@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from app.models.news import PipelineStatus, UserRole
+from app.models.news import NewsTopic, PipelineStatus, UserRole
 
 
 class ProcessedNewsResponse(BaseModel):
@@ -21,6 +21,8 @@ class ProcessedNewsResponse(BaseModel):
     confidence_score: float
     publication_status: PipelineStatus
     read_time_minutes: int
+    topic: NewsTopic
+    is_urgent: bool
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -31,6 +33,8 @@ class NewsFeedItem(BaseModel):
     title: str
     subtitle: str
     read_time_minutes: int
+    topic: NewsTopic
+    is_urgent: bool
     created_at: datetime
 
     model_config = {"from_attributes": True}
