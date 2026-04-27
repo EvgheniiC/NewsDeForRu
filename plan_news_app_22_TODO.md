@@ -34,14 +34,17 @@
 
 ### Пункт 4 — CI
 
-- [ ] GitHub Actions (или аналог): backend `ruff`, `mypy`, `pytest`; frontend `lint`, `build`.
-- [ ] Политика для `test_migration_postgres` (сервис Postgres в CI или исключение).
-- [ ] Краткая ссылка в README на статус CI.
+- [x] GitHub Actions (или аналог): backend `ruff`, `mypy`, `pytest`; frontend `lint`, `build`.
+- [x] Политика для `test_migration_postgres` (сервис Postgres в CI или исключение).
+- [x] Краткая ссылка в README на статус CI.
 
 ### Пункт 5 — E2E фронтенда
 
-- [ ] Инструмент (например Playwright) + сценарии: лента → детали → модерация.
-- [ ] Стратегия API (мок / тестовый бэкенд) и скрипт запуска.
+**Статус:** сделано.
+
+- [x] **Playwright** + сценарий `e2e/app-flow.spec.ts`: лента → детали (карточка «Открыть») → модерация → Publish, проверка «Очередь пуста».
+- [x] **API:** перехват `fetch` к `http://127.0.0.1:8000` через `page.route` (см. `e2e/fixtures/apiMock.ts`); CORS/OPTIONS для кросс-ориджин-запросов; **альтернатива** — поднять бэкенд и задать `VITE_API_BASE_URL` при сборке, без мока.
+- [x] **Запуск:** `cd frontend && npm run test:e2e` (первый раз при необходимости `npx playwright install chromium`); `playwright.config` поднимает Vite; для UI: `npm run test:e2e:ui`.
 
 ### Пункт 6 — Наблюдаемость (углубление)
 

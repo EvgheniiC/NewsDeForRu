@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol, cast, runtime_checkable
 
 import numpy as np
 
@@ -34,7 +34,7 @@ class HashEmbeddingEncoder:
         norm: float = float(np.linalg.norm(vector))
         if norm > 1e-9:
             vector = vector / norm
-        return vector.astype(np.float32).tolist()
+        return cast(list[float], vector.astype(np.float32).tolist())
 
 
 class SentenceTransformerEmbeddingEncoder:
@@ -58,7 +58,7 @@ class SentenceTransformerEmbeddingEncoder:
         )
         if vector.ndim > 1:
             vector = vector[0]
-        return vector.astype(np.float32).tolist()
+        return cast(list[float], vector.astype(np.float32).tolist())
 
 
 def create_embedding_encoder() -> EmbeddingEncoder:

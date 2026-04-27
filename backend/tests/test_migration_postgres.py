@@ -1,3 +1,10 @@
+"""PostgreSQL migration integration test.
+
+In CI (GitHub Actions), Postgres runs as a job service; set MIGRATION_TEST_ADMIN_URL to the
+admin connection (database `postgres`) so the test can CREATE/DROP ephemeral databases.
+Locally, defaults match docker compose (port 55432) unless MIGRATION_TEST_ADMIN_URL is set.
+"""
+
 from __future__ import annotations
 
 import os

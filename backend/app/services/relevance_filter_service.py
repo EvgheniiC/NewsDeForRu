@@ -39,6 +39,8 @@ class RelevanceFilterService:
         if self._positive_embeddings is None:
             self._positive_embeddings = [self._encoder.encode_normalized(t) for t in POSITIVE_ANCHORS]
             self._negative_embeddings = [self._encoder.encode_normalized(t) for t in NEGATIVE_ANCHORS]
+        assert self._positive_embeddings is not None
+        assert self._negative_embeddings is not None
         return self._positive_embeddings, self._negative_embeddings
 
     def evaluate(self, title: str, summary: str) -> RelevanceResult:

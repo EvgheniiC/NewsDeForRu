@@ -1,5 +1,7 @@
 # newsForGermanyRU
 
+[![CI](https://github.com/EvgheniiC/NewsDeForRu/actions/workflows/ci.yml/badge.svg)](https://github.com/EvgheniiC/NewsDeForRu/actions/workflows/ci.yml)
+
 Приложение для понятной русскоязычной ленты новостей из Германии:
 `RSS -> нормализация -> фильтрация -> дедупликация -> AI-обработка -> публикация`.
 
@@ -76,21 +78,17 @@ Definition of Done checklist:
 
 ### Пункт 4 — CI (непрерывная проверка)
 
-**Статус:** запланировано.
+**Статус:** сделано.
 
-**Цель:** каждый PR/push автоматически гоняет те же проверки, что и локально.
+Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (push/PR на `main` и `master`). Статус последнего прогона — бейдж в шапке README и вкладка [Actions](https://github.com/EvgheniiC/NewsDeForRu/actions/workflows/ci.yml) в репозитории.
 
-**Задачи:**
-
-- Подключить CI (например GitHub Actions) к репозиторию.
-- Job «backend»: установка Python, кэш зависимостей, `ruff check`, `mypy`, `pytest` (без интеграционного теста миграций, если нет сервиса Postgres в CI — явно исключить или поднять сервис-контейнер).
-- Job «frontend»: `npm ci`, `npm run lint`, `npm run build`.
-- При необходимости: общий workflow или матрица ОС; зафиксировать версии Node и Python в шагах.
+- Backend: Python 3.11, сервис PostgreSQL 16; `ruff check`, `mypy`, полный `pytest` (включая `test_migration_postgres` через `MIGRATION_TEST_ADMIN_URL`).
+- Frontend: Node 20; `npm ci`, `npm run lint`, `npm run build`.
 
 **Definition of Done:**
 
-- [ ] CI запускается на push/PR и падает при нарушении lint/typecheck/tests.
-- [ ] В README кратко указано, где смотреть статус и как воспроизвести проверки локально.
+- [x] CI запускается на push/PR и падает при нарушении lint/typecheck/tests.
+- [x] В README кратко указано, где смотреть статус и как воспроизвести проверки локально.
 
 ---
 
@@ -175,5 +173,9 @@ Definition of Done checklist:
 
 ### Run checks
 
-- Backend: `cd backend && ruff check app tests && mypy app && pytest`
-- Frontend: `cd frontend && npm run lint && npm run build`
+Локально те же шаги, что в CI (см. [workflow CI](.github/workflows/ci.yml)):
+
+- Backend: `cd backend && pip install -r requirements-dev.txt && ruff check app tests && mypy app && pytest`
+- Frontend: `cd frontend && npm ci && npm run lint && npm run build`
+
+Интеграционный тест миграций (`tests/test_migration_postgres.py`) в CI идёт против сервиса Postgres; локально задайте `MIGRATION_TEST_ADMIN_URL` как в разделе «Local PostgreSQL» выше.
