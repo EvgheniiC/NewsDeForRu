@@ -13,7 +13,8 @@ test.describe("end-to-end", () => {
     await page.getByRole("link", { name: "Открыть" }).first().click();
     await expect(page).toHaveURL(/\/news\/1$/);
     await expect(page.getByRole("heading", { name: "E2E Test News" })).toBeVisible();
-    await expect(page.getByText("Твой сценарий: арендатор.")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Что это значит с разных сторон" })).toBeVisible();
+    await expect(page.getByText("тестовый текст перспективы 2.")).toBeVisible();
 
     await page.getByRole("link", { name: "Модерация" }).click();
     await expect(page.getByRole("heading", { name: "Модерация" })).toBeVisible();

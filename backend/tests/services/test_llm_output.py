@@ -16,6 +16,8 @@ def _valid_payload() -> dict[str, object]:
         "title": "Тест",
         "one_sentence_summary": "Коротко о новости.",
         "plain_language": "Пояснение простым языком.",
+        "impact_presentation": "multi",
+        "impact_unified": "",
         "impact_owner": "а",
         "impact_tenant": "б",
         "impact_buyer": "в",
@@ -31,7 +33,38 @@ def test_parse_llm_news_json_accepts_minimal_object() -> None:
     s: str = json.dumps(_valid_payload(), ensure_ascii=True)
     out: LLMNewsOutput = parse_llm_news_json(s)
     assert out.title == "Тест"
+    assert out.impact_presentation == "multi"
     assert out.confidence_score == 0.9
+
+
+def test_parse_llm_news_json_accepts_single_presentation() -> None:
+    p: dict[str, object] = _valid_payload()
+    p["impact_presentation"] = "single"
+    p["impact_unified"] = "Один абзац о значении для читателя."
+    p["impact_owner"] = ""
+    p["impact_tenant"] = ""
+    p["impact_buyer"] = ""
+    out: LLMNewsOutput = parse_llm_news_json(json.dumps(p, ensure_ascii=True))
+    assert out.impact_presentation == "single"
+    assert "Один абзац" in out.impact_unified
+
+
+def test_parse_llm_news_json_accepts_none_presentation() -> None:
+    p: dict[str, object] = _valid_payload()
+    p["impact_presentation"] = "none"
+    p["impact_unified"] = ""
+    p["impact_owner"] = ""
+    p["impact_tenant"] = ""
+    p["impact_buyer"] = ""
+    out: LLMNewsOutput = parse_llm_news_json(json.dumps(p, ensure_ascii=True))
+    assert out.impact_presentation == "none"
+
+
+def test_parse_llm_news_json_rejects_multi_with_unified_text() -> None:
+    p: dict[str, object] = _valid_payload()
+    p["impact_unified"] = "лишнее"
+    with pytest.raises(ValidationError):
+        parse_llm_news_json(json.dumps(p, ensure_ascii=True))
 
 
 def test_parse_llm_news_json_rejects_confidence_out_of_range() -> None:
@@ -89,4 +122,7 @@ def test_normalize_one_sentence_replaces_string_none_placeholder() -> None:
 def test_fallback_after_validation_failure_is_valid() -> None:
     f: LLMNewsOutput = fallback_after_validation_failure("T", "S", "reason")
     assert f.confidence_score < 0.2
+    assert f.impact_presentation == "single"
+    assert f.impact_unified
+    assert f.impact_owner == ""
     assert f.model_json_schema()["type"] == "object"

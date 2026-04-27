@@ -3,7 +3,7 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, model_validator
 
-from app.models.news import NewsTopic, PipelineStatus, UserRole
+from app.models.news import ImpactPresentation, NewsTopic, PipelineStatus, UserRole
 
 # Existing rows can contain a literal "None" from bad model JSON; never expose to clients as text.
 _OCCASIONAL_PLACEHOLDERS: frozenset[str] = frozenset({"None", "null", "NULL", ""})
@@ -23,6 +23,8 @@ class ProcessedNewsResponse(BaseModel):
     title: str
     one_sentence_summary: str
     plain_language: str
+    impact_presentation: ImpactPresentation
+    impact_unified: str
     impact_owner: str
     impact_tenant: str
     impact_buyer: str

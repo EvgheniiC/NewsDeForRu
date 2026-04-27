@@ -21,4 +21,5 @@ def test_openai_connect_error_uses_structured_fallback() -> None:
     ):
         out: LLMNewsOutput = provider.process_news("Title", "Summary")
     assert out.confidence_score == 0.12
+    assert out.impact_presentation == "single"
     assert "OpenAI" in out.plain_language

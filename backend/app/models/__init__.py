@@ -1,5 +1,6 @@
 from app.models.news import (
     ClusterItem,
+    ImpactPresentation,
     ModerationEvent,
     NewsCluster,
     PipelineStatus,
@@ -10,6 +11,7 @@ from app.models.news import (
 )
 
 __all__ = [
+    "ImpactPresentation",
     "PipelineStatus",
     "ProcessedNews",
     "RawNewsItem",

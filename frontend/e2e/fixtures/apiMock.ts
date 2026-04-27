@@ -41,9 +41,11 @@ export async function installApiMock(page: Page): Promise<void> {
     title: "E2E Test News",
     one_sentence_summary: "Кратко о новости E2E.",
     plain_language: "Простое объяснение для теста.",
-    impact_owner: "Для владельца: текст.",
-    impact_tenant: "Для арендатора: текст.",
-    impact_buyer: "Для покупателя: текст.",
+    impact_presentation: "multi",
+    impact_unified: "",
+    impact_owner: "Если вы на стороне бизнеса: тестовый текст перспективы 1.",
+    impact_tenant: "Если вы потребитель в быту: тестовый текст перспективы 2.",
+    impact_buyer: "Если вы рассматриваете крупную покупку: тестовый текст перспективы 3.",
     action_items: "Проверить сценарий E2E.",
     bonus_block: "Бонус.",
     spoiler: "Спойлер.",
@@ -55,8 +57,6 @@ export async function installApiMock(page: Page): Promise<void> {
     is_urgent: false,
     created_at: "2024-01-15T10:00:00"
   };
-
-  const impactTenant: Record<string, unknown> = { role: "tenant", text: "Твой сценарий: арендатор." };
 
   let queue: Record<string, unknown>[] = [processedBody];
 
@@ -88,11 +88,6 @@ export async function installApiMock(page: Page): Promise<void> {
 
     if (path === "/news/1" && method === "GET") {
       await fulfillJson(route, processedBody);
-      return;
-    }
-
-    if (path === "/news/1/impact" && method === "GET" && url.searchParams.get("role") === "tenant") {
-      await fulfillJson(route, impactTenant);
       return;
     }
 

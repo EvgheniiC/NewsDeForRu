@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db_session
-from app.models.news import NewsTopic, UserRole
+from app.models.news import ImpactPresentation, NewsTopic, UserRole
 from app.repositories.news_repository import NewsRepository
 from app.schemas.news import (
     NewsFeedItem,
@@ -67,6 +67,11 @@ def get_news_impact(
     item = repository.get_processed_by_id(news_id)
     if item is None:
         raise HTTPException(status_code=404, detail="News item not found.")
+    if item.impact_presentation != ImpactPresentation.MULTI:
+        raise HTTPException(
+            status_code=404,
+            detail="Role-based impact is only available for multi-perspective items.",
+        )
 
     role_to_text: dict[UserRole, str] = {
         UserRole.OWNER: item.impact_owner,

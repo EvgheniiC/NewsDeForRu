@@ -1,17 +1,51 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ApiError, getNews, getNewsImpact } from "../api/client";
-import type { ProcessedNews, RoleImpact, UserRole } from "../types/news";
+import { ApiError, getNews } from "../api/client";
+import type { ImpactPresentation, ProcessedNews } from "../types/news";
+
+function renderImpactBlock(
+  presentation: ImpactPresentation,
+  news: ProcessedNews,
+): JSX.Element | null {
+  if (presentation === "none") {
+    return null;
+  }
+  if (presentation === "single") {
+    return (
+      <section aria-labelledby="impact-single-heading" className="news-perspectives">
+        <h2 className="news-perspectives__title" id="impact-single-heading">
+          Что это значит
+        </h2>
+        <div className="news-perspective">
+          <p className="news-perspective__text">{news.impact_unified ?? ""}</p>
+        </div>
+      </section>
+    );
+  }
+  return (
+    <section aria-labelledby="perspectives-heading" className="news-perspectives">
+      <h2 className="news-perspectives__title" id="perspectives-heading">
+        Что это значит с разных сторон
+      </h2>
+      <div className="news-perspective">
+        <p className="news-perspective__text">{news.impact_owner}</p>
+      </div>
+      <div className="news-perspective">
+        <p className="news-perspective__text">{news.impact_tenant}</p>
+      </div>
+      <div className="news-perspective">
+        <p className="news-perspective__text">{news.impact_buyer}</p>
+      </div>
+    </section>
+  );
+}
 
 export function NewsDetailsPage(): JSX.Element {
   const params = useParams<{ id: string }>();
   const [news, setNews] = useState<ProcessedNews | null>(null);
-  const [impact, setImpact] = useState<RoleImpact | null>(null);
-  const [role, setRole] = useState<UserRole>("tenant");
   const [loadingNews, setLoadingNews] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string>("");
   const [notFound, setNotFound] = useState<boolean>(false);
-  const [impactError, setImpactError] = useState<string>("");
   const newsId: number = Number(params.id);
 
   useEffect(() => {
@@ -42,23 +76,6 @@ export function NewsDetailsPage(): JSX.Element {
       });
   }, [newsId]);
 
-  useEffect(() => {
-    if (!Number.isFinite(newsId) || news === null) {
-      return;
-    }
-    setImpactError("");
-    void getNewsImpact(newsId, role)
-      .then((data: RoleImpact) => {
-        setImpact(data);
-      })
-      .catch((error: unknown) => {
-        setImpact(null);
-        setImpactError(
-          error instanceof Error ? error.message : "Не удалось загрузить блок для роли.",
-        );
-      });
-  }, [newsId, role, news]);
-
   if (loadingNews) {
     return <p>Загрузка деталей...</p>;
   }
@@ -81,6 +98,8 @@ export function NewsDetailsPage(): JSX.Element {
     );
   }
 
+  const presentation: ImpactPresentation = news.impact_presentation ?? "multi";
+
   return (
     <section>
       <Link to="/">← Назад</Link>
@@ -91,18 +110,7 @@ export function NewsDetailsPage(): JSX.Element {
       <p>
         <strong>Простым языком:</strong> {news.plain_language}
       </p>
-      <div className="role-selector">
-        <label htmlFor="role">Роль:</label>
-        <select id="role" onChange={(event) => setRole(event.target.value as UserRole)} value={role}>
-          <option value="owner">Владелец</option>
-          <option value="tenant">Арендатор</option>
-          <option value="buyer">Покупатель</option>
-        </select>
-      </div>
-      {impactError && <p className="error">{impactError}</p>}
-      <p>
-        <strong>Что это значит для тебя:</strong> {impact?.text ?? ""}
-      </p>
+      {renderImpactBlock(presentation, news)}
       <p>
         <strong>Что сделать:</strong> {news.action_items}
       </p>

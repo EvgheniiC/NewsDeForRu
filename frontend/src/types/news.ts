@@ -1,6 +1,7 @@
-export type UserRole = "owner" | "tenant" | "buyer";
-
 export type NewsTopic = "politics" | "economy" | "life";
+
+/** How the impact block is shown: three angles, one paragraph, or hidden. */
+export type ImpactPresentation = "multi" | "single" | "none";
 
 export type FeedFilterKey = NewsTopic | "urgent";
 
@@ -19,6 +20,9 @@ export interface ProcessedNews {
   title: string;
   one_sentence_summary: string;
   plain_language: string;
+  /** Omitted in older API responses; treat as "multi" if missing. */
+  impact_presentation?: ImpactPresentation;
+  impact_unified?: string;
   impact_owner: string;
   impact_tenant: string;
   impact_buyer: string;
@@ -32,9 +36,4 @@ export interface ProcessedNews {
   topic: NewsTopic;
   is_urgent: boolean;
   created_at: string;
-}
-
-export interface RoleImpact {
-  role: UserRole;
-  text: string;
 }

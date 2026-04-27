@@ -101,8 +101,31 @@ body {
   align-items: center;
 }
 
-.role-selector {
-  margin: 12px 0;
+.news-perspectives {
+  margin: 16px 0;
+  padding: 0;
+}
+
+.news-perspectives__title {
+  font-size: 1.15rem;
+  margin: 0 0 12px;
+}
+
+.news-perspective {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  background-color: #f5f7fa;
+  border-radius: 8px;
+  border-left: 3px solid #4a6fa5;
+}
+
+.news-perspective:last-child {
+  margin-bottom: 0;
+}
+
+.news-perspective__text {
+  margin: 0;
+  white-space: pre-wrap;
 }
 
 .error {

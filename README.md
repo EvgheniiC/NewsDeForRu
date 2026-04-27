@@ -159,7 +159,8 @@ Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (push/PR на `
 
 - `GET /news` — опубликованная лента
 - `GET /news/{id}` — карточка новости
-- `GET /news/{id}/impact?role=owner|tenant|buyer` — персонализированный блок
+- `GET /news/{id}` — поле `impact_presentation`: `multi` (три угла), `single` (один абзац в `impact_unified`) или `none` (без отдельного блока)
+- `GET /news/{id}/impact?role=owner|tenant|buyer` — только если `impact_presentation` = `multi` (одна из трёх граней; иначе 404)
 - `GET /moderation/queue` — очередь модерации
 - `POST /moderation/{id}/action` — approve/reject
 - `POST /pipeline/run` — запуск полного ingestion pipeline

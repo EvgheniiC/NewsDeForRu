@@ -37,6 +37,14 @@ class NewsTopic(StrEnum):
     LIFE = "life"
 
 
+class ImpactPresentation(StrEnum):
+    """How impact-on-reader is shown: three angles, one block, or hidden."""
+
+    MULTI = "multi"
+    SINGLE = "single"
+    NONE = "none"
+
+
 class Source(Base):
     __tablename__ = "sources"
 
@@ -79,6 +87,17 @@ class ProcessedNews(Base):
     title: Mapped[str] = mapped_column(String(300), nullable=False)
     one_sentence_summary: Mapped[str] = mapped_column(Text, nullable=False)
     plain_language: Mapped[str] = mapped_column(Text, nullable=False)
+    impact_presentation: Mapped[ImpactPresentation] = mapped_column(
+        Enum(
+            ImpactPresentation,
+            native_enum=False,
+            length=16,
+            values_callable=lambda t: [m.value for m in t],
+        ),
+        default=ImpactPresentation.MULTI,
+        nullable=False,
+    )
+    impact_unified: Mapped[str] = mapped_column(Text, default="", nullable=False)
     impact_owner: Mapped[str] = mapped_column(Text, nullable=False)
     impact_tenant: Mapped[str] = mapped_column(Text, nullable=False)
     impact_buyer: Mapped[str] = mapped_column(Text, nullable=False)

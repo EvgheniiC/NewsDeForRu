@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 
-from app.models.news import NewsTopic, PipelineStatus, ProcessedNews, RawNewsItem
+from app.models.news import ImpactPresentation, NewsTopic, PipelineStatus, ProcessedNews, RawNewsItem
 from app.repositories.news_repository import NewsRepository
 from app.schemas.llm_output import fallback_after_validation_failure
 from app.schemas.news import PipelineRunResponse
@@ -121,6 +121,8 @@ class PipelineService:
                 title=llm_output.title,
                 one_sentence_summary=llm_output.one_sentence_summary,
                 plain_language=llm_output.plain_language,
+                impact_presentation=ImpactPresentation(llm_output.impact_presentation),
+                impact_unified=llm_output.impact_unified,
                 impact_owner=llm_output.impact_owner,
                 impact_tenant=llm_output.impact_tenant,
                 impact_buyer=llm_output.impact_buyer,

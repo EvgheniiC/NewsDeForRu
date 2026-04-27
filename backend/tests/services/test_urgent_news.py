@@ -9,6 +9,8 @@ def test_ev_is_urgent_news_default_false() -> None:
         title="Т",
         one_sentence_summary="К",
         plain_language="П",
+        impact_presentation="multi",
+        impact_unified="",
         impact_owner="a",
         impact_tenant="b",
         impact_buyer="c",

@@ -101,6 +101,8 @@ def test_alembic_upgrade_creates_expected_schema(postgres_test_db_url: str) -> N
             "publication_status",
             "topic",
             "is_urgent",
+            "impact_presentation",
+            "impact_unified",
         } <= processed_columns
         assert {"cluster_id", "raw_item_id", "is_primary", "similarity_score"} <= cluster_item_columns
         assert "centroid_embedding_json" in cluster_columns
@@ -111,6 +113,6 @@ def test_alembic_upgrade_creates_expected_schema(postgres_test_db_url: str) -> N
         with engine.connect() as connection:
             version_rows = connection.execute(text("SELECT version_num FROM alembic_version")).all()
         assert len(version_rows) == 1
-        assert version_rows[0][0] == "20260427_01"
+        assert version_rows[0][0] == "20260427_02"
     finally:
         engine.dispose()
