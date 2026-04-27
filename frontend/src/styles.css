@@ -48,3 +48,70 @@ body {
 .error {
   color: #9b1c1c;
 }
+
+.muted {
+  color: #5a6470;
+  font-size: 0.95rem;
+}
+
+.panel {
+  background-color: #ffffff;
+  border: 1px solid #dde3ea;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.panel-title {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+}
+
+.health-list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.health-label {
+  color: #4a5568;
+}
+
+.health-ok {
+  color: #1d6b3a;
+  font-weight: 600;
+}
+
+.health-warn {
+  color: #a15c00;
+  font-weight: 600;
+}
+
+.pipeline-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px 16px;
+  margin: 0;
+}
+
+.pipeline-stats dt {
+  margin: 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #64748b;
+}
+
+.pipeline-stats dd {
+  margin: 2px 0 0;
+  font-size: 1rem;
+}
+
+.loading-inline {
+  margin: 8px 0;
+  color: #3d4a5c;
+}
+
+.news-grid-dim {
+  opacity: 0.55;
+  pointer-events: none;
+}
