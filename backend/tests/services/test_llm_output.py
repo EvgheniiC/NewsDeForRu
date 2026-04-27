@@ -55,8 +55,9 @@ def test_extract_json_string_code_fence() -> None:
 
 def test_stub_llm_provider_returns_valid_model() -> None:
     p: LLMNewsOutput = StubLLMProvider().process_news("  Title  ", "  Summary  ")
-    assert p.title == "Title"
-    assert p.one_sentence_summary.startswith("Summary")
+    assert p.title.startswith("Новость из Германии")
+    assert "русском" in p.one_sentence_summary
+    assert "LLM_PROVIDER=openai" in p.one_sentence_summary
     assert 0.0 <= p.confidence_score <= 1.0
 
 

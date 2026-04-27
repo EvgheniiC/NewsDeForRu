@@ -73,11 +73,13 @@ class OpenAILLMProvider(LLMProvider):
     def _process_news_inner(self, title: str, summary: str) -> LLMNewsOutput:
         system: str = (
             "You are an editor. Rewrite German news for Russian-speaking readers in Germany. "
+            "The fields title, one_sentence_summary, and all other string fields in the JSON "
+            "MUST be written in Russian (Cyrillic), never in German. "
             "Output only valid JSON, no surrounding prose. " + LLMNewsOutput.system_prompt_addendum()
         )
         user: str = (
-            f"Оригинальный заголовок:\n{title}\n\n"
-            f"Оригинальное краткое описание:\n{summary}\n"
+            f"Оригинальный заголовок (на немецком, переведи для полей в JSON):\n{title}\n\n"
+            f"Оригинальное краткое описание (на немецком, переведи для полей в JSON):\n{summary}\n"
         )
         first_messages: list[dict[str, str]] = [
             {"role": "system", "content": system},

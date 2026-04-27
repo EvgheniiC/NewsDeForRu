@@ -58,14 +58,18 @@ def fallback_after_validation_failure(
     title: str, summary: str, failure_reason: str
 ) -> LLMNewsOutput:
     """Deterministic, schema-valid copy when the model output cannot be validated."""
-    simplified: str = summary.strip() or "Новость обработана и упрощена."
     tech: str = f"(JSON не прошёл проверку: {failure_reason[:180]})"
+    de_hint: str = (summary.strip() or title.strip())[:400]
     return LLMNewsOutput(
-        title=title[:500],
-        one_sentence_summary=simplified[:2000],
+        title="Перевод и сводка не сформированы — требуется ручная проверка"[:500],
+        one_sentence_summary=(
+            "Автоматическая обработка не дала валидный ответ. "
+            "Сформируйте краткое изложение на русском вручную, либо перезапустите с LLM_PROVIDER=openai. "
+            "Полный оригинал — на немецком по ссылке из новости."
+        )[:2000],
         plain_language=(
-            "Если коротко: это изменение повлияет на расходы и правила для жителей Германии. "
-            + tech
+            "Если коротко: ответ ИИ нельзя было надёжно разобрать. "
+            f"Оригинал (фрагмент, нем.): {de_hint}. " + tech
         )[:8000],
         impact_owner="Владельцу стоит проверить сроки и потенциальные расходы заранее.",
         impact_tenant="Арендатору важно уточнить, как изменения повлияют на платежи и договор.",

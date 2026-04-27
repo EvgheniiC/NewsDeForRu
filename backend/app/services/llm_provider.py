@@ -14,10 +14,16 @@ class LLMProvider(ABC):
 
 class StubLLMProvider(LLMProvider):
     def process_news(self, title: str, summary: str) -> LLMNewsOutput:
-        simplified: str = summary.strip() or "Новость обработана и упрощена."
+        # Do not pass German RSS text through as the published title/summary: the UI is Russian.
+        # Stub has no translation model; we emit Russian placeholders. Use LLM_PROVIDER=openai to translate.
+        key: int = abs(hash((title, summary)))
         return LLMNewsOutput(
-            title=title[:500],
-            one_sentence_summary=simplified[:2000],
+            title=(f"Новость из Германии (черновик {key % 1_000_000:06d})")[:500],
+            one_sentence_summary=(
+                "Краткое изложение на русском в этом режиме не строится из текста фида. "
+                "Для автоматического перевода с немецкого укажите LLM_PROVIDER=openai в окружении. "
+                "Полный оригинал — по ссылке в карточке."
+            )[:2000],
             plain_language=(
                 "Если коротко: это изменение повлияет на расходы и правила для жителей Германии."
             ),

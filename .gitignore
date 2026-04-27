@@ -42,3 +42,4 @@ backend/news.db
 
 # Local docs
 LOCAL_RUN_GUIDE.md
+how_to_start_app_local.md
