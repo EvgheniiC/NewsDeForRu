@@ -1,9 +1,21 @@
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from app.models.news import NewsTopic, PipelineStatus, UserRole
+
+# Existing rows can contain a literal "None" from bad model JSON; never expose to clients as text.
+_OCCASIONAL_PLACEHOLDERS: frozenset[str] = frozenset({"None", "null", "NULL", ""})
+
+
+def normalize_one_sentence_for_api(value: str) -> str:
+    t: str = value.strip()
+    if t in _OCCASIONAL_PLACEHOLDERS:
+        return (
+            "Сводка не сформирована; смотрите оригинал по ссылке ниже."
+        )
+    return t
 
 
 class ProcessedNewsResponse(BaseModel):
@@ -26,6 +38,13 @@ class ProcessedNewsResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @model_validator(mode="after")
+    def _fix_legacy_placeholder_summary(self) -> Self:
+        fixed: str = normalize_one_sentence_for_api(self.one_sentence_summary)
+        if fixed != self.one_sentence_summary:
+            return self.model_copy(update={"one_sentence_summary": fixed})
+        return self
 
 
 class NewsFeedItem(BaseModel):

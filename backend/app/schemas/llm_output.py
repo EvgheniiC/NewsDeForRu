@@ -5,11 +5,28 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 NewsTopicLiteral = Literal["politics", "economy", "life"]
 
 
+# LLMs sometimes return JSON string placeholders instead of real text.
+_FORBIDDEN_LLM_TOKENS: frozenset[str] = frozenset(
+    {
+        "None",
+        "null",
+        "NULL",
+        "N/A",
+        "n/a",
+        "<none>",
+        "undefined",
+    }
+)
+
+
 def _llm_string(v: str) -> str:
     t: str = v.strip()
     if not t:
         msg: str = "String field must be non-empty after trim"
         raise ValueError(msg)
+    if t in _FORBIDDEN_LLM_TOKENS:
+        msg2: str = "String field must not be a null placeholder (e.g. None, null, N/A)"
+        raise ValueError(msg2)
     return t
 
 
@@ -58,7 +75,15 @@ class LLMNewsOutput(BaseModel):
             "Return exactly one JSON object (no markdown, no extra text) with these keys: "
             "title, one_sentence_summary, plain_language, impact_owner, impact_tenant, "
             "impact_buyer, action_items, bonus_block, spoiler, topic, confidence_score. "
-            "topic must be one of: politics, economy, life (classify the story). "
+            "topic must be exactly one of: politics, economy, life — pick the story's main angle.\n"
+            "Rubric: politics = government, political parties, elections, parliament/Bundestag, "
+            "laws in legislative process, ministers, foreign policy, state institutions, diplomacy. "
+            "economy = business and markets, companies, stocks, inflation, interest rates, "
+            "labor market or trade in macro/business context, major economic policy, industry. "
+            "life = practical impact on residents' daily life (housing as tenant, health insurance, "
+            "family/school, local rules, consumer tips) when the main frame is 'what it means for you "
+            "day to day' rather than political process or business cycle. Do not default to life when "
+            "the story is clearly political or business/economic news.\n"
             "All other string values must be in Russian. confidence_score is a number from 0 to 1."
         )
 

@@ -6,6 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.schemas.llm_output import LLMNewsOutput, fallback_after_validation_failure
+from app.schemas.news import normalize_one_sentence_for_api
 from app.services.llm_json import extract_json_string, parse_llm_news_json
 from app.services.llm_provider import StubLLMProvider, create_llm_provider
 
@@ -41,6 +42,14 @@ def test_parse_llm_news_json_rejects_confidence_out_of_range() -> None:
         parse_llm_news_json(s)
 
 
+def test_parse_llm_news_json_rejects_string_none_placeholder() -> None:
+    p: dict[str, object] = _valid_payload()
+    p["one_sentence_summary"] = "None"
+    s: str = json.dumps(p, ensure_ascii=True)
+    with pytest.raises(ValidationError):
+        parse_llm_news_json(s)
+
+
 def test_parse_llm_news_json_rejects_empty_title_after_strip() -> None:
     p: dict[str, object] = _valid_payload()
     p["title"] = "   \n  "
@@ -70,6 +79,11 @@ def test_create_llm_provider_default_is_stub(
     monkeypatch.setattr(settings, "llm_provider", "stub", raising=False)
     prov = create_llm_provider()
     assert isinstance(prov, StubLLMProvider)
+
+
+def test_normalize_one_sentence_replaces_string_none_placeholder() -> None:
+    assert "Сводка" in normalize_one_sentence_for_api("None")
+    assert normalize_one_sentence_for_api("  Нормальный текст. ") == "Нормальный текст."
 
 
 def test_fallback_after_validation_failure_is_valid() -> None:

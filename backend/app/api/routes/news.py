@@ -4,7 +4,12 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db_session
 from app.models.news import NewsTopic, UserRole
 from app.repositories.news_repository import NewsRepository
-from app.schemas.news import NewsFeedItem, ProcessedNewsResponse, RoleImpactResponse
+from app.schemas.news import (
+    NewsFeedItem,
+    ProcessedNewsResponse,
+    RoleImpactResponse,
+    normalize_one_sentence_for_api,
+)
 
 router: APIRouter = APIRouter()
 
@@ -33,7 +38,7 @@ def list_news(
         NewsFeedItem(
             id=item.id,
             title=item.title,
-            subtitle=item.one_sentence_summary,
+            subtitle=normalize_one_sentence_for_api(item.one_sentence_summary),
             read_time_minutes=item.read_time_minutes,
             topic=item.topic,
             is_urgent=item.is_urgent,
