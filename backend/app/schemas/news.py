@@ -61,6 +61,13 @@ class NewsFeedItem(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class NewsFeedPageResponse(BaseModel):
+    """Paginated feed: pass ``next_cursor`` as ``cursor`` on the next request."""
+
+    items: list[NewsFeedItem]
+    next_cursor: int | None = None
+
+
 class ModerationActionRequest(BaseModel):
     action: Literal["approve", "reject"]
 

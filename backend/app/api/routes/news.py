@@ -6,6 +6,7 @@ from app.models.news import ImpactPresentation, NewsTopic, UserRole
 from app.repositories.news_repository import NewsRepository
 from app.schemas.news import (
     NewsFeedItem,
+    NewsFeedPageResponse,
     ProcessedNewsResponse,
     RoleImpactResponse,
     normalize_one_sentence_for_api,
@@ -14,9 +15,13 @@ from app.schemas.news import (
 router: APIRouter = APIRouter()
 
 
-@router.get("", response_model=list[NewsFeedItem])
+@router.get("", response_model=NewsFeedPageResponse)
 def list_news(
     limit: int = Query(default=30, ge=1, le=100),
+    cursor: int | None = Query(
+        default=None,
+        description="Continue after this news id (exclusive); from previous ``next_cursor``.",
+    ),
     topic: NewsTopic | None = Query(
         default=None,
         description="Filter by primary topic. Ignored when urgent=true.",
@@ -26,15 +31,16 @@ def list_news(
         description="Only items flagged as urgent / breaking (⚡ Срочно).",
     ),
     db_session: Session = Depends(get_db_session),
-) -> list[NewsFeedItem]:
+) -> NewsFeedPageResponse:
     repository = NewsRepository(db_session)
     topic_filter: NewsTopic | None = None if urgent else topic
-    news_items = repository.list_published(
+    news_rows, has_more = repository.list_published(
         limit=limit,
         topic=topic_filter,
         urgent_only=urgent,
+        cursor_id=cursor,
     )
-    return [
+    items_list: list[NewsFeedItem] = [
         NewsFeedItem(
             id=item.id,
             title=item.title,
@@ -44,8 +50,10 @@ def list_news(
             is_urgent=item.is_urgent,
             created_at=item.created_at,
         )
-        for item in news_items
+        for item in news_rows
     ]
+    next_cursor: int | None = items_list[-1].id if has_more and items_list else None
+    return NewsFeedPageResponse(items=items_list, next_cursor=next_cursor)
 
 
 @router.get("/{news_id}", response_model=ProcessedNewsResponse)

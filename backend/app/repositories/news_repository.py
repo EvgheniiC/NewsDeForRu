@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 from typing import Literal
 
-from sqlalchemy import Select, and_, select
+from sqlalchemy import Select, and_, or_, select
 from sqlalchemy.orm import Session
 
 import numpy as np
@@ -228,16 +228,46 @@ class NewsRepository:
         *,
         topic: NewsTopic | None = None,
         urgent_only: bool = False,
-    ) -> list[ProcessedNews]:
-        query: Select[tuple[ProcessedNews]] = select(ProcessedNews).where(
+        cursor_id: int | None = None,
+    ) -> tuple[list[ProcessedNews], bool]:
+        """Return published items (newest first) and whether another page exists.
+
+        Optional ``cursor_id`` is the ``id`` of the last item from the previous page;
+        this page continues with strictly older rows in (created_at desc, id desc) order.
+        """
+        fetch_limit: int = limit + 1
+        base: Select[tuple[ProcessedNews]] = select(ProcessedNews).where(
             ProcessedNews.publication_status == PipelineStatus.PUBLISHED
         )
         if urgent_only:
-            query = query.where(ProcessedNews.is_urgent.is_(True))
+            base = base.where(ProcessedNews.is_urgent.is_(True))
         elif topic is not None:
-            query = query.where(ProcessedNews.topic == topic)
-        query = query.order_by(ProcessedNews.created_at.desc()).limit(limit)
-        return list(self.db_session.execute(query).scalars().all())
+            base = base.where(ProcessedNews.topic == topic)
+
+        if cursor_id is not None:
+            anchor: ProcessedNews | None = self.get_processed_by_id(cursor_id)
+            if anchor is None or anchor.publication_status != PipelineStatus.PUBLISHED:
+                return [], False
+            if urgent_only and not anchor.is_urgent:
+                return [], False
+            if topic is not None and anchor.topic != topic:
+                return [], False
+
+            ct: datetime = anchor.created_at
+            aid: int = anchor.id
+            base = base.where(
+                or_(
+                    ProcessedNews.created_at < ct,
+                    and_(ProcessedNews.created_at == ct, ProcessedNews.id < aid),
+                )
+            )
+
+        query = base.order_by(ProcessedNews.created_at.desc(), ProcessedNews.id.desc()).limit(fetch_limit)
+        rows: list[ProcessedNews] = list(self.db_session.execute(query).scalars().all())
+        has_more: bool = len(rows) > limit
+        if has_more:
+            rows = rows[:limit]
+        return rows, has_more
 
     def list_needs_review(self) -> list[ProcessedNews]:
         query: Select[tuple[ProcessedNews]] = (

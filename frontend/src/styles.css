@@ -198,3 +198,114 @@ body {
   opacity: 0.55;
   pointer-events: none;
 }
+
+.feed-view-bar {
+  margin: 0 0 16px;
+}
+
+.feed-grid-sentinel {
+  height: 4px;
+}
+
+.news-card-immersive {
+  display: flex;
+  flex-direction: column;
+  min-height: min(460px, calc(100dvh - 320px));
+}
+
+.news-card-subtitle-immersive {
+  flex: 1;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.tiktok-feed {
+  margin: 0 -16px;
+}
+
+.tiktok-feed-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-snap-type: y mandatory;
+  height: min(760px, calc(100dvh - 260px));
+  padding: 0 16px;
+}
+
+.tiktok-feed-snap {
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
+  min-height: min(520px, calc(100dvh - 300px));
+  padding-bottom: 12px;
+}
+
+.tiktok-feed-sentinel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+}
+
+.tiktok-feed-loading {
+  margin: 0;
+}
+
+.fast-swipe-feed {
+  margin-bottom: 16px;
+}
+
+.fast-swipe-viewport {
+  overflow: hidden;
+  touch-action: manipulation;
+  outline: none;
+}
+
+.fast-swipe-track {
+  display: flex;
+  flex-direction: row;
+  transition: transform 0.2s ease-out;
+}
+
+.fast-swipe-track.is-dragging {
+  transition: none;
+}
+
+.fast-swipe-slide {
+  box-sizing: border-box;
+  padding-right: 12px;
+}
+
+.fast-swipe-slide:last-child {
+  padding-right: 0;
+}
+
+.fast-swipe-hint {
+  margin: 10px 0 6px;
+  font-size: 0.9rem;
+}
+
+.fast-swipe-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fast-swipe-toolbar button {
+  font: inherit;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.fast-swipe-toolbar button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.fast-swipe-empty {
+  padding: 24px;
+  text-align: center;
+}

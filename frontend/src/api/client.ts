@@ -72,17 +72,36 @@ export async function getHealth(): Promise<HealthResponse> {
 export interface GetFeedOptions {
   topic?: NewsTopic;
   urgent?: boolean;
+  /** Page size (default 30 on server). */
+  limit?: number;
+  /** Previous page ``next_cursor`` — continue older items. */
+  cursor?: number;
 }
 
-export async function getFeed(options?: GetFeedOptions): Promise<NewsFeedItem[]> {
+export interface NewsFeedPageResponse {
+  items: NewsFeedItem[];
+  next_cursor: number | null;
+}
+
+export async function getFeed(options?: GetFeedOptions): Promise<NewsFeedPageResponse> {
   const params: URLSearchParams = new URLSearchParams();
   if (options?.urgent) {
     params.set("urgent", "true");
   } else if (options?.topic) {
     params.set("topic", options.topic);
   }
+  if (options?.limit !== undefined) {
+    params.set("limit", String(options.limit));
+  }
+  if (options?.cursor !== undefined) {
+    params.set("cursor", String(options.cursor));
+  }
   const q: string = params.toString();
-  return fetchJson<NewsFeedItem[]>(`/news${q ? `?${q}` : ""}`);
+  const raw: unknown = await fetchJson<unknown>(`/news${q ? `?${q}` : ""}`);
+  if (Array.isArray(raw)) {
+    return { items: raw as NewsFeedItem[], next_cursor: null as number | null };
+  }
+  return raw as NewsFeedPageResponse;
 }
 
 export async function getNews(newsId: number): Promise<ProcessedNews> {
