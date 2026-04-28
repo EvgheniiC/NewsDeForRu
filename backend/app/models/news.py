@@ -37,6 +37,15 @@ class NewsTopic(StrEnum):
     LIFE = "life"
 
 
+class FeedPeriod(StrEnum):
+    """Calendar windows in Europe/Berlin for list filters."""
+
+    TODAY = "today"
+    LAST_3_DAYS = "last_3_days"
+    THIS_WEEK = "this_week"
+    THIS_MONTH = "this_month"
+
+
 class ImpactPresentation(StrEnum):
     """How impact-on-reader is shown: three angles, one block, or hidden."""
 

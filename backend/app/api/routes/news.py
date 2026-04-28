@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db_session
-from app.models.news import ImpactPresentation, NewsTopic, UserRole
+from app.models.news import FeedPeriod, ImpactPresentation, NewsTopic, UserRole
 from app.repositories.news_repository import NewsRepository
+from app.utils.feed_period import period_start_utc_naive
 from app.schemas.news import (
     NewsFeedItem,
     NewsFeedPageResponse,
@@ -30,15 +31,21 @@ def list_news(
         default=False,
         description="Only items flagged as urgent / breaking (⚡ Срочно).",
     ),
+    period: FeedPeriod | None = Query(
+        default=None,
+        description="Lower bound on created_at: today, last 3 calendar days, this ISO week, or this month (Europe/Berlin).",
+    ),
     db_session: Session = Depends(get_db_session),
 ) -> NewsFeedPageResponse:
     repository = NewsRepository(db_session)
     topic_filter: NewsTopic | None = None if urgent else topic
+    since = period_start_utc_naive(period)
     news_rows, has_more = repository.list_published(
         limit=limit,
         topic=topic_filter,
         urgent_only=urgent,
         cursor_id=cursor,
+        created_at_since=since,
     )
     items_list: list[NewsFeedItem] = [
         NewsFeedItem(

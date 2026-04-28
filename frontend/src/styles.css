@@ -28,7 +28,8 @@ body {
   gap: 12px;
 }
 
-.feed-topic-bar {
+.feed-topic-bar,
+.feed-period-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;

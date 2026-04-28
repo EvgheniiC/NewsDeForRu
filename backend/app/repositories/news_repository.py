@@ -229,6 +229,7 @@ class NewsRepository:
         topic: NewsTopic | None = None,
         urgent_only: bool = False,
         cursor_id: int | None = None,
+        created_at_since: datetime | None = None,
     ) -> tuple[list[ProcessedNews], bool]:
         """Return published items (newest first) and whether another page exists.
 
@@ -243,6 +244,8 @@ class NewsRepository:
             base = base.where(ProcessedNews.is_urgent.is_(True))
         elif topic is not None:
             base = base.where(ProcessedNews.topic == topic)
+        if created_at_since is not None:
+            base = base.where(ProcessedNews.created_at >= created_at_since)
 
         if cursor_id is not None:
             anchor: ProcessedNews | None = self.get_processed_by_id(cursor_id)
@@ -251,6 +254,8 @@ class NewsRepository:
             if urgent_only and not anchor.is_urgent:
                 return [], False
             if topic is not None and anchor.topic != topic:
+                return [], False
+            if created_at_since is not None and anchor.created_at < created_at_since:
                 return [], False
 
             ct: datetime = anchor.created_at

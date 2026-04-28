@@ -1,4 +1,4 @@
-import type { NewsFeedItem, NewsTopic, ProcessedNews } from "../types/news";
+import type { FeedPeriodKey, NewsFeedItem, NewsTopic, ProcessedNews } from "../types/news";
 import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
 
 const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -72,6 +72,8 @@ export async function getHealth(): Promise<HealthResponse> {
 export interface GetFeedOptions {
   topic?: NewsTopic;
   urgent?: boolean;
+  /** Calendar window on server (Europe/Berlin); omit when ``all``. */
+  period?: Exclude<FeedPeriodKey, "all">;
   /** Page size (default 30 on server). */
   limit?: number;
   /** Previous page ``next_cursor`` — continue older items. */
@@ -89,6 +91,9 @@ export async function getFeed(options?: GetFeedOptions): Promise<NewsFeedPageRes
     params.set("urgent", "true");
   } else if (options?.topic) {
     params.set("topic", options.topic);
+  }
+  if (options?.period !== undefined) {
+    params.set("period", options.period);
   }
   if (options?.limit !== undefined) {
     params.set("limit", String(options.limit));

@@ -5,6 +5,9 @@ export type ImpactPresentation = "multi" | "single" | "none";
 
 export type FeedFilterKey = NewsTopic | "urgent";
 
+/** Matches GET /news ``period``; ``all`` omits the query param. */
+export type FeedPeriodKey = "all" | "today" | "last_3_days" | "this_week" | "this_month";
+
 export interface NewsFeedItem {
   id: number;
   title: string;

@@ -1,14 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, getFeed, NetworkError, type GetFeedOptions } from "../api/client";
-import type { FeedFilterKey, NewsFeedItem } from "../types/news";
+import type { FeedFilterKey, FeedPeriodKey, NewsFeedItem } from "../types/news";
 
 const PAGE_SIZE: number = 20;
 
-function buildFeedRequestOptions(feedFilter: FeedFilterKey): Omit<GetFeedOptions, "cursor"> {
-  if (feedFilter === "urgent") {
-    return { urgent: true, limit: PAGE_SIZE };
+function buildFeedRequestOptions(
+  feedFilter: FeedFilterKey,
+  period: FeedPeriodKey
+): Omit<GetFeedOptions, "cursor"> {
+  const base: Omit<GetFeedOptions, "cursor"> =
+    feedFilter === "urgent"
+      ? { urgent: true, limit: PAGE_SIZE }
+      : { topic: feedFilter, limit: PAGE_SIZE };
+  if (period === "all") {
+    return base;
   }
-  return { topic: feedFilter, limit: PAGE_SIZE };
+  return { ...base, period };
 }
 
 function feedErrorMessage(e: unknown): string {
@@ -54,7 +61,7 @@ export interface UseInfiniteFeedResult {
   loadMore: () => Promise<void>;
 }
 
-export function useInfiniteFeed(feedFilter: FeedFilterKey): UseInfiniteFeedResult {
+export function useInfiniteFeed(feedFilter: FeedFilterKey, period: FeedPeriodKey): UseInfiniteFeedResult {
   const [items, setItems] = useState<NewsFeedItem[]>([]);
   const [nextCursor, setNextCursor] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -79,7 +86,7 @@ export function useInfiniteFeed(feedFilter: FeedFilterKey): UseInfiniteFeedResul
 
     void (async (): Promise<void> => {
       try {
-        const response = await getFeed(buildFeedRequestOptions(feedFilter));
+        const response = await getFeed(buildFeedRequestOptions(feedFilter, period));
         if (fetchId !== fetchGenRef.current) {
           return;
         }
@@ -97,17 +104,18 @@ export function useInfiniteFeed(feedFilter: FeedFilterKey): UseInfiniteFeedResul
         }
       }
     })();
-  }, [feedFilter]);
+  }, [feedFilter, period]);
 
   const reload = useCallback(async (): Promise<void> => {
     fetchGenRef.current += 1;
     const fetchId: number = fetchGenRef.current;
     const snapshotFilter: FeedFilterKey = feedFilterRef.current;
+    const snapshotPeriod: FeedPeriodKey = periodRef.current;
 
     setFeedError("");
     setLoading(true);
     try {
-      const response = await getFeed(buildFeedRequestOptions(snapshotFilter));
+      const response = await getFeed(buildFeedRequestOptions(snapshotFilter, snapshotPeriod));
       if (fetchId !== fetchGenRef.current) {
         return;
       }
@@ -153,7 +161,7 @@ export function useInfiniteFeed(feedFilter: FeedFilterKey): UseInfiniteFeedResul
     } finally {
       setLoadingMore(false);
     }
-  }, [feedFilter, nextCursor, loadingMore]);
+  }, [feedFilter, period, nextCursor, loadingMore]);
 
   return {
     items,

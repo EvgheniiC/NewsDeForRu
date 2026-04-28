@@ -4,7 +4,7 @@ import { GridFeed } from "../components/GridFeed";
 import { TikTokFeed } from "../components/TikTokFeed";
 import { ApiError, getHealth, NetworkError, runPipeline } from "../api/client";
 import { useInfiniteFeed } from "../hooks/useInfiniteFeed";
-import type { FeedFilterKey } from "../types/news";
+import type { FeedFilterKey, FeedPeriodKey } from "../types/news";
 import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
 
 type FeedViewMode = "grid" | "tiktok" | "fast";
@@ -26,10 +26,11 @@ function formatHealthTime(iso: string | null): string {
 
 export function FeedPage(): JSX.Element {
   const [feedFilter, setFeedFilter] = useState<FeedFilterKey>("life");
+  const [feedPeriod, setFeedPeriod] = useState<FeedPeriodKey>("all");
   const [feedViewMode, setFeedViewMode] = useState<FeedViewMode>("grid");
 
   const { items, loading: feedLoading, loadingMore, feedError, nextCursor, reload, loadMore } =
-    useInfiniteFeed(feedFilter);
+    useInfiniteFeed(feedFilter, feedPeriod);
 
   const hasMore: boolean = nextCursor !== null;
   /** Hide feed until first page for current topic; keep grid during refresh when data exists. */
@@ -121,6 +122,33 @@ export function FeedPage(): JSX.Element {
               aria-selected={feedFilter === opt.key}
               onClick={() => {
                 setFeedFilter(opt.key);
+              }}
+            >
+              {opt.label}
+            </button>
+          </span>
+        ))}
+      </div>
+
+      <div className="feed-period-bar" role="tablist" aria-label="Период">
+        {(
+          [
+            { key: "all" as const, label: "Всё время" },
+            { key: "today" as const, label: "Сегодня" },
+            { key: "last_3_days" as const, label: "3 дня" },
+            { key: "this_week" as const, label: "Неделя" },
+            { key: "this_month" as const, label: "Месяц" }
+          ] as const
+        ).map((opt, index) => (
+          <span key={opt.key} className="feed-topic-cell">
+            {index > 0 ? <span className="feed-topic-sep" aria-hidden="true" /> : null}
+            <button
+              type="button"
+              className={feedPeriod === opt.key ? "feed-topic-pill is-active" : "feed-topic-pill"}
+              role="tab"
+              aria-selected={feedPeriod === opt.key}
+              onClick={() => {
+                setFeedPeriod(opt.key);
               }}
             >
               {opt.label}
@@ -263,7 +291,7 @@ export function FeedPage(): JSX.Element {
         <TikTokFeed
           hasMore={hasMore}
           items={items}
-          key={feedFilter}
+          key={`${feedFilter}-${feedPeriod}`}
           loadingMore={loadingMore}
           onLoadMore={loadMore}
         />
@@ -273,7 +301,7 @@ export function FeedPage(): JSX.Element {
         <FastSwipeFeed
           hasMore={hasMore}
           items={items}
-          key={feedFilter}
+          key={`${feedFilter}-${feedPeriod}`}
           loadingMore={loadingMore}
           onLoadMore={loadMore}
         />
