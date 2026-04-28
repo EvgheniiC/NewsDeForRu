@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { enqueueOne } from "../analytics/engagementQueue";
 import { NewsCard } from "./NewsCard";
 import type { NewsFeedItem } from "../types/news";
 
 const SWIPE_PX: number = 56;
+const QUICK_NAV_MS: number = 2200;
 
 interface FastSwipeFeedProps {
   items: NewsFeedItem[];
@@ -29,9 +31,31 @@ export function FastSwipeFeed({ items, hasMore, loadingMore, onLoadMore }: FastS
     }
   }, [activeIndex, count, hasMore, loadingMore, onLoadMore]);
 
+  const emitNavigateFromIndex = useCallback(
+    (indexLeaving: number, directionNext: boolean): void => {
+      if (indexLeaving < 0 || indexLeaving >= items.length) {
+        return;
+      }
+      const item: NewsFeedItem | undefined = items[indexLeaving];
+      if (item === undefined) {
+        return;
+      }
+      const dwellMs: number = Math.max(0, Date.now() - visibleSinceMsRef.current);
+      const quick: boolean = directionNext && dwellMs < QUICK_NAV_MS;
+      enqueueOne(
+        item.id,
+        "navigate_next",
+        { dwell_ms: dwellMs, quick, feed_mode: "fast", direction: directionNext ? "next" : "prev" },
+        true
+      );
+    },
+    [items]
+  );
+
   const goNext = useCallback((): void => {
     setActiveIndex((i: number) => {
       if (i < count - 1) {
+        emitNavigateFromIndex(i, true);
         return i + 1;
       }
       if (hasMore && !loadingMore) {
@@ -39,11 +63,17 @@ export function FastSwipeFeed({ items, hasMore, loadingMore, onLoadMore }: FastS
       }
       return i;
     });
-  }, [count, hasMore, loadingMore, onLoadMore]);
+  }, [count, emitNavigateFromIndex, hasMore, loadingMore, onLoadMore]);
 
   const goPrev = useCallback((): void => {
-    setActiveIndex((i: number) => (i > 0 ? i - 1 : 0));
-  }, []);
+    setActiveIndex((i: number) => {
+      if (i > 0) {
+        emitNavigateFromIndex(i, false);
+        return i - 1;
+      }
+      return 0;
+    });
+  }, [emitNavigateFromIndex]);
 
   const onTouchStart = (e: React.TouchEvent<HTMLDivElement>): void => {
     if (e.touches.length !== 1) {
@@ -122,7 +152,7 @@ export function FastSwipeFeed({ items, hasMore, loadingMore, onLoadMore }: FastS
               key={item.id}
               style={{ flex: `0 0 ${100 / Math.max(count, 1)}%` }}
             >
-              <NewsCard item={item} variant="immersive" />
+              <NewsCard feedMode="fast" item={item} variant="immersive" />
             </div>
           ))}
         </div>

@@ -9,6 +9,7 @@ from app.models.news import (
     Source,
     UserRole,
 )
+from app.models.engagement import UserEngagementEvent
 
 __all__ = [
     "ImpactPresentation",
@@ -20,4 +21,5 @@ __all__ = [
     "NewsCluster",
     "ClusterItem",
     "ModerationEvent",
+    "UserEngagementEvent",
 ]

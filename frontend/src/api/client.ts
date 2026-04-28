@@ -1,3 +1,4 @@
+import type { EngagementBatchRequestBody, EngagementBatchResponseBody } from "../types/engagement";
 import type { FeedPeriodKey, NewsFeedItem, NewsTopic, ProcessedNews } from "../types/news";
 import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
 
@@ -111,6 +112,14 @@ export async function getFeed(options?: GetFeedOptions): Promise<NewsFeedPageRes
 
 export async function getNews(newsId: number): Promise<ProcessedNews> {
   return fetchJson<ProcessedNews>(`/news/${newsId}`);
+}
+
+export async function postEngagementBatch(body: EngagementBatchRequestBody): Promise<EngagementBatchResponseBody> {
+  return fetchJson<EngagementBatchResponseBody>("/engagement/events", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
 }
 
 export async function getModerationQueue(): Promise<ProcessedNews[]> {

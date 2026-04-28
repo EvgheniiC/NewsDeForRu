@@ -1,7 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { enqueueOne } from "../analytics/engagementQueue";
 import { ApiError, getNews } from "../api/client";
 import type { ImpactPresentation, ProcessedNews } from "../types/news";
+
+const READ_ARTICLE_RATIO: number = 0.91;
 
 function renderImpactBlock(
   presentation: ImpactPresentation,
@@ -46,7 +49,12 @@ export function NewsDetailsPage(): JSX.Element {
   const [loadingNews, setLoadingNews] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string>("");
   const [notFound, setNotFound] = useState<boolean>(false);
+  const readArticleSentRef: { current: boolean } = useRef<boolean>(false);
   const newsId: number = Number(params.id);
+
+  useEffect(() => {
+    readArticleSentRef.current = false;
+  }, [newsId]);
 
   useEffect(() => {
     if (!Number.isFinite(newsId)) {
@@ -76,6 +84,58 @@ export function NewsDetailsPage(): JSX.Element {
       });
   }, [newsId]);
 
+  useEffect(() => {
+    if (news === null) {
+      return;
+    }
+    let shortPageTimerId: ReturnType<typeof window.setTimeout> | undefined;
+
+    const onScroll = (): void => {
+      if (readArticleSentRef.current) {
+        return;
+      }
+      const el: HTMLElement = document.documentElement;
+      const scrollRoom: number = el.scrollHeight - el.clientHeight;
+      if (scrollRoom <= 8) {
+        return;
+      }
+      const ratio: number = el.scrollTop / scrollRoom;
+      if (ratio >= READ_ARTICLE_RATIO) {
+        readArticleSentRef.current = true;
+        enqueueOne(newsId, "read_complete_article", { max_ratio: Math.min(1, ratio) }, true);
+      }
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+
+    const checkShortPage = (): void => {
+      if (readArticleSentRef.current || shortPageTimerId !== undefined) {
+        return;
+      }
+      const el: HTMLElement = document.documentElement;
+      if (el.scrollHeight > el.clientHeight + 40) {
+        return;
+      }
+      shortPageTimerId = window.setTimeout(() => {
+        if (!readArticleSentRef.current && document.visibilityState === "visible") {
+          readArticleSentRef.current = true;
+          enqueueOne(newsId, "read_complete_article", { max_ratio: 1 }, true);
+        }
+      }, 3200);
+    };
+    window.requestAnimationFrame(() => {
+      checkShortPage();
+    });
+
+    return (): void => {
+      if (shortPageTimerId !== undefined) {
+        window.clearTimeout(shortPageTimerId);
+      }
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, [news, newsId]);
+
   if (loadingNews) {
     return <p>Загрузка деталей...</p>;
   }
@@ -100,6 +160,10 @@ export function NewsDetailsPage(): JSX.Element {
 
   const presentation: ImpactPresentation = news.impact_presentation ?? "multi";
 
+  const handleOpenSourceClick = (): void => {
+    enqueueOne(newsId, "open_source", {}, true);
+  };
+
   return (
     <section>
       <Link to="/">← Назад</Link>
@@ -120,7 +184,7 @@ export function NewsDetailsPage(): JSX.Element {
       <p>
         <strong>Спойлер:</strong> {news.spoiler}
       </p>
-      <a href={news.source_url} rel="noreferrer" target="_blank">
+      <a href={news.source_url} onClick={handleOpenSourceClick} rel="noreferrer" target="_blank">
         Оригинальный источник
       </a>
     </section>

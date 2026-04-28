@@ -1,5 +1,6 @@
 from datetime import datetime
 from enum import StrEnum
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     DateTime,
@@ -14,6 +15,9 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
+if TYPE_CHECKING:
+    from app.models.engagement import UserEngagementEvent
 
 
 class PipelineStatus(StrEnum):
@@ -137,6 +141,9 @@ class ProcessedNews(Base):
     raw_item: Mapped[RawNewsItem] = relationship()
     cluster: Mapped["NewsCluster | None"] = relationship(back_populates="processed_items")
     moderation_events: Mapped[list["ModerationEvent"]] = relationship(
+        back_populates="processed_news",
+    )
+    user_engagement_events: Mapped[list["UserEngagementEvent"]] = relationship(
         back_populates="processed_news",
     )
 

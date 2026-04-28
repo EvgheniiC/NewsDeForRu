@@ -36,7 +36,7 @@ export function GridFeed({ items, hasMore, loadingMore, onLoadMore, feedLoading 
     <>
       <div className={`news-grid ${feedLoading ? "news-grid-dim" : ""}`}>
         {items.map((item: NewsFeedItem) => (
-          <NewsCard item={item} key={item.id} />
+          <NewsCard feedMode="grid" item={item} key={item.id} />
         ))}
       </div>
       {hasMore ? <div className="feed-grid-sentinel" ref={sentinelRef} aria-hidden="true" /> : null}

@@ -106,6 +106,11 @@ export async function installApiMock(page: Page): Promise<void> {
       return;
     }
 
+    if (path === "/engagement/events" && method === "POST") {
+      await fulfillJson(route, { inserted: 1, skipped_duplicate: 0 });
+      return;
+    }
+
     await route.fulfill({ status: 404, headers: { ...corsHeaders }, body: "Not mocked" });
   });
 }
