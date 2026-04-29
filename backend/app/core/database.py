@@ -2,9 +2,8 @@ from collections.abc import Generator
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
-from sqlalchemy.pool import StaticPool
-
 from sqlalchemy.engine import Engine
+from sqlalchemy.pool import NullPool, StaticPool
 
 from app.core.config import settings
 
@@ -20,6 +19,15 @@ def _make_engine(url: str) -> Engine:
             future=True,
             connect_args={"check_same_thread": False},
             poolclass=StaticPool,
+        )
+    # File-based SQLite: avoid pooled connections sticking across threads (scheduler + API),
+    # and cap wait on DB busy lock so /health does not hang indefinitely.
+    if url.strip().lower().startswith("sqlite"):
+        return create_engine(
+            url,
+            future=True,
+            connect_args={"check_same_thread": False, "timeout": 20.0},
+            poolclass=NullPool,
         )
     return create_engine(url, future=True)
 
