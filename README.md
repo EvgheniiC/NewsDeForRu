@@ -147,6 +147,25 @@ Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (push/PR на `
 
 Страница приложения: `/privacy`. Шаблон для юриста и текстов GDPR: [`docs/privacy-EU-DE.md`](docs/privacy-EU-DE.md).
 
+## Эксплуатация в продакшене
+
+Краткий чеклист перед и во время эксплуатации (см. также [`backend/.env.example`](backend/.env.example)).
+
+### Планировщик пайплайна
+
+Встроенный APScheduler (`PIPELINE_SCHEDULER_ENABLED=true`) должен работать **только в одном процессе**. Если за приложением несколько воркеров uvicorn/gunicorn с одинаковым образом, включайте планировщик на одном инстансе (отдельный деплой/флаг окружения) **или** отключайте встроенный планировщик и запускайте прогон по cron/отдельному worker (вызов `POST /pipeline/run` или эквивалент). Иначе один и тот же интервал может выполняться параллельно на нескольких репликах и дублировать работу нагружая RSS и БД.
+
+### Внутренний API происхождения (`/internal/provenance/*`)
+
+- Задайте секрет **`PROVENANCE_API_KEY`** в хранилище секретов (не в git). Запросы с заголовком `X-Internal-Api-Key` должны быть только из доверенной сети (VPN, приватная подсеть, admin jump host). Если ключ пустой, маршруты отвечают **404** (фича выключена).
+- Не выставляйте эти эндпоинты без защиты на публичный интернет как «ещё один REST».
+
+### Метрики и ошибки
+
+- **`GET /metrics`** (`PROMETHEUS_METRICS_ENABLED=true`): в проде не оставляйте без ограничения доступа при публичном ingress — закройте на уровне сетевого экрана, reverse-proxy (IP allowlist, mTLS, Basic auth) или отключите, если наблюдаемость не нужна.
+- **`SENTRY_DSN`**: храните в секретах; пустое значение отключает отправку в Sentry.
+- **Алерты (рекомендация):** по логам/метрикам отслеживайте `last_pipeline_ok` / неуспешные прогоны (см. `GET /health`), рост ошибок 5xx и длительность прогона пайплайна; при использовании Prometheus настройте правила на свои счётчики из `/metrics`.
+
 ## Engineering standards
 
 - Python: strict typing, `ruff`, `mypy`, `pytest`
@@ -158,7 +177,32 @@ Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (push/PR на `
 
 Локально те же шаги, что в CI (см. [workflow CI](.github/workflows/ci.yml)):
 
-- Backend: `cd backend && pip install -r requirements-dev.txt && ruff check app tests && mypy app && pytest`
-- Frontend: `cd frontend && npm ci && npm run lint && npm run build && npm run test`
+**Backend**
 
-Интеграционный тест миграций (`tests/test_migration_postgres.py`) в CI идёт против сервиса Postgres; локально задайте `MIGRATION_TEST_ADMIN_URL` как в разделе «Local PostgreSQL» выше.
+`cd backend`
+
+`pip install -r requirements-dev.txt`
+
+`ruff check app tests`
+
+`mypy app`
+
+`pytest`
+
+Перед `pytest`: для проверки миграций на Postgres задайте `MIGRATION_TEST_ADMIN_URL`, как в разделе «Local PostgreSQL» выше.
+
+**Frontend**
+
+`cd frontend`
+
+`npm ci`
+
+`npm run lint`
+
+`npm run build`
+
+`npm run test`
+
+`npx playwright install --with-deps chromium` (один раз на машину)
+
+`npm run test:e2e`
