@@ -17,13 +17,23 @@ export function FastSwipeFeed({ items, hasMore, loadingMore, onLoadMore }: FastS
   const [activeIndex, setActiveIndex] = useState<number>(0);
   const [dragPx, setDragPx] = useState<number>(0);
   const touchStartXRef: { current: number | null } = useRef<number | null>(null);
+  const visibleSinceMsRef: { current: number } = useRef<number>(Date.now());
 
   const count: number = items.length;
+  const dwellAnchorId: number | undefined = items[activeIndex]?.id;
+
   useEffect(() => {
     if (activeIndex > 0 && activeIndex >= count) {
       setActiveIndex(Math.max(0, count - 1));
     }
   }, [activeIndex, count]);
+
+  useEffect(() => {
+    if (dwellAnchorId === undefined) {
+      return;
+    }
+    visibleSinceMsRef.current = Date.now();
+  }, [dwellAnchorId]);
 
   useEffect(() => {
     if (count > 0 && activeIndex >= count - 2 && hasMore && !loadingMore) {
