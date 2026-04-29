@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     # Read-only provenance routes (GET /internal/provenance/*). Empty = routes return 404.
     provenance_api_key: str = ""
 
-    # Telegram Bot API (optional): notify after each processed item during pipeline runs.
+    # Telegram Bot API (optional): autopublish in pipeline + immediate send when a moderator approves queue items.
     telegram_notifications_enabled: bool = False
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
