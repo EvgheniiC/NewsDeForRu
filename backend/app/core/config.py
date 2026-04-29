@@ -1,5 +1,6 @@
-from typing import Literal
+from typing import Literal, Self
 
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -37,7 +38,10 @@ class Settings(BaseSettings):
 
     # In-process background RSS/pipeline (single-worker dev). Use external cron/beat for multi-replica.
     pipeline_scheduler_enabled: bool = False
-    pipeline_interval_minutes: int = 30
+    # Cron: run at minute :00 for each clock hour from start through end (inclusive), local to timezone below.
+    pipeline_schedule_start_hour: int = Field(default=6, ge=0, le=23)
+    pipeline_schedule_end_hour: int = Field(default=22, ge=0, le=23)
+    pipeline_schedule_timezone: str = "Europe/Berlin"
     # Per-feed fetch attempts; exponential delay between attempts (base below).
     rss_feed_max_attempts: int = 3
     rss_feed_retry_base_delay_seconds: float = 0.5
@@ -60,7 +64,25 @@ class Settings(BaseSettings):
     # Read-only provenance routes (GET /internal/provenance/*). Empty = routes return 404.
     provenance_api_key: str = ""
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    # Telegram Bot API (optional): notify after each processed item during pipeline runs.
+    telegram_notifications_enabled: bool = False
+    telegram_bot_token: str = ""
+    telegram_chat_id: str = ""
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    @model_validator(mode="after")
+    def pipeline_schedule_hours_ordered(self) -> Self:
+        if self.pipeline_schedule_start_hour > self.pipeline_schedule_end_hour:
+            raise ValueError(
+                "pipeline_schedule_start_hour must be <= pipeline_schedule_end_hour "
+                "(same calendar day window)"
+            )
+        return self
 
 
 settings: Settings = Settings()

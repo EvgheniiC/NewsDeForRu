@@ -3,6 +3,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 from apscheduler.schedulers.background import BackgroundScheduler  # type: ignore[import-untyped]
+from apscheduler.triggers.cron import CronTrigger  # type: ignore[import-untyped]
 
 from app.schemas.news import PipelineRunResponse
 from app.workers.scheduler import _scheduled_pipeline_run, create_scheduler
@@ -55,9 +56,11 @@ def test_scheduled_pipeline_logs_on_failure(mock_task: MagicMock) -> None:
     log.error.assert_called()
 
 
-def test_pipeline_interval_uses_config_minimum_one() -> None:
+def test_create_scheduler_uses_hourly_cron_in_configured_window() -> None:
     with patch("app.workers.scheduler.settings") as s:
-        s.pipeline_interval_minutes = 1
+        s.pipeline_schedule_start_hour = 6
+        s.pipeline_schedule_end_hour = 22
+        s.pipeline_schedule_timezone = "Europe/Berlin"
         sched: BackgroundScheduler = create_scheduler()
-        j = sched.get_jobs()[0]
-        assert j.trigger.interval.total_seconds() == 60.0
+        job = sched.get_jobs()[0]
+        assert isinstance(job.trigger, CronTrigger)

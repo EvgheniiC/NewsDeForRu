@@ -1,6 +1,8 @@
 import logging
+from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.background import BackgroundScheduler  # type: ignore[import-untyped]
+from apscheduler.triggers.cron import CronTrigger  # type: ignore[import-untyped]
 
 from app.core.config import settings
 from app.core.database import SessionLocal
@@ -24,7 +26,21 @@ def _scheduled_pipeline_run() -> None:
 
 
 def create_scheduler() -> BackgroundScheduler:
-    minutes: int = max(1, settings.pipeline_interval_minutes)
-    scheduler: BackgroundScheduler = BackgroundScheduler()
-    scheduler.add_job(_scheduled_pipeline_run, "interval", minutes=minutes)
+    tz_name: str = settings.pipeline_schedule_timezone.strip() or "UTC"
+    try:
+        tz = ZoneInfo(tz_name)
+    except Exception:
+        logger.warning(
+            "Invalid PIPELINE_SCHEDULE_TIMEZONE=%r — falling back to UTC. Fix timezone name.",
+            tz_name,
+        )
+        tz = ZoneInfo("UTC")
+
+    start_h: int = settings.pipeline_schedule_start_hour
+    end_h: int = settings.pipeline_schedule_end_hour
+    hour_spec: str = f"{start_h}-{end_h}"
+
+    scheduler: BackgroundScheduler = BackgroundScheduler(timezone=tz)
+    trigger = CronTrigger(minute="0", hour=hour_spec, timezone=tz)
+    scheduler.add_job(_scheduled_pipeline_run, trigger)
     return scheduler

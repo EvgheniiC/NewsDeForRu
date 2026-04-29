@@ -9,6 +9,7 @@ from app.services.dedup_service import DedupService
 from app.services.embedding_service import create_embedding_encoder
 from app.services.llm_provider import LLMProvider, create_llm_provider
 from app.services.publication_service import PublicationDecisionInput, PublicationService
+from app.services.telegram_notifier import send_auto_published_notice
 from app.services.relevance_filter_service import RelevanceFilterService
 from app.services.rss_ingestion_service import RSSIngestionService
 from app.services.urgent_news import ev_is_urgent_news
@@ -170,7 +171,16 @@ class PipelineService:
                 topic=topic,
                 is_urgent=is_urgent,
             )
-            self.repository.create_processed_news(processed_item)
+            saved: ProcessedNews = self.repository.create_processed_news(processed_item)
+            if publication_status == PipelineStatus.PUBLISHED:
+                send_auto_published_notice(
+                    title_ru=saved.title,
+                    one_sentence_summary=saved.one_sentence_summary,
+                    confidence_score=saved.confidence_score,
+                    relevance_score=relevance.score,
+                    source_url=saved.source_url,
+                    processed_id=saved.id,
+                )
             self.repository.update_raw_status(
                 raw_item=raw_item,
                 status=PipelineStatus.PROCESSED,
