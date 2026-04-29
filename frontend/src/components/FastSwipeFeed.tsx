@@ -17,7 +17,7 @@ export function FastSwipeFeed({ items, hasMore, loadingMore, onLoadMore }: FastS
   const [activeIndex, setActiveIndex] = useState<number>(0);
   const [dragPx, setDragPx] = useState<number>(0);
   const touchStartXRef: { current: number | null } = useRef<number | null>(null);
-  const visibleSinceMsRef: { current: number } = useRef<number>(Date.now());
+  const visibleSinceMsRef: { current: number } = useRef<number>(0);
 
   const count: number = items.length;
   const dwellAnchorId: number | undefined = items[activeIndex]?.id;

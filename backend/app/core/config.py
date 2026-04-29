@@ -48,6 +48,17 @@ class Settings(BaseSettings):
 
     # One JSON object per log line on the root logger (production-friendly).
     log_json: bool = False
+    # Text logs include run_id prefix when pipeline context is active (ignored when log_json=true).
+    log_prefix_run_id_plain: bool = True
+
+    # Optional error tracking for production (empty = disabled).
+    sentry_dsn: str = ""
+
+    # Expose Prometheus text metrics at GET /metrics (single-process; disable behind auth in prod).
+    prometheus_metrics_enabled: bool = False
+
+    # Read-only provenance routes (GET /internal/provenance/*). Empty = routes return 404.
+    provenance_api_key: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

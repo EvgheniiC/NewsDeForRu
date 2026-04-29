@@ -287,6 +287,22 @@ class NewsRepository:
         query: Select[tuple[ProcessedNews]] = select(ProcessedNews).where(ProcessedNews.id == news_id)
         return self.db_session.execute(query).scalar_one_or_none()
 
+    def get_raw_item_by_id(self, raw_id: int) -> RawNewsItem | None:
+        query: Select[tuple[RawNewsItem]] = (
+            select(RawNewsItem).where(RawNewsItem.id == raw_id).options(selectinload(RawNewsItem.source))
+        )
+        return self.db_session.execute(query).scalar_one_or_none()
+
+    def get_processed_by_raw_item_id(self, raw_item_id: int) -> ProcessedNews | None:
+        query: Select[tuple[ProcessedNews]] = select(ProcessedNews).where(
+            ProcessedNews.raw_item_id == raw_item_id
+        )
+        return self.db_session.execute(query).scalar_one_or_none()
+
+    def get_cluster_by_id(self, cluster_id: int) -> NewsCluster | None:
+        query: Select[tuple[NewsCluster]] = select(NewsCluster).where(NewsCluster.id == cluster_id)
+        return self.db_session.execute(query).scalar_one_or_none()
+
     def apply_moderation(
         self,
         news_id: int,

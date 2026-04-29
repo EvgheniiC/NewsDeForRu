@@ -57,22 +57,15 @@ Definition of Done checklist:
 
 ### Пункт 3 — UI: видимость пайплайна (React)
 
-**Статус:** запланировано.
+**Статус:** сделано.
 
-**Цель:** после действий пользователя и фоновых прогонов было понятно, что сделал пайплайн (цифры, успех/ошибка, время последнего запуска).
-
-**Задачи:**
-
-- Расширить API-клиент: `POST /pipeline/run` должен возвращать типизированный `PipelineRunResponse` (поля как в `backend/app/schemas/news.py`: `fetched`, `feeds_failed`, `filtered_out`, `clustered`, `processed`, `published`, `needs_review`, `item_errors`, `ok`, `error`).
-- На странице ленты: индикатор загрузки на время запроса; после ответа — компактный блок с итогами последнего ручного запуска (числа + явное сообщение при `ok: false` / `error`).
-- Добавить запрос `GET /health` (или отдельный хук): показывать в UI `last_pipeline_run_at`, `last_pipeline_ok`, статус БД (например в шапке или collapsible «Статус системы»).
-- Обработать сетевые и HTTP-ошибки так, чтобы не терять контекст (отдельно от «пайплайн вернул ok: false»).
+Сводка: типизированный `PipelineRunResponse`, блок последнего ручного `POST /pipeline/run`, сводка из `GET /health`, разделение сетевых ошибок и ответа с `ok: false` (см. `frontend/src/pages/FeedPage.tsx`, `frontend/src/lib/pipelineUi.ts`).
 
 **Definition of Done:**
 
-- [ ] Пользователь видит метрики последнего ручного запуска пайплайна с главной страницы.
-- [ ] Отображается сводка по последнему запуску из `/health` (хотя бы время и успех/неуспех).
-- [ ] `npm run lint` и `npm run build` проходят.
+- [x] Пользователь видит метрики последнего ручного запуска пайплайна с главной страницы (режим сетки, панели).
+- [x] Отображается сводка по последнему запуску из `/health`.
+- [x] `npm run lint` и `npm run build` проходят.
 
 ---
 
@@ -83,7 +76,7 @@ Definition of Done checklist:
 Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (push/PR на `main` и `master`). Статус последнего прогона — бейдж в шапке README и вкладка [Actions](https://github.com/EvgheniiC/NewsDeForRu/actions/workflows/ci.yml) в репозитории.
 
 - Backend: Python 3.11, сервис PostgreSQL 16; `ruff check`, `mypy`, полный `pytest` (включая `test_migration_postgres` через `MIGRATION_TEST_ADMIN_URL`).
-- Frontend: Node 20; `npm ci`, `npm run lint`, `npm run build`.
+- Frontend: Node 20; `npm ci`, `npm run lint`, `npm run build`, `npm run test` (Vitest), `npm run test:e2e`.
 
 **Definition of Done:**
 
@@ -94,59 +87,43 @@ Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (push/PR на `
 
 ### Пункт 5 — E2E / дымовые сценарии фронтенда
 
-**Статус:** запланировано.
+**Статус:** сделано.
 
-**Цель:** регрессия критического пути «лента → детали → модерация» ловится автоматически.
-
-**Задачи:**
-
-- Выбрать инструмент (например Playwright) и добавить зависимости/скрипт в `frontend`.
-- Поднять тестовый бэкенд или мок API (минимум: мок `fetch` / test server) — зафиксировать в документации стратегию.
-- Сценарии (минимум): открытие ленты; переход на `/news/:id` (с мок-данными); открытие `/moderation` и отображение очереди.
-- Опционально: прогон E2E в CI на пуш (с учётом времени и флакинесса).
+Кратко: Playwright (`e2e/app-flow.spec.ts`), мок API через `page.route`, запуск `npm run test:e2e`.
 
 **Definition of Done:**
 
-- [ ] Один конфигурируемый способ запуска E2E локально (`npm run test:e2e` или аналог).
-- [ ] Три сценария выше зелёные против выбранной стратегии API.
+- [x] Один конфигурируемый способ запуска E2E локально (`npm run test:e2e`).
+- [x] Сценарии критического пути против выбранной стратегии API.
 
 ---
 
 ### Пункт 6 — Наблюдаемость бэкенда (логи и диагностика пайплайна)
 
-**Статус:** запланировано.
+**Статус:** сделано.
 
-**Цель:** проще разбирать сбои ingestion, LLM и публикации без ручного дебага по одному breakpoint.
-
-**Задачи:**
-
-- Структурировать логи ключевых шагов пайплайна (уровень, этап, correlation/run id при необходимости, счётчики из `PipelineRunResponse`).
-- Единообразно логировать ошибки по элементам (`item_errors`) с достаточным контекстом (id/url источника без секретов).
-- Опционально: метрики (Prometheus/OpenTelemetry) или хотя бы расширение `/health` под «последняя ошибка пайплайна» (без утечки PII).
+- Correlation: `run_id` в контексте (`app/monitoring/pipeline_run_context.py`), JSON-логи (`LOG_JSON=true`), plaintext (`LOG_PREFIX_RUN_ID_PLAIN`).
+- Контекст ошибок по элементам: `item_error_details` (в т.ч. `cluster_id`, отпечаток URL).
+- Опционально: `GET /metrics` (`PROMETHEUS_METRICS_ENABLED`), Sentry (`SENTRY_DSN`).
 
 **Definition of Done:**
 
-- [ ] По логам одного прогона видно прохождение этапов и итоговые числа, согласованные с ответом API.
-- [ ] Нет дублирования секретов в логах.
+- [x] По логам прогона видна корреляция и числа, согласованные с API.
+- [x] Секреты в логи не попадают (намеренно не записываем ключи и PII в stdout).
 
 ---
 
 ### Пункт 7 — Read-only «отладка происхождения» новости (опционально)
 
-**Статус:** запланировано (низкий приоритет).
+**Статус:** сделано (внутренний API).
 
-**Цель:** из UI или API видно связь raw → cluster → processed для одной публикации.
-
-**Задачи:**
-
-- Спроектировать read-only эндпоинты (например для внутренней/админ-роли): список последних raw, деталь кластера, цепочка для `processed_news.id`.
-- Страница или секция во фронте только для разработки/админа (фичефлаг или отдельный роут).
-- Ограничить доступ (токен, IP, env-only) — по политике проекта.
+- `GET /internal/provenance/by-raw/{raw_item_id}`, `GET /internal/provenance/by-processed/{processed_news_id}`.
+- Заголовок `X-Internal-Api-Key` = `PROVENANCE_API_KEY`; без ключа ответ **404**.
 
 **Definition of Done:**
 
-- [ ] Документированный API + минимальный UI или `curl`-примеры.
-- [ ] Явно отмечено, что это не публичная поверхность для конечных пользователей.
+- [x] Эндпоинты описаны здесь и в `backend/.env.example`; резюме — `/privacy`, шаблон: [`docs/privacy-EU-DE.md`](docs/privacy-EU-DE.md).
+- [x] Не использовать как публичную поверхность.
 
 ## Frontend quick start
 
@@ -164,11 +141,16 @@ Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (push/PR на `
 - `GET /moderation/queue` — очередь модерации
 - `POST /moderation/{id}/action` — approve/reject
 - `POST /pipeline/run` — запуск полного ingestion pipeline
+- Внутреннее (см. `backend/.env.example`): `GET /internal/provenance/by-raw/{id}`, `GET /internal/provenance/by-processed/{id}` с заголовком `X-Internal-Api-Key`; `GET /metrics` при `PROMETHEUS_METRICS_ENABLED=true`
+
+## Конфиденциальность (EU)
+
+Страница приложения: `/privacy`. Шаблон для юриста и текстов GDPR: [`docs/privacy-EU-DE.md`](docs/privacy-EU-DE.md).
 
 ## Engineering standards
 
 - Python: strict typing, `ruff`, `mypy`, `pytest`
-- Frontend: strict TypeScript, `eslint`, `prettier`
+- Frontend: strict TypeScript, `eslint`, `vitest`, `prettier`
 - All code comments must be in English
 - Pre-commit checks are configured in `.pre-commit-config.yaml`
 
@@ -177,6 +159,6 @@ Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (push/PR на `
 Локально те же шаги, что в CI (см. [workflow CI](.github/workflows/ci.yml)):
 
 - Backend: `cd backend && pip install -r requirements-dev.txt && ruff check app tests && mypy app && pytest`
-- Frontend: `cd frontend && npm ci && npm run lint && npm run build`
+- Frontend: `cd frontend && npm ci && npm run lint && npm run build && npm run test`
 
 Интеграционный тест миграций (`tests/test_migration_postgres.py`) в CI идёт против сервиса Postgres; локально задайте `MIGRATION_TEST_ADMIN_URL` как в разделе «Local PostgreSQL» выше.

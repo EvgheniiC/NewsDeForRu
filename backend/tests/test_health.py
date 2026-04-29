@@ -18,3 +18,8 @@ def test_healthcheck() -> None:
     assert "last_pipeline_ok" in data
     assert "pipeline_scheduler" in data
     assert "last_pipeline_run_id" in data
+
+
+def test_metrics_not_exposed_when_disabled() -> None:
+    response = client.get("/metrics")
+    assert response.status_code == 404

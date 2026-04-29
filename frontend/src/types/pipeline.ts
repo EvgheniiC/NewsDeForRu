@@ -5,6 +5,7 @@ export interface PipelineItemErrorDetail {
   pipeline_step: "llm";
   error_type: string;
   url_fingerprint: string;
+  cluster_id?: number | null;
 }
 
 /** Mirrors backend `PipelineRunResponse` (`app/schemas/news.py`). */

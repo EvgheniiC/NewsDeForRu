@@ -69,7 +69,12 @@ export function useInfiniteFeed(feedFilter: FeedFilterKey, period: FeedPeriodKey
   const [feedError, setFeedError] = useState<string>("");
 
   const feedFilterRef: { current: FeedFilterKey } = useRef<FeedFilterKey>(feedFilter);
-  feedFilterRef.current = feedFilter;
+  const periodRef: { current: FeedPeriodKey } = useRef<FeedPeriodKey>(period);
+
+  useEffect(() => {
+    feedFilterRef.current = feedFilter;
+    periodRef.current = period;
+  }, [feedFilter, period]);
 
   const fetchGenRef: { current: number } = useRef<number>(0);
   const loadMoreSeqRef: { current: number } = useRef<number>(0);
@@ -143,7 +148,7 @@ export function useInfiniteFeed(feedFilter: FeedFilterKey, period: FeedPeriodKey
     setLoadingMore(true);
     try {
       const options: GetFeedOptions = {
-        ...buildFeedRequestOptions(feedFilter),
+        ...buildFeedRequestOptions(feedFilter, period),
         cursor: nextCursor
       };
       const response = await getFeed(options);

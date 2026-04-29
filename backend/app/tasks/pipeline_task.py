@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.monitoring import last_pipeline_run
+from app.monitoring.prometheus_metrics import record_pipeline_finished
 from app.monitoring.pipeline_run_context import reset_pipeline_run_id, set_pipeline_run_id
 from app.repositories.news_repository import NewsRepository
 from app.schemas.news import PipelineRunResponse
@@ -44,11 +45,13 @@ def run_pipeline_task(
             service: PipelineService = PipelineService(repository=repository)
             result: PipelineRunResponse = service.run(run_id=run_id)
             last_pipeline_run.record_from_response(result)
+            record_pipeline_finished(ok=result.ok)
             return result
         except Exception as e:
             logger.exception("Pipeline run failed: %s", e)
             failure: PipelineRunResponse = _failure_envelope(str(e), run_id)
             last_pipeline_run.record_from_response(failure)
+            record_pipeline_finished(ok=False)
             if not use_swallow:
                 raise
             return failure

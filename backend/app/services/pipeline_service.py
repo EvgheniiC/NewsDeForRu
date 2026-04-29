@@ -124,6 +124,7 @@ class PipelineService:
                             pipeline_step="llm",
                             error_type=err_name,
                             url_fingerprint=fp,
+                            cluster_id=cluster.id,
                         )
                     )
                 elif not details_truncated_logged:

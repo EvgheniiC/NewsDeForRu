@@ -4,25 +4,11 @@ import { GridFeed } from "../components/GridFeed";
 import { TikTokFeed } from "../components/TikTokFeed";
 import { ApiError, getHealth, NetworkError, runPipeline } from "../api/client";
 import { useInfiniteFeed } from "../hooks/useInfiniteFeed";
+import { describePipelinePartialFailure, formatHealthTime } from "../lib/pipelineUi";
 import type { FeedFilterKey, FeedPeriodKey } from "../types/news";
 import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
 
 type FeedViewMode = "grid" | "tiktok" | "fast";
-
-function formatHealthTime(iso: string | null): string {
-  if (!iso) {
-    return "—";
-  }
-  try {
-    const d: Date = new Date(iso);
-    return new Intl.DateTimeFormat("ru-RU", {
-      dateStyle: "short",
-      timeStyle: "medium"
-    }).format(d);
-  } catch {
-    return iso;
-  }
-}
 
 export function FeedPage(): JSX.Element {
   const [feedFilter, setFeedFilter] = useState<FeedFilterKey>("life");
@@ -89,9 +75,7 @@ export function FeedPage(): JSX.Element {
   };
 
   const pipelineOkMessage: string | null =
-    lastManualRun !== null && !lastManualRun.ok && !lastManualRun.error
-      ? "Пайплайн завершился с ok: false"
-      : null;
+    lastManualRun !== null ? describePipelinePartialFailure(lastManualRun) : null;
 
   const showDevPanels: boolean = feedViewMode === "grid";
 

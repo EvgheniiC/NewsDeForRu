@@ -11,3 +11,5 @@ psycopg[binary]
 numpy
 sentence-transformers
 torch
+prometheus-client
+sentry-sdk[fastapi]

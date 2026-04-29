@@ -48,27 +48,25 @@
 
 ### Пункт 6 — Наблюдаемость (углубление)
 
-**Статус:** базовый слой есть (логи + `/health` + last run); ниже — расширение.
+**Статус:** сделано.
 
-- [ ] Correlation / run id в логах одного прогона.
-- [ ] Единый формат логов (JSON) для продакшена.
-- [ ] Явный контекст при `item_errors` (без секретов и PII).
-- [ ] Опционально: Prometheus/OpenTelemetry, Sentry.
+- [x] Correlation / run id — `pipeline_run_context` + поле в JSON-логах; в plaintext — префикс `[run_id=...]` (`LOG_PREFIX_RUN_ID_PLAIN`, `LOG_JSON`).
+- [x] Единый JSON на строку для прода (`LOG_JSON=true`).
+- [x] Контекст `item_errors` — `PipelineItemErrorDetail` (в т.ч. `cluster_id`, `url_fingerprint`); расширение ответа API.
+- [x] Опционально: `GET /metrics` (Prometheus, `PROMETHEUS_METRICS_ENABLED`), Sentry (`SENTRY_DSN`).
 
-### Пункт 7 — Read-only «происхождение» новости (низкий приоритет)
+### Пункт 7 — Read-only «происхождение» новости
 
-- [ ] Read-only API raw → cluster → processed.
-- [ ] Защищённый доступ и документация.
+**Статус:** сделано.
+
+- [x] Read-only API: `GET /internal/provenance/by-raw/{id}`, `GET /internal/provenance/by-processed/{id}` — цепочка raw → cluster → processed.
+- [x] Защита: заголовок `X-Internal-Api-Key` = `PROVENANCE_API_KEY` (пусто → 404); пример — `README.md` / `backend/.env.example`.
 
 ---
 
 ## Примечания
 
 - **Один процесс с планировщиком:** при нескольких репликах uvicorn/gunicorn включайте планировщик только на одном инстансе или вынесите прогон в cron/отдельный worker — иначе джобы могут дублироваться.
-- **Фронтенд-тесты (unit):** в этом ToDo не отмечены как сделанные; при необходимости добавить отдельной строкой.
-
-
-что еще возможно сделать
-scikit-learn для лучшей обработки информации и создания сути 
-
-Для EU (Германия) заложите согласие и политику (что логируете, зачем, срок хранения).
+- **Фронтенд unit (Vitest):** `npm run test` — см. `src/lib/*.test.ts`.
+- **EU / политика:** шаблон `docs/privacy-EU-DE.md`, страница `/privacy` на фронте; юридически согласовать перед публикацией.
+- **Sklearn:** прототип метрики качества кластеров — `app/ml/cluster_quality_probe.py` (нужна разметка / gold-set для прод-оценки).

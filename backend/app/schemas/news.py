@@ -85,6 +85,7 @@ class PipelineItemErrorDetail(BaseModel):
     pipeline_step: Literal["llm"] = "llm"
     error_type: str
     url_fingerprint: str
+    cluster_id: int | None = None
 
 
 class PipelineRunResponse(BaseModel):
