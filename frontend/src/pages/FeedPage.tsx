@@ -210,6 +210,10 @@ export function FeedPage(): JSX.Element {
                       : "нет"}
                 </li>
                 <li>
+                  <span className="health-label">Run ID последнего прогона:</span>{" "}
+                  <code className="health-code">{health.last_pipeline_run_id ?? "—"}</code>
+                </li>
+                <li>
                   <span className="health-label">Планировщик:</span> {health.pipeline_scheduler}
                 </li>
               </ul>
@@ -228,6 +232,12 @@ export function FeedPage(): JSX.Element {
             {pipelineOkMessage && <p className="error">{pipelineOkMessage}</p>}
             {lastManualRun !== null && (
               <dl className="pipeline-stats">
+                <div>
+                  <dt>run_id</dt>
+                  <dd>
+                    <code>{lastManualRun.run_id}</code>
+                  </dd>
+                </div>
                 <div>
                   <dt>ok</dt>
                   <dd className={lastManualRun.ok ? "health-ok" : "health-warn"}>{String(lastManualRun.ok)}</dd>
@@ -268,6 +278,16 @@ export function FeedPage(): JSX.Element {
                   <dt>item_errors</dt>
                   <dd>{lastManualRun.item_errors}</dd>
                 </div>
+                {lastManualRun.item_error_details.length > 0 ? (
+                  <div className="pipeline-item-errors">
+                    <dt>item_error_details</dt>
+                    <dd>
+                      <pre className="pipeline-error-json">
+                        {JSON.stringify(lastManualRun.item_error_details, null, 2)}
+                      </pre>
+                    </dd>
+                  </div>
+                ) : null}
               </dl>
             )}
           </div>

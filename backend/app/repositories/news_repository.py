@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Literal
 
 from sqlalchemy import Select, and_, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 import numpy as np
 
@@ -195,6 +195,7 @@ class NewsRepository:
         query: Select[tuple[RawNewsItem]] = (
             select(RawNewsItem)
             .where(RawNewsItem.pipeline_status == PipelineStatus.INGESTED)
+            .options(selectinload(RawNewsItem.source))
             .order_by(RawNewsItem.published_at.desc())
         )
         return list(self.db_session.execute(query).scalars().all())

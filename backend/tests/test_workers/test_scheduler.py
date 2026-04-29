@@ -23,6 +23,7 @@ def test_scheduled_pipeline_invokes_task(mock_task: MagicMock) -> None:
         processed=0,
         published=0,
         needs_review=0,
+        run_id="00000000-0000-0000-0000-000000000000",
     )
     with patch("app.workers.scheduler.SessionLocal") as mock_sl:
         session: MagicMock = MagicMock()
@@ -42,6 +43,7 @@ def test_scheduled_pipeline_logs_on_failure(mock_task: MagicMock) -> None:
         processed=0,
         published=0,
         needs_review=0,
+        run_id="00000000-0000-0000-0000-000000000000",
         ok=False,
         error="e",
     )

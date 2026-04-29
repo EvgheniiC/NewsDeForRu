@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from app.models.news import ImpactPresentation, NewsTopic, PipelineStatus, ProcessedNews, RawNewsItem
 from app.repositories.news_repository import NewsRepository
 from app.schemas.llm_output import fallback_after_validation_failure
-from app.schemas.news import PipelineRunResponse
+from app.schemas.news import PipelineItemErrorDetail, PipelineRunResponse
 from app.services.dedup_service import DedupService
 from app.services.embedding_service import create_embedding_encoder
 from app.services.llm_provider import LLMProvider, create_llm_provider
@@ -12,8 +12,11 @@ from app.services.publication_service import PublicationDecisionInput, Publicati
 from app.services.relevance_filter_service import RelevanceFilterService
 from app.services.rss_ingestion_service import RSSIngestionService
 from app.services.urgent_news import ev_is_urgent_news
+from app.utils.url_fingerprint import url_fingerprint
 
 logger: logging.Logger = logging.getLogger(__name__)
+
+_MAX_ITEM_ERROR_DETAILS: int = 100
 
 
 @dataclass(frozen=True)
@@ -37,7 +40,7 @@ class PipelineService:
             publication=PublicationService(),
         )
 
-    def run(self) -> PipelineRunResponse:
+    def run(self, run_id: str) -> PipelineRunResponse:
         ingestion_stats = self.context.ingestion.run()
         filtered_out: int = 0
         clustered: int = 0
@@ -45,6 +48,8 @@ class PipelineService:
         published: int = 0
         needs_review: int = 0
         item_errors: int = 0
+        item_error_details: list[PipelineItemErrorDetail] = []
+        details_truncated_logged: bool = False
 
         raw_items: list[RawNewsItem] = self.repository.list_raw_items_for_processing()
         for raw_item in raw_items:
@@ -96,11 +101,38 @@ class PipelineService:
             try:
                 llm_output = self.context.llm_provider.process_news(raw_item.title, raw_item.summary)
             except Exception as e:
-                logger.exception("LLM step failed for raw_item_id=%s", raw_item.id)
+                source_key: str = raw_item.source.source_key if raw_item.source is not None else ""
+                fp: str = url_fingerprint(raw_item.url)
+                err_name: str = type(e).__name__
+                logger.exception(
+                    "LLM step failed raw_item_id=%s source_key=%s pipeline_step=llm "
+                    "error_type=%s url_fingerprint=%s",
+                    raw_item.id,
+                    source_key,
+                    err_name,
+                    fp,
+                )
                 llm_output = fallback_after_validation_failure(
                     raw_item.title, raw_item.summary, str(e)[:200]
                 )
                 item_errors += 1
+                if len(item_error_details) < _MAX_ITEM_ERROR_DETAILS:
+                    item_error_details.append(
+                        PipelineItemErrorDetail(
+                            raw_item_id=raw_item.id,
+                            source_key=source_key,
+                            pipeline_step="llm",
+                            error_type=err_name,
+                            url_fingerprint=fp,
+                        )
+                    )
+                elif not details_truncated_logged:
+                    logger.warning(
+                        "pipeline item_error_details capped at %s for run_id=%s",
+                        _MAX_ITEM_ERROR_DETAILS,
+                        run_id,
+                    )
+                    details_truncated_logged = True
             decision_inp = PublicationDecisionInput(
                 confidence_score=llm_output.confidence_score,
                 relevance_score=relevance.score,
@@ -156,10 +188,13 @@ class PipelineService:
             published=published,
             needs_review=needs_review,
             item_errors=item_errors,
+            run_id=run_id,
+            item_error_details=item_error_details,
         )
         logger.info(
-            "Pipeline finished: fetched=%s feeds_failed=%s filtered=%s "
+            "Pipeline finished run_id=%s fetched=%s feeds_failed=%s filtered=%s "
             "clustered=%s processed=%s published=%s needs_review=%s item_errors=%s",
+            run_id,
             out.fetched,
             out.feeds_failed,
             out.filtered_out,

@@ -8,10 +8,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.router import api_router
 from app.core.config import settings
 from app.core.database import init_database
+from app.core.logging_config import configure_logging
 from app.workers.scheduler import create_scheduler
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    configure_logging()
     init_database()
     sched: BackgroundScheduler | None = None
     if settings.pipeline_scheduler_enabled:

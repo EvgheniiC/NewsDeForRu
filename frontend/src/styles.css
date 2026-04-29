@@ -244,6 +244,26 @@ body {
   font-size: 1rem;
 }
 
+.pipeline-stats .pipeline-item-errors {
+  grid-column: 1 / -1;
+}
+
+.health-code {
+  font-size: 0.85em;
+  word-break: break-all;
+}
+
+.pipeline-error-json {
+  margin: 0;
+  font-size: 0.8rem;
+  max-height: 14rem;
+  overflow: auto;
+  padding: 8px;
+  background: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
 .loading-inline {
   margin: 8px 0;
   color: #3d4a5c;

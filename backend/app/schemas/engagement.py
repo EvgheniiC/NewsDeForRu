@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, cast
 
 from pydantic import AliasChoices, BaseModel, Field, field_validator
 
@@ -29,7 +29,7 @@ class RawEngagementEvent(BaseModel):
         if v is None:
             return {}
         if isinstance(v, dict):
-            return v  # type: ignore[no-any-return]
+            return cast(dict[str, Any], v)
         raise ValueError("payload must be an object")
 
 

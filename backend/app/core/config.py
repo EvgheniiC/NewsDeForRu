@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     # When the scheduled pipeline raises, the task can return a failure envelope instead of propagating.
     pipeline_task_swallow_errors: bool = True
 
+    # One JSON object per log line on the root logger (production-friendly).
+    log_json: bool = False
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 

@@ -76,6 +76,7 @@ export async function installApiMock(page: Page): Promise<void> {
         database: "ok",
         last_pipeline_run_at: "2024-01-15T10:00:00Z",
         last_pipeline_ok: true,
+        last_pipeline_run_id: null,
         pipeline_scheduler: "disabled"
       });
       return;

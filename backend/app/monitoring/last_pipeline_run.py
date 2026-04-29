@@ -11,6 +11,7 @@ class LastPipelineRunState:
     at_utc: datetime | None = None
     ok: bool = True
     error: str = ""
+    run_id: str | None = None
     fetched: int = 0
     feeds_failed: int = 0
     processed: int = 0
@@ -27,6 +28,7 @@ def record_from_response(result: PipelineRunResponse) -> None:
     _state.at_utc = datetime.now(timezone.utc)
     _state.ok = result.ok
     _state.error = (result.error or "")[:2000]
+    _state.run_id = result.run_id or None
     _state.fetched = result.fetched
     _state.feeds_failed = result.feeds_failed
     _state.processed = result.processed

@@ -17,3 +17,4 @@ def test_healthcheck() -> None:
     assert "last_pipeline_run_at" in data
     assert "last_pipeline_ok" in data
     assert "pipeline_scheduler" in data
+    assert "last_pipeline_run_id" in data

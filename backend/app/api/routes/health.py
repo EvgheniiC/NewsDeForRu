@@ -28,5 +28,6 @@ def healthcheck() -> dict[str, Any]:
         "database": "ok" if db_ok else "unavailable",
         "last_pipeline_run_at": last_at,
         "last_pipeline_ok": last_ok,
+        "last_pipeline_run_id": st.run_id,
         "pipeline_scheduler": "enabled" if settings.pipeline_scheduler_enabled else "disabled",
     }

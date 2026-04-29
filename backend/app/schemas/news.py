@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal, Self
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from app.models.news import ImpactPresentation, NewsTopic, PipelineStatus, UserRole
 
@@ -77,6 +77,16 @@ class RoleImpactResponse(BaseModel):
     text: str
 
 
+class PipelineItemErrorDetail(BaseModel):
+    """Safe diagnostic context for a failed pipeline item (no PII, no secrets)."""
+
+    raw_item_id: int
+    source_key: str
+    pipeline_step: Literal["llm"] = "llm"
+    error_type: str
+    url_fingerprint: str
+
+
 class PipelineRunResponse(BaseModel):
     fetched: int
     feeds_failed: int
@@ -86,5 +96,7 @@ class PipelineRunResponse(BaseModel):
     published: int
     needs_review: int
     item_errors: int = 0
+    run_id: str
+    item_error_details: list[PipelineItemErrorDetail] = Field(default_factory=list)
     ok: bool = True
     error: str | None = None

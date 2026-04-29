@@ -25,6 +25,7 @@ def test_run_pipeline_task_swallow_returns_envelope() -> None:
             out = run_pipeline_task(db_session, swallow_errors=True)
     assert out.ok is False
     assert out.error and "pipeline boom" in out.error
+    assert len(out.run_id) == 36
     st = last_pipeline_run.get_state()
     assert st.ok is False
     assert "pipeline boom" in st.error
