@@ -78,6 +78,7 @@ class RawNewsItem(Base):
     title: Mapped[str] = mapped_column(String(512), nullable=False)
     summary: Mapped[str] = mapped_column(Text, nullable=False)
     url: Mapped[str] = mapped_column(String(1024), nullable=False)
+    image_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     published_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     pipeline_status: Mapped[PipelineStatus] = mapped_column(
         Enum(PipelineStatus), default=PipelineStatus.INGESTED, nullable=False
@@ -118,6 +119,7 @@ class ProcessedNews(Base):
     bonus_block: Mapped[str] = mapped_column(Text, default="", nullable=False)
     spoiler: Mapped[str] = mapped_column(Text, default="", nullable=False)
     source_url: Mapped[str] = mapped_column(String(1024), nullable=False)
+    image_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     confidence_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     cluster_id: Mapped[int | None] = mapped_column(ForeignKey("news_clusters.id"), nullable=True, index=True)
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)

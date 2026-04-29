@@ -168,6 +168,15 @@ export function NewsDetailsPage(): JSX.Element {
     <section>
       <Link to="/">← Назад</Link>
       <h1>{news.title}</h1>
+      {news.image_url ? (
+        <img
+          alt={news.title}
+          className="news-detail-image"
+          decoding="async"
+          loading="lazy"
+          src={news.image_url}
+        />
+      ) : null}
       <p>
         <strong>Суть:</strong> {news.one_sentence_summary}
       </p>

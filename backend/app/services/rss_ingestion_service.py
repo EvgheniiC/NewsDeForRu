@@ -85,6 +85,7 @@ class RSSIngestionService:
                         summary=normalized.summary,
                         url=normalized.url,
                         published_at=normalized.published_at,
+                        image_url=normalized.image_url,
                     )
                     fetched += 1
 

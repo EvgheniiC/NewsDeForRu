@@ -84,6 +84,24 @@ body {
   border: 1px solid #dde3ea;
 }
 
+.news-card-image {
+  display: block;
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin: 8px 0 10px;
+}
+
+.news-detail-image {
+  display: block;
+  width: 100%;
+  max-height: min(48vh, 420px);
+  object-fit: cover;
+  border-radius: 10px;
+  margin: 10px 0 14px;
+}
+
 .news-urgent-badge {
   display: inline-block;
   font-size: 0.8rem;

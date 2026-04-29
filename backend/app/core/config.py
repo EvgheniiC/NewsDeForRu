@@ -45,6 +45,10 @@ class Settings(BaseSettings):
     # Per-feed fetch attempts; exponential delay between attempts (base below).
     rss_feed_max_attempts: int = 3
     rss_feed_retry_base_delay_seconds: float = 0.5
+    # When RSS has no image, optionally GET article HTML and parse og:image (extra latency per item).
+    og_image_fetch_enabled: bool = False
+    og_image_fetch_timeout_seconds: float = 12.0
+    og_image_max_response_bytes: int = 2_000_000
     # One extra HTTP attempt on 429/5xx to OpenAI chat completions.
     openai_request_retries: int = 1
     # When the scheduled pipeline raises, the task can return a failure envelope instead of propagating.

@@ -48,6 +48,7 @@ def moderate_news(
             confidence_score=item.confidence_score,
             relevance_score=relevance_score,
             source_url=item.source_url,
+            image_url=item.image_url,
             processed_id=item.id,
         )
 

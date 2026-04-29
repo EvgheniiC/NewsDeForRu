@@ -88,6 +88,35 @@ def test_send_notice_posts_when_enabled() -> None:
     assert "Автопубликация" in body
 
 
+def test_send_notice_uses_sendphoto_when_image_url_set() -> None:
+    cfg: Settings = Settings(
+        telegram_notifications_enabled=True,
+        telegram_bot_token="TOKEN",
+        telegram_chat_id="999",
+    )
+    mock_resp: MagicMock = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+
+    with patch("app.services.telegram_notifier.httpx.post", return_value=mock_resp) as mock_post:
+        send_auto_published_notice(
+            title_ru="t",
+            one_sentence_summary="s",
+            confidence_score=0.91,
+            relevance_score=0.77,
+            source_url="https://x",
+            image_url="https://cdn.example/p.png",
+            processed_id=7,
+            app_settings=cfg,
+        )
+
+    mock_post.assert_called_once()
+    post_url: str = str(mock_post.call_args[0][0])
+    assert "sendPhoto" in post_url
+    payload: dict[str, object] = mock_post.call_args.kwargs["json"]
+    assert payload["photo"] == "https://cdn.example/p.png"
+    assert "parse_mode" in payload
+
+
 def test_send_moderation_notice_posts_when_enabled() -> None:
     cfg: Settings = Settings(
         telegram_notifications_enabled=True,

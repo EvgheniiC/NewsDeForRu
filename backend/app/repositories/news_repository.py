@@ -56,6 +56,7 @@ class NewsRepository:
         summary: str,
         url: str,
         published_at: datetime,
+        image_url: str | None = None,
     ) -> RawNewsItem:
         item: RawNewsItem = RawNewsItem(
             source_id=source_id,
@@ -63,6 +64,7 @@ class NewsRepository:
             title=title,
             summary=summary,
             url=url,
+            image_url=image_url,
             published_at=published_at,
         )
         self.db_session.add(item)

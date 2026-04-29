@@ -12,6 +12,8 @@ export interface NewsFeedItem {
   id: number;
   title: string;
   subtitle: string;
+  /** Preview image URL from RSS / Open Graph when available. */
+  image_url?: string | null;
   read_time_minutes: number;
   topic: NewsTopic;
   is_urgent: boolean;
@@ -33,6 +35,7 @@ export interface ProcessedNews {
   bonus_block: string;
   spoiler: string;
   source_url: string;
+  image_url?: string | null;
   confidence_score: number;
   publication_status: string;
   read_time_minutes: number;

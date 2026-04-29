@@ -52,6 +52,7 @@ def list_news(
             id=item.id,
             title=item.title,
             subtitle=normalize_one_sentence_for_api(item.one_sentence_summary),
+            image_url=item.image_url,
             read_time_minutes=item.read_time_minutes,
             topic=item.topic,
             is_urgent=item.is_urgent,

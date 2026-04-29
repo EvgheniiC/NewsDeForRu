@@ -32,6 +32,7 @@ class ProcessedNewsResponse(BaseModel):
     bonus_block: str
     spoiler: str
     source_url: str
+    image_url: str | None = None
     confidence_score: float
     publication_status: PipelineStatus
     read_time_minutes: int
@@ -53,6 +54,7 @@ class NewsFeedItem(BaseModel):
     id: int
     title: str
     subtitle: str
+    image_url: str | None = None
     read_time_minutes: int
     topic: NewsTopic
     is_urgent: bool

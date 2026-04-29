@@ -13,6 +13,7 @@ from app.core.config import Settings, settings
 logger: logging.Logger = logging.getLogger(__name__)
 
 _MAX_MESSAGE_CHARS: Final[int] = 3900
+_MAX_CAPTION_CHARS: Final[int] = 1024
 
 
 def _truncate(text: str, limit: int) -> str:
@@ -96,9 +97,10 @@ def format_moderation_approved_html(
     )
 
 
-def _post_telegram_message(
+def _post_telegram_payload(
     *,
     text: str,
+    image_url: str | None,
     processed_id: int,
     cfg: Settings,
 ) -> None:
@@ -110,8 +112,29 @@ def _post_telegram_message(
         )
         return
 
-    url: str = f"https://api.telegram.org/bot{token}/sendMessage"
-    payload: dict[str, str | bool] = {
+    photo_candidate: str = (image_url or "").strip()
+    use_photo: bool = photo_candidate.startswith(("http://", "https://"))
+
+    if use_photo:
+        photo_api: str = f"https://api.telegram.org/bot{token}/sendPhoto"
+        payload_photo: dict[str, str | int | bool] = {
+            "chat_id": chat_id,
+            "photo": photo_candidate,
+            "caption": _truncate(text, _MAX_CAPTION_CHARS),
+            "parse_mode": "HTML",
+        }
+        try:
+            response: httpx.Response = httpx.post(photo_api, json=payload_photo, timeout=35.0)
+            response.raise_for_status()
+            return
+        except Exception:
+            logger.exception(
+                "Telegram sendPhoto failed processed_news_id=%s",
+                processed_id,
+            )
+
+    msg_url: str = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload_msg: dict[str, str | int | bool] = {
         "chat_id": chat_id,
         "text": text,
         "parse_mode": "HTML",
@@ -119,7 +142,7 @@ def _post_telegram_message(
     }
 
     try:
-        response: httpx.Response = httpx.post(url, json=payload, timeout=20.0)
+        response = httpx.post(msg_url, json=payload_msg, timeout=20.0)
         response.raise_for_status()
     except Exception:
         logger.exception(
@@ -136,9 +159,10 @@ def send_auto_published_notice(
     relevance_score: float,
     source_url: str,
     processed_id: int,
+    image_url: str | None = None,
     app_settings: Settings | None = None,
 ) -> None:
-    """POST sendMessage to Telegram; failures are logged only (never raises)."""
+    """POST sendPhoto or sendMessage to Telegram; failures are logged only (never raises)."""
     cfg: Settings = app_settings if app_settings is not None else settings
     if not cfg.telegram_notifications_enabled:
         return
@@ -151,7 +175,7 @@ def send_auto_published_notice(
         source_url=source_url,
         processed_id=processed_id,
     )
-    _post_telegram_message(text=text, processed_id=processed_id, cfg=cfg)
+    _post_telegram_payload(text=text, image_url=image_url, processed_id=processed_id, cfg=cfg)
 
 
 def send_moderation_approved_notice(
@@ -162,6 +186,7 @@ def send_moderation_approved_notice(
     relevance_score: float,
     source_url: str,
     processed_id: int,
+    image_url: str | None = None,
     app_settings: Settings | None = None,
 ) -> None:
     """Notify Telegram right after moderator approval (same channel/settings as autopublish)."""
@@ -177,4 +202,4 @@ def send_moderation_approved_notice(
         source_url=source_url,
         processed_id=processed_id,
     )
-    _post_telegram_message(text=text, processed_id=processed_id, cfg=cfg)
+    _post_telegram_payload(text=text, image_url=image_url, processed_id=processed_id, cfg=cfg)

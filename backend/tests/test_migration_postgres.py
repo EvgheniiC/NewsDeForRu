@@ -93,7 +93,7 @@ def test_alembic_upgrade_creates_expected_schema(postgres_test_db_url: str) -> N
         cluster_item_columns: set[str] = {column["name"] for column in inspector.get_columns("cluster_items")}
         cluster_columns: set[str] = {column["name"] for column in inspector.get_columns("news_clusters")}
 
-        assert {"guid", "pipeline_status", "cluster_key", "processed_at"} <= raw_columns
+        assert {"guid", "pipeline_status", "cluster_key", "processed_at", "image_url"} <= raw_columns
         assert {
             "raw_item_id",
             "cluster_id",
@@ -103,6 +103,7 @@ def test_alembic_upgrade_creates_expected_schema(postgres_test_db_url: str) -> N
             "is_urgent",
             "impact_presentation",
             "impact_unified",
+            "image_url",
         } <= processed_columns
         assert {"cluster_id", "raw_item_id", "is_primary", "similarity_score"} <= cluster_item_columns
         assert "centroid_embedding_json" in cluster_columns
@@ -113,7 +114,7 @@ def test_alembic_upgrade_creates_expected_schema(postgres_test_db_url: str) -> N
         with engine.connect() as connection:
             version_rows = connection.execute(text("SELECT version_num FROM alembic_version")).all()
         assert len(version_rows) == 1
-        assert version_rows[0][0] == "20260428_01"
+        assert version_rows[0][0] == "20260429_01"
 
         engagement_columns: set[str] = {column["name"] for column in inspector.get_columns("user_engagement_events")}
         assert {"anonymous_user_id", "processed_news_id", "event_type", "payload_json", "client_event_id"} <= engagement_columns

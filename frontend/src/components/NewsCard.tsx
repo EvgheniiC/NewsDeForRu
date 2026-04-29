@@ -91,6 +91,15 @@ export function NewsCard({ item, variant = "compact", feedMode = "grid" }: NewsC
     <article className={rootClass}>
       {item.is_urgent ? <span className="news-urgent-badge">⚡ Срочно</span> : null}
       <h3>{item.title}</h3>
+      {item.image_url ? (
+        <img
+          alt={item.title}
+          className="news-card-image"
+          decoding="async"
+          loading="lazy"
+          src={item.image_url}
+        />
+      ) : null}
       <div className={scrollClass} ref={scrollRootRef}>
         <p className={variant === "immersive" ? "news-card-subtitle-immersive" : undefined}>{item.subtitle}</p>
         <div aria-hidden="true" className="news-card-read-sentinel" ref={sentinelRef} />
