@@ -1,5 +1,21 @@
 export type NewsTopic = "politics" | "economy" | "life";
 
+/** Human-readable topic label for the UI (Russian). */
+export function newsTopicLabelRu(topic: NewsTopic): string {
+  switch (topic) {
+    case "politics":
+      return "Политика";
+    case "economy":
+      return "Экономика";
+    case "life":
+      return "Жизнь";
+    default: {
+      const _exhaustive: never = topic;
+      return _exhaustive;
+    }
+  }
+}
+
 /** How the impact block is shown: three angles, one paragraph, or hidden. */
 export type ImpactPresentation = "multi" | "single" | "none";
 

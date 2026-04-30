@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getModerationQueue, moderate } from "../api/client";
-import type { ProcessedNews } from "../types/news";
+import { newsTopicLabelRu, type ProcessedNews } from "../types/news";
 
 export function ModerationPage(): JSX.Element {
   const [queue, setQueue] = useState<ProcessedNews[]>([]);
@@ -73,6 +73,9 @@ export function ModerationPage(): JSX.Element {
               >
                 Reject
               </button>
+            </div>
+            <div className="news-card-topic-row">
+              <span className="news-topic-label">{newsTopicLabelRu(item.topic)}</span>
             </div>
           </article>
         ))}

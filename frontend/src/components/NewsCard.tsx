@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { enqueueOne } from "../analytics/engagementQueue";
 import type { FeedAnalyticsMode } from "../types/engagement";
-import type { NewsFeedItem } from "../types/news";
+import { newsTopicLabelRu, type NewsFeedItem } from "../types/news";
 
 export type NewsCardVariant = "compact" | "immersive";
 
@@ -119,6 +119,9 @@ export function NewsCard({ item, variant = "compact", feedMode = "grid" }: NewsC
             Открыть
           </Link>
         </div>
+      </div>
+      <div className="news-card-topic-row">
+        <span className="news-topic-label">{newsTopicLabelRu(item.topic)}</span>
       </div>
     </article>
   );

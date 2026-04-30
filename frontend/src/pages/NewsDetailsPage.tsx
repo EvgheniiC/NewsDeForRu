@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { enqueueOne } from "../analytics/engagementQueue";
 import { ApiError, getNews } from "../api/client";
-import type { ImpactPresentation, ProcessedNews } from "../types/news";
+import { newsTopicLabelRu, type ImpactPresentation, type ProcessedNews } from "../types/news";
 
 const READ_ARTICLE_RATIO: number = 0.91;
 
@@ -192,6 +192,10 @@ export function NewsDetailsPage(): JSX.Element {
       </p>
       <p>
         <strong>Спойлер:</strong> {news.spoiler}
+      </p>
+      <p className="news-detail-category">
+        Категория:{" "}
+        <span className="news-topic-label">{newsTopicLabelRu(news.topic)}</span>
       </p>
       <a href={news.source_url} onClick={handleOpenSourceClick} rel="noreferrer" target="_blank">
         Оригинальный источник

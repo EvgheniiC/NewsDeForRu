@@ -120,6 +120,24 @@ body {
   align-items: center;
 }
 
+.news-card-topic-row {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #eef2f6;
+}
+
+.news-topic-label {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.news-detail-category {
+  margin: 14px 0 10px;
+  font-size: 0.95rem;
+  color: #475569;
+}
+
 .news-card-scroll {
   overflow-y: auto;
   max-height: 7.5rem;
