@@ -72,6 +72,19 @@ class Settings(BaseSettings):
     telegram_notifications_enabled: bool = False
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
+    # Public web app URL for deep links (e.g. https://app.example.com). Adds “Читать в приложении” in Telegram.
+    public_app_base_url: str = ""
+    # Scheduled digest: Europe/Berlin hours (comma-separated). Auto-published, importance >= min, non-urgent only.
+    telegram_digest_scheduler_enabled: bool = True
+    telegram_digest_hours: str = "7,15,20"
+    telegram_digest_timezone: str = "Europe/Berlin"
+    telegram_digest_min_importance: int = Field(default=6, ge=1, le=10)
+    telegram_digest_max_per_slot: int = Field(default=3, ge=1, le=10)
+    # Fetch up to this many rows before deduping by news cluster for digest (see TODO: aging/fairness).
+    telegram_digest_candidate_scan_limit: int = Field(default=120, ge=20, le=2000)
+    # Breaking (urgent) auto-publish: retries with exponential backoff on full delivery failure.
+    telegram_urgent_send_max_attempts: int = Field(default=3, ge=1, le=10)
+    telegram_urgent_send_retry_base_seconds: float = Field(default=30.0, ge=0.0, le=3600.0)
 
     model_config = SettingsConfigDict(
         env_file=".env",

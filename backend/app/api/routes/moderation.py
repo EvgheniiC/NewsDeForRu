@@ -40,7 +40,7 @@ def moderate_news(
         raise HTTPException(status_code=404, detail="News item not found.")
 
     if request.action == "approve" and from_moderation_queue:
-        send_moderation_approved_notice(
+        sent_mod: bool = send_moderation_approved_notice(
             title_ru=item.title,
             topic=item.topic,
             one_sentence_summary=item.one_sentence_summary,
@@ -48,5 +48,7 @@ def moderate_news(
             image_url=item.image_url,
             processed_id=item.id,
         )
+        if sent_mod:
+            repository.mark_telegram_notified(item.id)
 
     return ProcessedNewsResponse.model_validate(item)

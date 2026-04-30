@@ -198,14 +198,18 @@ class PipelineService:
                 )
                 saved: ProcessedNews = self.repository.create_processed_news(processed_item)
                 if publication_status == PipelineStatus.PUBLISHED:
-                    send_auto_published_notice(
-                        title_ru=saved.title,
-                        topic=saved.topic,
-                        one_sentence_summary=saved.one_sentence_summary,
-                        source_url=saved.source_url,
-                        image_url=saved.image_url,
-                        processed_id=saved.id,
-                    )
+                    if is_urgent:
+                        sent_breaking: bool = send_auto_published_notice(
+                            title_ru=saved.title,
+                            topic=saved.topic,
+                            one_sentence_summary=saved.one_sentence_summary,
+                            source_url=saved.source_url,
+                            image_url=saved.image_url,
+                            processed_id=saved.id,
+                            use_urgent_retries=True,
+                        )
+                        if sent_breaking:
+                            self.repository.mark_telegram_notified(saved.id)
                 self.repository.update_raw_status(
                     raw_item=raw_item,
                     status=PipelineStatus.PROCESSED,

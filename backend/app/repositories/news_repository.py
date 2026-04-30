@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 from typing import Literal
 
-from sqlalchemy import Select, and_, func, or_, select
+from sqlalchemy import Select, and_, exists, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 import numpy as np
@@ -318,6 +318,59 @@ class NewsRepository:
     def get_processed_by_id(self, news_id: int) -> ProcessedNews | None:
         query: Select[tuple[ProcessedNews]] = select(ProcessedNews).where(ProcessedNews.id == news_id)
         return self.db_session.execute(query).scalar_one_or_none()
+
+    def list_telegram_digest_candidates(
+        self,
+        *,
+        min_importance: int,
+        limit: int,
+        max_scan: int,
+    ) -> list[ProcessedNews]:
+        """Auto-published items only (no moderation approve row), for scheduled Telegram digests.
+
+        At most one row per ``cluster_id`` (skips duplicate clusters; ``cluster_id IS NULL`` rows are
+        not deduped against each other).
+        """
+        approve_exists = exists().where(
+            ModerationEvent.processed_news_id == ProcessedNews.id,
+            ModerationEvent.action == "approve",
+        )
+        query: Select[tuple[ProcessedNews]] = (
+            select(ProcessedNews)
+            .where(
+                ProcessedNews.publication_status == PipelineStatus.PUBLISHED,
+                ProcessedNews.importance_ai_score >= min_importance,
+                ProcessedNews.telegram_notified_at.is_(None),
+                ProcessedNews.is_urgent.is_(False),
+                ~approve_exists,
+            )
+            .order_by(
+                ProcessedNews.importance_ai_score.desc(),
+                ProcessedNews.created_at.desc(),
+            )
+            .limit(max_scan)
+        )
+        rows: list[ProcessedNews] = list(self.db_session.execute(query).scalars().all())
+        picked: list[ProcessedNews] = []
+        seen_cluster_ids: set[int] = set()
+        for row in rows:
+            cid: int | None = row.cluster_id
+            if cid is not None:
+                if cid in seen_cluster_ids:
+                    continue
+                seen_cluster_ids.add(cid)
+            picked.append(row)
+            if len(picked) >= limit:
+                break
+        return picked
+
+    def mark_telegram_notified(self, news_id: int) -> None:
+        row: ProcessedNews | None = self.get_processed_by_id(news_id)
+        if row is None:
+            return
+        row.telegram_notified_at = datetime.utcnow()
+        self.db_session.add(row)
+        self.db_session.commit()
 
     def get_raw_item_by_id(self, raw_id: int) -> RawNewsItem | None:
         query: Select[tuple[RawNewsItem]] = (

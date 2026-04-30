@@ -26,9 +26,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
             environment=settings.app_env,
         )
     init_database()
-    sched: BackgroundScheduler | None = None
-    if settings.pipeline_scheduler_enabled:
-        sched = create_scheduler()
+    sched: BackgroundScheduler | None = create_scheduler()
+    if sched is not None:
         sched.start()
     try:
         yield
