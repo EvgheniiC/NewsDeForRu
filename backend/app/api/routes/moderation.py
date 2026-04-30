@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db_session
-from app.models.news import PipelineStatus, ProcessedNews, RawNewsItem
+from app.models.news import PipelineStatus, ProcessedNews
 from app.repositories.news_repository import NewsRepository
 from app.schemas.news import ModerationActionRequest, ProcessedNewsResponse
 from app.services.telegram_notifier import send_moderation_approved_notice
@@ -40,14 +40,10 @@ def moderate_news(
         raise HTTPException(status_code=404, detail="News item not found.")
 
     if request.action == "approve" and from_moderation_queue:
-        raw: RawNewsItem | None = item.raw_item
-        relevance_score: float = float(raw.relevance_score) if raw is not None else 0.0
         send_moderation_approved_notice(
             title_ru=item.title,
             topic=item.topic,
             one_sentence_summary=item.one_sentence_summary,
-            confidence_score=item.confidence_score,
-            relevance_score=relevance_score,
             source_url=item.source_url,
             image_url=item.image_url,
             processed_id=item.id,

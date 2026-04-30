@@ -38,31 +38,26 @@ def _format_published_html(
     title_ru: str,
     topic: NewsTopic,
     one_sentence_summary: str,
-    confidence_score: float,
-    relevance_score: float,
     source_url: str,
-    processed_id: int,
 ) -> str:
     title_esc: str = html.escape(title_ru.strip() or "(без заголовка)")
     summary_esc: str = html.escape(_truncate(one_sentence_summary.strip(), 900))
     url_esc: str = html.escape(source_url.strip())
-    scores_line: str = (
-        f"scores: confidence={confidence_score:.2f}, relevance={relevance_score:.2f}"
-    )
     category_esc: str = html.escape(_news_topic_label_ru(topic))
-    lines: list[str] = [
-        header_line,
-        "",
-        f"<b>{title_esc}</b>",
-        "",
-        summary_esc,
-        "",
-        f"Категория: {category_esc}",
-        "",
-        html.escape(scores_line),
-        f"id processed_news={processed_id}",
-        f'<a href="{url_esc}">источник</a>',
-    ]
+    lines: list[str] = []
+    if header_line.strip():
+        lines.extend([header_line, ""])
+    lines.extend(
+        [
+            f"<b>{title_esc}</b>",
+            "",
+            summary_esc,
+            "",
+            f"Категория: {category_esc}",
+            "",
+            f'<a href="{url_esc}">источник</a>',
+        ]
+    )
     body: str = "\n".join(lines)
     return _truncate(body, _MAX_MESSAGE_CHARS)
 
@@ -72,22 +67,15 @@ def format_auto_published_html(
     title_ru: str,
     topic: NewsTopic,
     one_sentence_summary: str,
-    confidence_score: float,
-    relevance_score: float,
     source_url: str,
-    processed_id: int,
 ) -> str:
     """Build Telegram HTML body for items that passed automatic publication checks."""
-    header: str = "✅ <b>Автопубликация</b> — попадёт в ленту без модерации"
     return _format_published_html(
-        header_line=header,
+        header_line="",
         title_ru=title_ru,
         topic=topic,
         one_sentence_summary=one_sentence_summary,
-        confidence_score=confidence_score,
-        relevance_score=relevance_score,
         source_url=source_url,
-        processed_id=processed_id,
     )
 
 
@@ -96,10 +84,7 @@ def format_moderation_approved_html(
     title_ru: str,
     topic: NewsTopic,
     one_sentence_summary: str,
-    confidence_score: float,
-    relevance_score: float,
     source_url: str,
-    processed_id: int,
 ) -> str:
     """Build Telegram HTML body when a moderator approves an item for the main feed."""
     header: str = "✅ <b>Модерация</b> — опубликовано в основную ленту"
@@ -108,10 +93,7 @@ def format_moderation_approved_html(
         title_ru=title_ru,
         topic=topic,
         one_sentence_summary=one_sentence_summary,
-        confidence_score=confidence_score,
-        relevance_score=relevance_score,
         source_url=source_url,
-        processed_id=processed_id,
     )
 
 
@@ -174,8 +156,6 @@ def send_auto_published_notice(
     title_ru: str,
     topic: NewsTopic,
     one_sentence_summary: str,
-    confidence_score: float,
-    relevance_score: float,
     source_url: str,
     processed_id: int,
     image_url: str | None = None,
@@ -190,10 +170,7 @@ def send_auto_published_notice(
         title_ru=title_ru,
         topic=topic,
         one_sentence_summary=one_sentence_summary,
-        confidence_score=confidence_score,
-        relevance_score=relevance_score,
         source_url=source_url,
-        processed_id=processed_id,
     )
     _post_telegram_payload(text=text, image_url=image_url, processed_id=processed_id, cfg=cfg)
 
@@ -203,8 +180,6 @@ def send_moderation_approved_notice(
     title_ru: str,
     topic: NewsTopic,
     one_sentence_summary: str,
-    confidence_score: float,
-    relevance_score: float,
     source_url: str,
     processed_id: int,
     image_url: str | None = None,
@@ -219,9 +194,6 @@ def send_moderation_approved_notice(
         title_ru=title_ru,
         topic=topic,
         one_sentence_summary=one_sentence_summary,
-        confidence_score=confidence_score,
-        relevance_score=relevance_score,
         source_url=source_url,
-        processed_id=processed_id,
     )
     _post_telegram_payload(text=text, image_url=image_url, processed_id=processed_id, cfg=cfg)

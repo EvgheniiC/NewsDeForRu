@@ -19,16 +19,15 @@ def test_format_auto_published_html() -> None:
         title_ru="Заголовок",
         topic=NewsTopic.POLITICS,
         one_sentence_summary="Кратко о событии.",
-        confidence_score=0.91,
-        relevance_score=0.77,
         source_url="https://example.com/a",
-        processed_id=42,
     )
-    assert "Автопубликация" in html_out
+    assert "Автопубликация" not in html_out
     assert "Заголовок" in html_out
     assert "Категория" in html_out
     assert "Политика" in html_out
-    assert "processed_news=42" in html_out
+    assert "confidence" not in html_out.lower()
+    assert "relevance" not in html_out.lower()
+    assert "processed_news" not in html_out
 
 
 def test_format_moderation_approved_html() -> None:
@@ -36,15 +35,12 @@ def test_format_moderation_approved_html() -> None:
         title_ru="Заголовок",
         topic=NewsTopic.LIFE,
         one_sentence_summary="Кратко о событии.",
-        confidence_score=0.88,
-        relevance_score=0.72,
         source_url="https://example.com/a",
-        processed_id=99,
     )
     assert "Модерация" in html_out
     assert "основную ленту" in html_out
     assert "Жизнь" in html_out
-    assert "processed_news=99" in html_out
+    assert "processed_news" not in html_out
 
 
 def test_send_notice_skips_when_disabled() -> None:
@@ -58,8 +54,6 @@ def test_send_notice_skips_when_disabled() -> None:
             title_ru="t",
             topic=NewsTopic.LIFE,
             one_sentence_summary="s",
-            confidence_score=1.0,
-            relevance_score=1.0,
             source_url="https://x",
             processed_id=1,
             app_settings=cfg,
@@ -81,8 +75,6 @@ def test_send_notice_posts_when_enabled() -> None:
             title_ru="t",
             topic=NewsTopic.LIFE,
             one_sentence_summary="s",
-            confidence_score=0.91,
-            relevance_score=0.77,
             source_url="https://x",
             processed_id=7,
             app_settings=cfg,
@@ -93,7 +85,10 @@ def test_send_notice_posts_when_enabled() -> None:
     assert call_kw["json"]["chat_id"] == "999"
     assert "parse_mode" in call_kw["json"]
     body: str = str(call_kw["json"]["text"])
-    assert "Автопубликация" in body
+    assert "Автопубликация" not in body
+    assert "<b>t</b>" in body
+    assert "confidence" not in body.lower()
+    assert "processed_news" not in body
 
 
 def test_send_notice_uses_sendphoto_when_image_url_set() -> None:
@@ -110,8 +105,6 @@ def test_send_notice_uses_sendphoto_when_image_url_set() -> None:
             title_ru="t",
             topic=NewsTopic.LIFE,
             one_sentence_summary="s",
-            confidence_score=0.91,
-            relevance_score=0.77,
             source_url="https://x",
             image_url="https://cdn.example/p.png",
             processed_id=7,
@@ -140,8 +133,6 @@ def test_send_moderation_notice_posts_when_enabled() -> None:
             title_ru="t",
             topic=NewsTopic.POLITICS,
             one_sentence_summary="s",
-            confidence_score=0.5,
-            relevance_score=0.6,
             source_url="https://x",
             processed_id=3,
             app_settings=cfg,
@@ -151,6 +142,7 @@ def test_send_moderation_notice_posts_when_enabled() -> None:
     body: str = str(mock_post.call_args.kwargs["json"]["text"])
     assert "Модерация" in body
     assert "Автопубликация" not in body
+    assert "processed_news" not in body
 
 
 @pytest.mark.parametrize(
@@ -175,8 +167,6 @@ def test_send_notice_missing_credentials_logs_no_network(
             title_ru="t",
             topic=NewsTopic.LIFE,
             one_sentence_summary="s",
-            confidence_score=1.0,
-            relevance_score=1.0,
             source_url="https://x",
             processed_id=1,
             app_settings=cfg,

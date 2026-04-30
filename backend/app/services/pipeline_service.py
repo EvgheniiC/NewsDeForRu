@@ -196,8 +196,6 @@ class PipelineService:
                         title_ru=saved.title,
                         topic=saved.topic,
                         one_sentence_summary=saved.one_sentence_summary,
-                        confidence_score=saved.confidence_score,
-                        relevance_score=relevance.score,
                         source_url=saved.source_url,
                         image_url=saved.image_url,
                         processed_id=saved.id,
