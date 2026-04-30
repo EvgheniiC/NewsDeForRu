@@ -57,6 +57,15 @@ export function ModerationPage(): JSX.Element {
         {queue.map((item: ProcessedNews) => (
           <article className="news-card" key={item.id}>
             <h3>{item.title}</h3>
+            {item.image_url ? (
+              <img
+                alt={item.title}
+                className="news-card-image"
+                decoding="async"
+                loading="lazy"
+                src={item.image_url}
+              />
+            ) : null}
             <p>{item.one_sentence_summary}</p>
             <div className="news-card-footer">
               <button
