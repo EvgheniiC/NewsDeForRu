@@ -3,24 +3,15 @@ import { useEffect, useRef, useState } from "react";
 import { enqueueOne } from "../analytics/engagementQueue";
 import type { FeedAnalyticsMode } from "../types/engagement";
 import { newsTopicLabelRu, type NewsFeedItem } from "../types/news";
+import { notifyUsefulStorageChanged, readStoredUseful, USEFUL_STORAGE_PREFIX } from "../lib/usefulStorage";
 
 export type NewsCardVariant = "compact" | "immersive";
-
-const USEFUL_STORAGE_PREFIX: string = "nga_useful_";
 
 interface NewsCardProps {
   item: NewsFeedItem;
   variant?: NewsCardVariant;
   /** Used in `navigate_next` payloads from parent feeds; card events include scroll/useful/open. */
   feedMode?: FeedAnalyticsMode;
-}
-
-function readStoredUseful(newsId: number): boolean {
-  try {
-    return window.localStorage.getItem(`${USEFUL_STORAGE_PREFIX}${newsId}`) === "1";
-  } catch {
-    return false;
-  }
 }
 
 export function NewsCard({ item, variant = "compact", feedMode = "grid" }: NewsCardProps): JSX.Element {
@@ -80,6 +71,7 @@ export function NewsCard({ item, variant = "compact", feedMode = "grid" }: NewsC
     } catch {
       /* storage full or disabled */
     }
+    notifyUsefulStorageChanged();
     enqueueOne(item.id, "useful", { value: next }, true);
   };
 

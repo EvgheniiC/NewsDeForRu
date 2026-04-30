@@ -4,6 +4,7 @@ import { GridFeed } from "../components/GridFeed";
 import { TikTokFeed } from "../components/TikTokFeed";
 import { ApiError, getHealth, NetworkError, runPipeline } from "../api/client";
 import { useInfiniteFeed } from "../hooks/useInfiniteFeed";
+import { useUsefulSavedFeed } from "../hooks/useUsefulSavedFeed";
 import { describePipelinePartialFailure, formatHealthTime } from "../lib/pipelineUi";
 import type { FeedFilterKey, FeedPeriodKey } from "../types/news";
 import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
@@ -15,10 +16,26 @@ export function FeedPage(): JSX.Element {
   const [feedPeriod, setFeedPeriod] = useState<FeedPeriodKey>("all");
   const [feedViewMode, setFeedViewMode] = useState<FeedViewMode>("grid");
 
-  const { items, loading: feedLoading, loadingMore, feedError, nextCursor, reload, loadMore } =
-    useInfiniteFeed(feedFilter, feedPeriod);
+  const isSavedUsefulTab: boolean = feedFilter === "saved_useful";
+  /** Placeholder topic when saved tab disables infinite scrolling; no requests are sent (`enabled: false`). */
+  const infiniteFeedFilter: Exclude<FeedFilterKey, "saved_useful"> =
+    feedFilter === "saved_useful" ? "life" : feedFilter;
 
-  const hasMore: boolean = nextCursor !== null;
+  const { items: infiniteItems, loading: infiniteLoading, loadingMore, feedError: infiniteFeedError, nextCursor, reload, loadMore } =
+    useInfiniteFeed(infiniteFeedFilter, feedPeriod, { enabled: !isSavedUsefulTab });
+
+  const {
+    items: savedItems,
+    loading: savedLoading,
+    feedError: savedFeedError,
+    refresh: refreshSavedUseful
+  } = useUsefulSavedFeed(isSavedUsefulTab);
+
+  const items = isSavedUsefulTab ? savedItems : infiniteItems;
+  const feedLoading = isSavedUsefulTab ? savedLoading : infiniteLoading;
+  const feedError = isSavedUsefulTab ? savedFeedError : infiniteFeedError;
+
+  const hasMore: boolean = !isSavedUsefulTab && nextCursor !== null;
   /** Hide feed until first page for current topic; keep grid during refresh when data exists. */
   const feedBlocking: boolean = feedLoading && items.length === 0;
 
@@ -60,6 +77,9 @@ export function FeedPage(): JSX.Element {
       const result: PipelineRunResponse = await runPipeline();
       setLastManualRun(result);
       await reload();
+      if (feedFilter === "saved_useful") {
+        await refreshSavedUseful();
+      }
       await loadHealth();
     } catch (e: unknown) {
       if (e instanceof NetworkError) {
@@ -77,7 +97,7 @@ export function FeedPage(): JSX.Element {
   const pipelineOkMessage: string | null =
     lastManualRun !== null ? describePipelinePartialFailure(lastManualRun) : null;
 
-  const showDevPanels: boolean = feedViewMode === "grid";
+  const showDevPanels: boolean = feedViewMode === "grid" && !isSavedUsefulTab;
 
   return (
     <section>
@@ -95,7 +115,8 @@ export function FeedPage(): JSX.Element {
             { key: "politics" as const, label: "Политика" },
             { key: "economy" as const, label: "Экономика" },
             { key: "life" as const, label: "Жизнь" },
-            { key: "urgent" as const, label: "⚡ Срочно" }
+            { key: "urgent" as const, label: "⚡ Срочно" },
+            { key: "saved_useful" as const, label: "❤️ Полезные" }
           ] as const
         ).map((opt, index) => (
           <span key={opt.key} className="feed-topic-cell">
@@ -115,7 +136,7 @@ export function FeedPage(): JSX.Element {
         ))}
       </div>
 
-      {feedFilter !== "top_today" ? (
+      {feedFilter !== "top_today" && feedFilter !== "saved_useful" ? (
         <div className="feed-period-bar" role="tablist" aria-label="Период">
         {(
           [
@@ -283,6 +304,12 @@ export function FeedPage(): JSX.Element {
 
       {feedLoading && items.length === 0 && <p className="loading-inline">Загрузка ленты…</p>}
       {feedError && <p className="error">{feedError}</p>}
+      {isSavedUsefulTab && !feedLoading && items.length === 0 && !feedError ? (
+        <p className="muted">
+          Здесь появятся новости, отмеченные «Полезно». Список хранится в этом браузере (в Телеграме — в WebView),
+          на сервер не синхронизируется.
+        </p>
+      ) : null}
 
       {!feedBlocking && feedViewMode === "grid" && (
         <GridFeed
