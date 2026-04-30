@@ -6,6 +6,26 @@ import { newsTopicLabelRu, type ImpactPresentation, type ProcessedNews } from ".
 
 const READ_ARTICLE_RATIO: number = 0.91;
 
+/** One additional-details line; identical bonus and spoiler strings are de-duplicated. */
+function formatAdditionalBlock(bonusBlock: string, spoiler: string): string | null {
+  const bonus: string = bonusBlock.trim();
+  const sp: string = spoiler.trim();
+  if (bonus === "" && sp === "") {
+    return null;
+  }
+  if (bonus === sp) {
+    return bonus;
+  }
+  const parts: string[] = [];
+  if (bonus !== "") {
+    parts.push(bonus);
+  }
+  if (sp !== "") {
+    parts.push(sp);
+  }
+  return parts.join(" ");
+}
+
 function renderImpactBlock(
   presentation: ImpactPresentation,
   news: ProcessedNews,
@@ -164,6 +184,11 @@ export function NewsDetailsPage(): JSX.Element {
     enqueueOne(newsId, "open_source", {}, true);
   };
 
+  const additionalText: string | null = formatAdditionalBlock(
+    news.bonus_block,
+    news.spoiler,
+  );
+
   return (
     <section>
       <Link to="/">← Назад</Link>
@@ -187,12 +212,11 @@ export function NewsDetailsPage(): JSX.Element {
       <p>
         <strong>Что сделать:</strong> {news.action_items}
       </p>
-      <p>
-        <strong>Бонус:</strong> {news.bonus_block}
-      </p>
-      <p>
-        <strong>Спойлер:</strong> {news.spoiler}
-      </p>
+      {additionalText !== null ? (
+        <p>
+          <strong>Дополнительно:</strong> {additionalText}
+        </p>
+      ) : null}
       <p className="news-detail-category">
         Категория:{" "}
         <span className="news-topic-label">{newsTopicLabelRu(news.topic)}</span>
