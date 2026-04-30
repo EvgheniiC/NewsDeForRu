@@ -6,6 +6,7 @@ from sqlalchemy import text
 from app.core.config import settings
 from app.core.database import engine
 from app.monitoring import last_pipeline_run
+from app.utils.berlin_time import to_berlin_iso
 
 router: APIRouter = APIRouter()
 
@@ -20,7 +21,7 @@ def healthcheck() -> dict[str, Any]:
     except Exception:
         db_ok = False
     st = last_pipeline_run.get_state()
-    last_at: str | None = st.at_utc.isoformat() if st.at_utc is not None else None
+    last_at: str | None = to_berlin_iso(st.at_utc) if st.at_utc is not None else None
     last_ok: bool | None = None if st.at_utc is None else st.ok
     status: str = "ok" if db_ok else "degraded"
     return {

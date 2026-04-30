@@ -1,18 +1,9 @@
 /** Pure helpers for pipeline / server status UI (easy to unit test). */
 
+import { formatDateTimeRuBerlin } from "./dateTimeBerlin";
+
 export function formatHealthTime(iso: string | null): string {
-  if (!iso) {
-    return "—";
-  }
-  try {
-    const d: Date = new Date(iso);
-    return new Intl.DateTimeFormat("ru-RU", {
-      dateStyle: "short",
-      timeStyle: "medium"
-    }).format(d);
-  } catch {
-    return iso;
-  }
+  return formatDateTimeRuBerlin(iso);
 }
 
 /** User-visible note when backend returns ok:false without structured error body. */

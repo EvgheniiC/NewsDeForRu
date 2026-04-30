@@ -2,9 +2,10 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 
 from app.models.news import PipelineStatus, NewsTopic
+from app.utils.berlin_time import to_berlin_iso
 
 
 class ProvenanceRawOut(BaseModel):
@@ -18,6 +19,10 @@ class ProvenanceRawOut(BaseModel):
     published_at: datetime
     created_at: datetime
 
+    @field_serializer("published_at", "created_at")
+    def _serialize_raw_datetimes(self, value: datetime) -> str:
+        return to_berlin_iso(value)
+
 
 class ProvenanceClusterOut(BaseModel):
     id: int
@@ -25,6 +30,10 @@ class ProvenanceClusterOut(BaseModel):
     canonical_title: str
     size: int
     updated_at: datetime
+
+    @field_serializer("updated_at")
+    def _serialize_updated_at(self, value: datetime) -> str:
+        return to_berlin_iso(value)
 
 
 class ProvenanceProcessedOut(BaseModel):

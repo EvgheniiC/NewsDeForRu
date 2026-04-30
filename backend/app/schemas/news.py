@@ -1,9 +1,10 @@
 from datetime import datetime
 from typing import Literal, Self
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_serializer, model_validator
 
 from app.models.news import ImpactPresentation, NewsTopic, PipelineStatus, UserRole
+from app.utils.berlin_time import to_berlin_iso
 
 # Existing rows can contain a literal "None" from bad model JSON; never expose to clients as text.
 _OCCASIONAL_PLACEHOLDERS: frozenset[str] = frozenset({"None", "null", "NULL", ""})
@@ -43,6 +44,10 @@ class ProcessedNewsResponse(BaseModel):
 
     model_config = {"from_attributes": True}
 
+    @field_serializer("created_at")
+    def _serialize_created_at(self, value: datetime) -> str:
+        return to_berlin_iso(value)
+
     @model_validator(mode="after")
     def _fix_legacy_placeholder_summary(self) -> Self:
         fixed: str = normalize_one_sentence_for_api(self.one_sentence_summary)
@@ -62,6 +67,10 @@ class NewsFeedItem(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @field_serializer("created_at")
+    def _serialize_created_at(self, value: datetime) -> str:
+        return to_berlin_iso(value)
 
 
 class NewsFeedPageResponse(BaseModel):
