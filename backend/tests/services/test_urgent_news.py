@@ -19,5 +19,6 @@ def test_ev_is_urgent_news_default_false() -> None:
         spoiler="s",
         topic="life",
         confidence_score=0.5,
+        importance_score=5,
     )
     assert ev_is_urgent_news("t", "s", llm) is False

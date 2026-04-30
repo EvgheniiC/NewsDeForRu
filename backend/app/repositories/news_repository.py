@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 from typing import Literal
 
-from sqlalchemy import Select, and_, or_, select
+from sqlalchemy import Select, and_, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 import numpy as np
@@ -276,6 +276,36 @@ class NewsRepository:
         if has_more:
             rows = rows[:limit]
         return rows, has_more
+
+    def count_distinct_sources_in_cluster(self, cluster_id: int) -> int:
+        stmt = (
+            select(func.count(func.distinct(RawNewsItem.source_id)))
+            .select_from(ClusterItem)
+            .join(RawNewsItem, RawNewsItem.id == ClusterItem.raw_item_id)
+            .where(ClusterItem.cluster_id == cluster_id)
+        )
+        result: int | None = self.db_session.execute(stmt).scalar_one_or_none()
+        return int(result or 0)
+
+    def list_published_since_with_raw(
+        self,
+        *,
+        created_at_since: datetime,
+        limit: int = 500,
+    ) -> list[ProcessedNews]:
+        query: Select[tuple[ProcessedNews]] = (
+            select(ProcessedNews)
+            .where(
+                and_(
+                    ProcessedNews.publication_status == PipelineStatus.PUBLISHED,
+                    ProcessedNews.created_at >= created_at_since,
+                ),
+            )
+            .options(selectinload(ProcessedNews.raw_item))
+            .order_by(ProcessedNews.created_at.desc())
+            .limit(limit)
+        )
+        return list(self.db_session.execute(query).scalars().all())
 
     def list_needs_review(self) -> list[ProcessedNews]:
         query: Select[tuple[ProcessedNews]] = (

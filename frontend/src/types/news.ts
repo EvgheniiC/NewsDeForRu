@@ -19,10 +19,19 @@ export function newsTopicLabelRu(topic: NewsTopic): string {
 /** How the impact block is shown: three angles, one paragraph, or hidden. */
 export type ImpactPresentation = "multi" | "single" | "none";
 
-export type FeedFilterKey = NewsTopic | "urgent";
+export type FeedFilterKey = NewsTopic | "urgent" | "top_today";
 
 /** Matches GET /news ``period``; ``all`` omits the query param. */
 export type FeedPeriodKey = "all" | "today" | "last_3_days" | "this_week" | "this_month";
+
+/** Breakdown from GET /news/top-today scoring. */
+export interface TopNewsRankMeta {
+  total_score: number;
+  source_count: number;
+  mentions_points: number;
+  freshness_points: number;
+  ai_importance: number;
+}
 
 export interface NewsFeedItem {
   id: number;
@@ -34,6 +43,7 @@ export interface NewsFeedItem {
   topic: NewsTopic;
   is_urgent: boolean;
   created_at: string;
+  rank?: TopNewsRankMeta;
 }
 
 export interface ProcessedNews {

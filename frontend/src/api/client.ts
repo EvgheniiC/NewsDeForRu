@@ -86,6 +86,10 @@ export interface NewsFeedPageResponse {
   next_cursor: number | null;
 }
 
+export interface TopNewsTodayResponse {
+  items: NewsFeedItem[];
+}
+
 export async function getFeed(options?: GetFeedOptions): Promise<NewsFeedPageResponse> {
   const params: URLSearchParams = new URLSearchParams();
   if (options?.urgent) {
@@ -108,6 +112,11 @@ export async function getFeed(options?: GetFeedOptions): Promise<NewsFeedPageRes
     return { items: raw as NewsFeedItem[], next_cursor: null as number | null };
   }
   return raw as NewsFeedPageResponse;
+}
+
+export async function getTopNewsToday(limit: number = 5): Promise<TopNewsTodayResponse> {
+  const params: URLSearchParams = new URLSearchParams({ limit: String(limit) });
+  return fetchJson<TopNewsTodayResponse>(`/news/top-today?${params.toString()}`);
 }
 
 export async function getNews(newsId: number): Promise<ProcessedNews> {

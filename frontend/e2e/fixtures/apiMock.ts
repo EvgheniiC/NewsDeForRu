@@ -90,6 +90,24 @@ export async function installApiMock(page: Page): Promise<void> {
       return;
     }
 
+    if (path === "/news/top-today" && method === "GET") {
+      await fulfillJson(route, {
+        items: [
+          {
+            ...feedItem,
+            rank: {
+              total_score: 18,
+              source_count: 2,
+              mentions_points: 2,
+              freshness_points: 3,
+              ai_importance: 7
+            }
+          }
+        ]
+      });
+      return;
+    }
+
     if (path === "/news/1" && method === "GET") {
       await fulfillJson(route, processedBody);
       return;

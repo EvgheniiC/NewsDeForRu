@@ -46,6 +46,7 @@ class StubLLMProvider(LLMProvider):
                 spoiler="Политический компромисс смягчил первоначальный вариант реформы.",
                 topic=topic,
                 confidence_score=0.82,
+                importance_score=1 + (key % 10),
             )
         if topic == "economy":
             return LLMNewsOutput(
@@ -69,6 +70,7 @@ class StubLLMProvider(LLMProvider):
                 spoiler="Политический компромисс смягчил первоначальный вариант реформы.",
                 topic=topic,
                 confidence_score=0.82,
+                importance_score=1 + (key % 10),
             )
         return LLMNewsOutput(
             title=(f"Новость из Германии (черновик {key % 1_000_000:06d})")[:500],
@@ -97,6 +99,7 @@ class StubLLMProvider(LLMProvider):
             spoiler="Политический компромисс смягчил первоначальный вариант реформы.",
             topic=topic,
             confidence_score=0.82,
+            importance_score=1 + (key % 10),
         )
 
 

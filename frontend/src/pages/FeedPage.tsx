@@ -91,6 +91,7 @@ export function FeedPage(): JSX.Element {
       <div className="feed-topic-bar" role="tablist" aria-label="Темы ленты">
         {(
           [
+            { key: "top_today" as const, label: "🔥 Топ-5 сегодня" },
             { key: "politics" as const, label: "Политика" },
             { key: "economy" as const, label: "Экономика" },
             { key: "life" as const, label: "Жизнь" },
@@ -114,7 +115,8 @@ export function FeedPage(): JSX.Element {
         ))}
       </div>
 
-      <div className="feed-period-bar" role="tablist" aria-label="Период">
+      {feedFilter !== "top_today" ? (
+        <div className="feed-period-bar" role="tablist" aria-label="Период">
         {(
           [
             { key: "all" as const, label: "Всё время" },
@@ -140,6 +142,7 @@ export function FeedPage(): JSX.Element {
           </span>
         ))}
       </div>
+      ) : null}
 
       <div className="feed-view-bar" role="tablist" aria-label="Вид ленты">
         {(

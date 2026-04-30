@@ -184,6 +184,7 @@ class PipelineService:
                     source_url=raw_item.url,
                     image_url=preview_image,
                     confidence_score=llm_output.confidence_score,
+                    importance_ai_score=llm_output.importance_score,
                     cluster_id=cluster.id,
                     publication_status=publication_status,
                     read_time_minutes=2,

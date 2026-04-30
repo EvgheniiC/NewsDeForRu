@@ -55,6 +55,12 @@ class LLMNewsOutput(BaseModel):
         description="Primary category: politics, economy, or everyday life in Germany.",
     )
     confidence_score: float = Field(..., ge=0.0, le=1.0)
+    importance_score: int = Field(
+        ...,
+        ge=1,
+        le=10,
+        description="How important this story is for people living in Germany (1=trivial, 10=critical).",
+    )
 
     @field_validator(
         "title",
@@ -122,7 +128,7 @@ class LLMNewsOutput(BaseModel):
             "Return exactly one JSON object (no markdown, no extra text) with these keys: "
             "title, one_sentence_summary, plain_language, impact_presentation, impact_unified, "
             "impact_owner, impact_tenant, impact_buyer, action_items, bonus_block, spoiler, "
-            "topic, confidence_score. "
+            "topic, confidence_score, importance_score. "
             "topic must be exactly one of: politics, economy, life — pick the story's main angle.\n"
             "Rubric: politics = government, political parties, elections, parliament/Bundestag, "
             "laws in legislative process, ministers, foreign policy, state institutions, diplomacy. "
@@ -143,7 +149,9 @@ class LLMNewsOutput(BaseModel):
             "impact_tenant, impact_buyer to \"\".\n"
             "- Use none when the summary and plain_language already cover meaning and a separate impact "
             "section would be redundant (rare). Set all four impact string fields to \"\".\n"
-            "All other string values must be in Russian. confidence_score is a number from 0 to 1."
+            "All other string values must be in Russian. confidence_score is a number from 0 to 1.\n"
+            "importance_score is an integer from 1 to 10: how important this news is for residents "
+            "of Germany (laws, economy, safety, major public life changes = higher; local trivia = lower)."
         )
 
 
@@ -179,4 +187,5 @@ def fallback_after_validation_failure(
         spoiler="Политический компромисс мог смягчить первоначальный вариант реформы.",
         topic="life",
         confidence_score=0.12,
+        importance_score=5,
     )

@@ -76,6 +76,12 @@ body {
   border-bottom-color: #0b63c9;
 }
 
+.news-top-rank-line {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
 .news-card {
   position: relative;
   background-color: #ffffff;

@@ -38,6 +38,7 @@ class ProcessedNewsResponse(BaseModel):
     read_time_minutes: int
     topic: NewsTopic
     is_urgent: bool
+    importance_ai_score: int
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -68,6 +69,22 @@ class NewsFeedPageResponse(BaseModel):
 
     items: list[NewsFeedItem]
     next_cursor: int | None = None
+
+
+class TopNewsRankMeta(BaseModel):
+    total_score: int
+    source_count: int
+    mentions_points: int
+    freshness_points: int
+    ai_importance: int
+
+
+class TopNewsFeedItem(NewsFeedItem):
+    rank: TopNewsRankMeta
+
+
+class TopNewsTodayResponse(BaseModel):
+    items: list[TopNewsFeedItem]
 
 
 class ModerationActionRequest(BaseModel):

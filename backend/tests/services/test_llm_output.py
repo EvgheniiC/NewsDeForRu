@@ -26,6 +26,7 @@ def _valid_payload() -> dict[str, object]:
         "spoiler": "интрига",
         "topic": "life",
         "confidence_score": 0.9,
+        "importance_score": 7,
     }
 
 
@@ -102,6 +103,7 @@ def test_stub_llm_provider_returns_valid_model() -> None:
     assert "русском" in p.one_sentence_summary
     assert "LLM_PROVIDER=openai" in p.one_sentence_summary
     assert 0.0 <= p.confidence_score <= 1.0
+    assert 1 <= p.importance_score <= 10
 
 
 def test_create_llm_provider_default_is_stub(
@@ -125,4 +127,5 @@ def test_fallback_after_validation_failure_is_valid() -> None:
     assert f.impact_presentation == "single"
     assert f.impact_unified
     assert f.impact_owner == ""
+    assert 1 <= f.importance_score <= 10
     assert f.model_json_schema()["type"] == "object"

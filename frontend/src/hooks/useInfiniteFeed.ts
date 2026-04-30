@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ApiError, getFeed, NetworkError, type GetFeedOptions } from "../api/client";
+import { ApiError, getFeed, getTopNewsToday, NetworkError, type GetFeedOptions } from "../api/client";
 import type { FeedFilterKey, FeedPeriodKey, NewsFeedItem } from "../types/news";
 
 const PAGE_SIZE: number = 20;
 
 function buildFeedRequestOptions(
-  feedFilter: FeedFilterKey,
+  feedFilter: Exclude<FeedFilterKey, "top_today">,
   period: FeedPeriodKey
 ): Omit<GetFeedOptions, "cursor"> {
   const base: Omit<GetFeedOptions, "cursor"> =
@@ -16,6 +16,18 @@ function buildFeedRequestOptions(
     return base;
   }
   return { ...base, period };
+}
+
+async function loadFeedFirstPage(
+  feedFilter: FeedFilterKey,
+  period: FeedPeriodKey
+): Promise<{ items: NewsFeedItem[]; next_cursor: number | null }> {
+  if (feedFilter === "top_today") {
+    const top = await getTopNewsToday(5);
+    return { items: top.items, next_cursor: null };
+  }
+  const response = await getFeed(buildFeedRequestOptions(feedFilter, period));
+  return normalizeFeedItems(response as { items?: unknown; next_cursor?: unknown });
 }
 
 function feedErrorMessage(e: unknown): string {
@@ -91,11 +103,10 @@ export function useInfiniteFeed(feedFilter: FeedFilterKey, period: FeedPeriodKey
 
     void (async (): Promise<void> => {
       try {
-        const response = await getFeed(buildFeedRequestOptions(feedFilter, period));
+        const normalized = await loadFeedFirstPage(feedFilter, period);
         if (fetchId !== fetchGenRef.current) {
           return;
         }
-        const normalized = normalizeFeedItems(response as { items?: unknown; next_cursor?: unknown });
         setItems(normalized.items);
         setNextCursor(normalized.next_cursor);
       } catch (e: unknown) {
@@ -120,11 +131,10 @@ export function useInfiniteFeed(feedFilter: FeedFilterKey, period: FeedPeriodKey
     setFeedError("");
     setLoading(true);
     try {
-      const response = await getFeed(buildFeedRequestOptions(snapshotFilter, snapshotPeriod));
+      const normalized = await loadFeedFirstPage(snapshotFilter, snapshotPeriod);
       if (fetchId !== fetchGenRef.current) {
         return;
       }
-      const normalized = normalizeFeedItems(response as { items?: unknown; next_cursor?: unknown });
       setItems(normalized.items);
       setNextCursor(normalized.next_cursor);
     } catch (e: unknown) {
@@ -140,7 +150,7 @@ export function useInfiniteFeed(feedFilter: FeedFilterKey, period: FeedPeriodKey
   }, []);
 
   const loadMore = useCallback(async (): Promise<void> => {
-    if (nextCursor === null || loadingMore) {
+    if (feedFilter === "top_today" || nextCursor === null || loadingMore) {
       return;
     }
     loadMoreSeqRef.current += 1;
