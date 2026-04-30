@@ -161,7 +161,12 @@ class PipelineService:
                     needs_review += 1
 
                 topic: NewsTopic = NewsTopic(llm_output.topic)
-                is_urgent: bool = ev_is_urgent_news(raw_item.title, raw_item.summary, llm_output)
+                is_urgent: bool = ev_is_urgent_news(
+                    raw_item.title,
+                    raw_item.summary,
+                    llm_output,
+                    published_at=raw_item.published_at,
+                )
                 preview_image: str | None = resolve_preview_image_url(
                     article_url=raw_item.url,
                     rss_image_url=raw_item.image_url,
