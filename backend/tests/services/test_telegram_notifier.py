@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from app.core.config import Settings
+from app.models.news import NewsTopic
 from app.services.telegram_notifier import (
     format_auto_published_html,
     format_moderation_approved_html,
@@ -16,6 +17,7 @@ from app.services.telegram_notifier import (
 def test_format_auto_published_html() -> None:
     html_out: str = format_auto_published_html(
         title_ru="Заголовок",
+        topic=NewsTopic.POLITICS,
         one_sentence_summary="Кратко о событии.",
         confidence_score=0.91,
         relevance_score=0.77,
@@ -24,12 +26,15 @@ def test_format_auto_published_html() -> None:
     )
     assert "Автопубликация" in html_out
     assert "Заголовок" in html_out
+    assert "Категория" in html_out
+    assert "Политика" in html_out
     assert "processed_news=42" in html_out
 
 
 def test_format_moderation_approved_html() -> None:
     html_out: str = format_moderation_approved_html(
         title_ru="Заголовок",
+        topic=NewsTopic.LIFE,
         one_sentence_summary="Кратко о событии.",
         confidence_score=0.88,
         relevance_score=0.72,
@@ -38,6 +43,7 @@ def test_format_moderation_approved_html() -> None:
     )
     assert "Модерация" in html_out
     assert "основную ленту" in html_out
+    assert "Жизнь" in html_out
     assert "processed_news=99" in html_out
 
 
@@ -50,6 +56,7 @@ def test_send_notice_skips_when_disabled() -> None:
     with patch("app.services.telegram_notifier.httpx.post") as mock_post:
         send_auto_published_notice(
             title_ru="t",
+            topic=NewsTopic.LIFE,
             one_sentence_summary="s",
             confidence_score=1.0,
             relevance_score=1.0,
@@ -72,6 +79,7 @@ def test_send_notice_posts_when_enabled() -> None:
     with patch("app.services.telegram_notifier.httpx.post", return_value=mock_resp) as mock_post:
         send_auto_published_notice(
             title_ru="t",
+            topic=NewsTopic.LIFE,
             one_sentence_summary="s",
             confidence_score=0.91,
             relevance_score=0.77,
@@ -100,6 +108,7 @@ def test_send_notice_uses_sendphoto_when_image_url_set() -> None:
     with patch("app.services.telegram_notifier.httpx.post", return_value=mock_resp) as mock_post:
         send_auto_published_notice(
             title_ru="t",
+            topic=NewsTopic.LIFE,
             one_sentence_summary="s",
             confidence_score=0.91,
             relevance_score=0.77,
@@ -129,6 +138,7 @@ def test_send_moderation_notice_posts_when_enabled() -> None:
     with patch("app.services.telegram_notifier.httpx.post", return_value=mock_resp) as mock_post:
         send_moderation_approved_notice(
             title_ru="t",
+            topic=NewsTopic.POLITICS,
             one_sentence_summary="s",
             confidence_score=0.5,
             relevance_score=0.6,
@@ -163,6 +173,7 @@ def test_send_notice_missing_credentials_logs_no_network(
     with patch("app.services.telegram_notifier.httpx.post") as mock_post:
         send_auto_published_notice(
             title_ru="t",
+            topic=NewsTopic.LIFE,
             one_sentence_summary="s",
             confidence_score=1.0,
             relevance_score=1.0,

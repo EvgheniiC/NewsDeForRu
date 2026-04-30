@@ -9,6 +9,7 @@ from typing import Final
 import httpx
 
 from app.core.config import Settings, settings
+from app.models.news import NewsTopic
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -22,10 +23,20 @@ def _truncate(text: str, limit: int) -> str:
     return text[: limit - 1] + "…"
 
 
+def _news_topic_label_ru(topic: NewsTopic) -> str:
+    labels: dict[NewsTopic, str] = {
+        NewsTopic.POLITICS: "Политика",
+        NewsTopic.ECONOMY: "Экономика",
+        NewsTopic.LIFE: "Жизнь",
+    }
+    return labels[topic]
+
+
 def _format_published_html(
     *,
     header_line: str,
     title_ru: str,
+    topic: NewsTopic,
     one_sentence_summary: str,
     confidence_score: float,
     relevance_score: float,
@@ -38,12 +49,15 @@ def _format_published_html(
     scores_line: str = (
         f"scores: confidence={confidence_score:.2f}, relevance={relevance_score:.2f}"
     )
+    category_esc: str = html.escape(_news_topic_label_ru(topic))
     lines: list[str] = [
         header_line,
         "",
         f"<b>{title_esc}</b>",
         "",
         summary_esc,
+        "",
+        f"Категория: {category_esc}",
         "",
         html.escape(scores_line),
         f"id processed_news={processed_id}",
@@ -56,6 +70,7 @@ def _format_published_html(
 def format_auto_published_html(
     *,
     title_ru: str,
+    topic: NewsTopic,
     one_sentence_summary: str,
     confidence_score: float,
     relevance_score: float,
@@ -67,6 +82,7 @@ def format_auto_published_html(
     return _format_published_html(
         header_line=header,
         title_ru=title_ru,
+        topic=topic,
         one_sentence_summary=one_sentence_summary,
         confidence_score=confidence_score,
         relevance_score=relevance_score,
@@ -78,6 +94,7 @@ def format_auto_published_html(
 def format_moderation_approved_html(
     *,
     title_ru: str,
+    topic: NewsTopic,
     one_sentence_summary: str,
     confidence_score: float,
     relevance_score: float,
@@ -89,6 +106,7 @@ def format_moderation_approved_html(
     return _format_published_html(
         header_line=header,
         title_ru=title_ru,
+        topic=topic,
         one_sentence_summary=one_sentence_summary,
         confidence_score=confidence_score,
         relevance_score=relevance_score,
@@ -154,6 +172,7 @@ def _post_telegram_payload(
 def send_auto_published_notice(
     *,
     title_ru: str,
+    topic: NewsTopic,
     one_sentence_summary: str,
     confidence_score: float,
     relevance_score: float,
@@ -169,6 +188,7 @@ def send_auto_published_notice(
 
     text: str = format_auto_published_html(
         title_ru=title_ru,
+        topic=topic,
         one_sentence_summary=one_sentence_summary,
         confidence_score=confidence_score,
         relevance_score=relevance_score,
@@ -181,6 +201,7 @@ def send_auto_published_notice(
 def send_moderation_approved_notice(
     *,
     title_ru: str,
+    topic: NewsTopic,
     one_sentence_summary: str,
     confidence_score: float,
     relevance_score: float,
@@ -196,6 +217,7 @@ def send_moderation_approved_notice(
 
     text: str = format_moderation_approved_html(
         title_ru=title_ru,
+        topic=topic,
         one_sentence_summary=one_sentence_summary,
         confidence_score=confidence_score,
         relevance_score=relevance_score,

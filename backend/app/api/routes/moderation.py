@@ -44,6 +44,7 @@ def moderate_news(
         relevance_score: float = float(raw.relevance_score) if raw is not None else 0.0
         send_moderation_approved_notice(
             title_ru=item.title,
+            topic=item.topic,
             one_sentence_summary=item.one_sentence_summary,
             confidence_score=item.confidence_score,
             relevance_score=relevance_score,

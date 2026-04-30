@@ -194,6 +194,7 @@ class PipelineService:
                 if publication_status == PipelineStatus.PUBLISHED:
                     send_auto_published_notice(
                         title_ru=saved.title,
+                        topic=saved.topic,
                         one_sentence_summary=saved.one_sentence_summary,
                         confidence_score=saved.confidence_score,
                         relevance_score=relevance.score,
