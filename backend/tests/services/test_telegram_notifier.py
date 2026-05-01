@@ -58,8 +58,8 @@ def test_format_moderation_approved_html() -> None:
         one_sentence_summary="Кратко о событии.",
         source_url="https://example.com/a",
     )
-    assert "Модерация" in html_out
-    assert "основную ленту" in html_out
+    assert "Модерация" not in html_out
+    assert "Заголовок" in html_out
     assert "Жизнь" in html_out
     assert "processed_news" not in html_out
 
@@ -263,7 +263,8 @@ def test_send_moderation_notice_posts_when_enabled() -> None:
     mock_post.assert_called_once()
     assert ok is True
     body: str = str(mock_post.call_args.kwargs["json"]["text"])
-    assert "Модерация" in body
+    assert "t" in body
+    assert "Модерация" not in body
     assert "Автопубликация" not in body
     assert "processed_news" not in body
 

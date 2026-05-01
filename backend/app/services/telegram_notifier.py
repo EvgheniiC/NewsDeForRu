@@ -142,9 +142,8 @@ def format_moderation_approved_html(
     source_url: str,
 ) -> str:
     """Build Telegram HTML body when a moderator approves an item for the main feed."""
-    header: str = "✅ <b>Модерация</b> — опубликовано в основную ленту"
     return _format_published_html(
-        header_line=header,
+        header_line="",
         title_ru=title_ru,
         topic=topic,
         one_sentence_summary=one_sentence_summary,
