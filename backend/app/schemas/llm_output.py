@@ -3,6 +3,157 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 NewsTopicLiteral = Literal["politics", "economy", "life"]
+
+_PLACEHOLDER_TITLE_NO_MODEL: str = "Заголовок не получен от модели"
+_PLACEHOLDER_SUMMARY_EMPTY: str = (
+    "Краткая сводка не была возвращена моделью; см. блок «Простым языком» или оригинал по ссылке."
+)
+_PLACEHOLDER_PLAIN_EMPTY: str = (
+    "Разъяснение не было возвращено моделью. Откройте оригинал материала по ссылке в карточке."
+)
+_PLACEHOLDER_ACTION_EMPTY: str = "- Уточните детали по официальным источникам и актуальным объявлениям."
+_PLACEHOLDER_BONUS_EMPTY: str = "Дополнительного редакционного блока не передано."
+_PLACEHOLDER_SPOILER_EMPTY: str = "Отдельной «интриги» нет — главное изложено в тексте выше."
+
+
+def _coerce_topic_for_llm(value: object) -> NewsTopicLiteral:
+    """
+    Map model drift (Russian/German labels) onto schema literals politics | economy | life.
+    """
+    if value is None:
+        return "life"
+    s: str = str(value).strip().casefold()
+    if not s:
+        return "life"
+    if s in {"politics", "politic", "political"}:
+        return "politics"
+    if s in {"economy", "economic", "economics", "finance", "business"}:
+        return "economy"
+    if s in {"life", "lifestyle", "society", "culture"}:
+        return "life"
+    if s in {"politik", "innenpolitik", "außenpolitik", "aussenpolitik"}:
+        return "politics"
+    if s in {"wirtschaft", "ökonomie", "oekonomie", "finanzen"}:
+        return "economy"
+    if s in {"leben", "alltag", "gesellschaft"}:
+        return "life"
+    if any(
+        marker in s
+        for marker in (
+            "политик",
+            "выбор",
+            "правительств",
+            "министр",
+            "парламент",
+            "бундестаг",
+            "законопроект",
+            "дипломат",
+            "внешнеполит",
+            "государств",
+        )
+    ):
+        return "politics"
+    if any(
+        marker in s
+        for marker in (
+            "экономик",
+            "финанс",
+            "бизнес",
+            "рынок",
+            "инфляц",
+            "акци",
+            "компани",
+            "налог",
+            "бюджет",
+            "валют",
+        )
+    ):
+        return "economy"
+    if any(
+        marker in s
+        for marker in (
+            "жизн",
+            "быт",
+            "здоров",
+            "образован",
+            "семь",
+            "жиль",
+            "страхов",
+            "потребит",
+            "спорт",
+            "культур",
+        )
+    ):
+        return "life"
+    return "life"
+
+
+def coerce_llm_news_dict_before_validate(
+    data: dict[str, Any],
+    *,
+    raw_title: str = "",
+    raw_summary: str = "",
+) -> dict[str, Any]:
+    """
+    Fix common LLM JSON mistakes before :class:`LLMNewsOutput` validation.
+
+    Fills blank strings and maps topic synonyms onto politics/economy/life.
+    """
+    out: dict[str, Any] = dict(data)
+
+    def _txt(key: str) -> str:
+        v: object | None = out.get(key)
+        if v is None:
+            return ""
+        return str(v).strip()
+
+    rt: str = raw_title.strip()
+    rs: str = raw_summary.strip()
+
+    title_v: str = _txt("title")
+    if not title_v and rt:
+        title_v = rt[:500]
+    if not title_v:
+        title_v = _PLACEHOLDER_TITLE_NO_MODEL
+    out["title"] = title_v
+
+    osum: str = _txt("one_sentence_summary")
+    if not osum:
+        if rs:
+            osum = f"(Черновик из описания фида, нем.) {rs[:900]}"
+        else:
+            osum = _PLACEHOLDER_SUMMARY_EMPTY
+    out["one_sentence_summary"] = osum[:2000]
+
+    plain: str = _txt("plain_language")
+    if not plain:
+        if rs:
+            plain = (
+                "Модель не вернула объяснение; ниже фрагмент оригинала (немецкий):\n"
+                f"{rs[:6000]}"
+            )
+        elif rt:
+            plain = (
+                "Модель не вернула объяснение; ниже заголовок источника (немецкий):\n"
+                f"{rt[:2000]}"
+            )
+        else:
+            plain = _PLACEHOLDER_PLAIN_EMPTY
+    out["plain_language"] = plain[:8000]
+
+    act: str = _txt("action_items")
+    out["action_items"] = (act if act else _PLACEHOLDER_ACTION_EMPTY)[:4000]
+
+    bonus: str = _txt("bonus_block")
+    out["bonus_block"] = (bonus if bonus else _PLACEHOLDER_BONUS_EMPTY)[:2000]
+
+    spoil: str = _txt("spoiler")
+    out["spoiler"] = (spoil if spoil else _PLACEHOLDER_SPOILER_EMPTY)[:2000]
+
+    out["topic"] = _coerce_topic_for_llm(out.get("topic"))
+    return out
+
+
 ImpactPresentationLiteral = Literal["multi", "single", "none"]
 
 
@@ -129,7 +280,8 @@ class LLMNewsOutput(BaseModel):
             "title, one_sentence_summary, plain_language, impact_presentation, impact_unified, "
             "impact_owner, impact_tenant, impact_buyer, action_items, bonus_block, spoiler, "
             "topic, confidence_score, importance_score. "
-            "topic must be exactly one of: politics, economy, life — pick the story's main angle.\n"
+            "topic MUST be the English token exactly one of: politics, economy, life — "
+            "never Russian (e.g. экономика) or German words; pick the story's main angle.\n"
             "Rubric: politics = government, political parties, elections, parliament/Bundestag, "
             "laws in legislative process, ministers, foreign policy, state institutions, diplomacy. "
             "economy = business and markets, companies, stocks, inflation, interest rates, "

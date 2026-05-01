@@ -87,7 +87,7 @@ class OpenAILLMProvider(LLMProvider):
         ]
         content: str = self._chat(first_messages)
         try:
-            return parse_llm_news_json(content)
+            return parse_llm_news_json(content, raw_title=title, raw_summary=summary)
         except (ValueError, TypeError, ValidationError) as e1:
             logger.warning("LLM first JSON parse/validation failed: %s", e1)
             repair: str = build_repair_user_message(str(e1), content)
@@ -98,7 +98,7 @@ class OpenAILLMProvider(LLMProvider):
             ]
             try:
                 content2: str = self._chat(second_messages)
-                return parse_llm_news_json(content2)
+                return parse_llm_news_json(content2, raw_title=title, raw_summary=summary)
             except (ValueError, TypeError, ValidationError) as e2:
                 logger.error("LLM failed after repair: %s", e2)
                 return fallback_after_validation_failure(title, summary, str(e2))

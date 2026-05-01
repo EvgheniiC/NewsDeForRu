@@ -264,6 +264,39 @@ def _post_telegram_payload(
     )
 
 
+def _retrying_post_telegram_payload(
+    *,
+    text: str,
+    image_url: str | None,
+    processed_id: int,
+    cfg: Settings,
+    max_attempts: int,
+    base_delay: float,
+    context: str,
+) -> bool:
+    """Full transport retries (e.g. moderation / digest) after failed HTTP or ok=false."""
+    for attempt in range(max_attempts):
+        if _post_telegram_payload(
+            text=text,
+            image_url=image_url,
+            processed_id=processed_id,
+            cfg=cfg,
+        ):
+            return True
+        if attempt < max_attempts - 1:
+            delay: float = base_delay * (2**attempt)
+            logger.warning(
+                "Telegram %s transport retry processed_news_id=%s attempt=%s/%s delay_s=%.1f",
+                context,
+                processed_id,
+                attempt + 1,
+                max_attempts,
+                delay,
+            )
+            time.sleep(delay)
+    return False
+
+
 def send_auto_published_notice(
     *,
     title_ru: str,
@@ -331,7 +364,15 @@ def send_scheduled_digest_notice(
         one_sentence_summary=one_sentence_summary,
         source_url=source_url,
     )
-    return _post_telegram_payload(text=text, image_url=image_url, processed_id=processed_id, cfg=cfg)
+    return _retrying_post_telegram_payload(
+        text=text,
+        image_url=image_url,
+        processed_id=processed_id,
+        cfg=cfg,
+        max_attempts=cfg.telegram_digest_send_max_attempts,
+        base_delay=cfg.telegram_digest_send_retry_base_seconds,
+        context="digest",
+    )
 
 
 def send_moderation_approved_notice(
@@ -355,7 +396,15 @@ def send_moderation_approved_notice(
         one_sentence_summary=one_sentence_summary,
         source_url=source_url,
     )
-    return _post_telegram_payload(text=text, image_url=image_url, processed_id=processed_id, cfg=cfg)
+    return _retrying_post_telegram_payload(
+        text=text,
+        image_url=image_url,
+        processed_id=processed_id,
+        cfg=cfg,
+        max_attempts=cfg.telegram_moderation_send_max_attempts,
+        base_delay=cfg.telegram_moderation_send_retry_base_seconds,
+        context="moderation",
+    )
 
 
 __all__ = [

@@ -10,6 +10,7 @@ from app.models.news import (
     UserRole,
 )
 from app.models.engagement import UserEngagementEvent
+from app.models.job_lock import AppJobLock
 
 __all__ = [
     "ImpactPresentation",
@@ -22,4 +23,5 @@ __all__ = [
     "ClusterItem",
     "ModerationEvent",
     "UserEngagementEvent",
+    "AppJobLock",
 ]

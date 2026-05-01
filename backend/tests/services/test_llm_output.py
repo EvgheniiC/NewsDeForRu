@@ -84,12 +84,57 @@ def test_parse_llm_news_json_rejects_string_none_placeholder() -> None:
         parse_llm_news_json(s)
 
 
-def test_parse_llm_news_json_rejects_empty_title_after_strip() -> None:
+def test_parse_llm_news_json_fills_empty_title_from_raw_feed() -> None:
     p: dict[str, object] = _valid_payload()
     p["title"] = "   \n  "
     s: str = json.dumps(p, ensure_ascii=True)
-    with pytest.raises(ValidationError):
-        parse_llm_news_json(s)
+    out: LLMNewsOutput = parse_llm_news_json(s, raw_title="Streik legt Bahn lahm")
+    assert "Streik" in out.title
+
+
+def test_parse_llm_news_json_placeholder_when_title_blank_and_no_raw() -> None:
+    p: dict[str, object] = _valid_payload()
+    p["title"] = ""
+    out: LLMNewsOutput = parse_llm_news_json(json.dumps(p, ensure_ascii=True))
+    assert out.title.startswith("Заголовок не получен")
+
+
+def test_parse_llm_news_json_coerces_russian_topic_economy() -> None:
+    p: dict[str, object] = _valid_payload()
+    p["topic"] = "экономика"
+    out: LLMNewsOutput = parse_llm_news_json(json.dumps(p, ensure_ascii=True))
+    assert out.topic == "economy"
+
+
+def test_parse_llm_news_json_coerces_german_topic_wirtschaft() -> None:
+    p: dict[str, object] = _valid_payload()
+    p["topic"] = "Wirtschaft"
+    out: LLMNewsOutput = parse_llm_news_json(json.dumps(p, ensure_ascii=True))
+    assert out.topic == "economy"
+
+
+def test_parse_llm_news_json_fills_empty_action_bonus_spoiler() -> None:
+    p: dict[str, object] = _valid_payload()
+    p["action_items"] = ""
+    p["bonus_block"] = "   "
+    p["spoiler"] = ""
+    out: LLMNewsOutput = parse_llm_news_json(json.dumps(p, ensure_ascii=True))
+    assert "источникам" in out.action_items
+    assert len(out.bonus_block) >= 10
+    assert len(out.spoiler) >= 10
+
+
+def test_parse_llm_news_json_fills_summary_plain_from_raw_feed() -> None:
+    p: dict[str, object] = _valid_payload()
+    p["one_sentence_summary"] = ""
+    p["plain_language"] = ""
+    raw_sum: str = "Die Regierung beschließt neue Maßnahmen."
+    out: LLMNewsOutput = parse_llm_news_json(
+        json.dumps(p, ensure_ascii=True),
+        raw_summary=raw_sum,
+    )
+    assert "Maßnahmen" in out.one_sentence_summary or "нем." in out.one_sentence_summary
+    assert "немецкий" in out.plain_language.lower() or "Maßnahmen" in out.plain_language
 
 
 def test_extract_json_string_code_fence() -> None:

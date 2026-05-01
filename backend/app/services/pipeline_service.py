@@ -1,9 +1,11 @@
 import logging
+import threading
 from dataclasses import dataclass
 
 import httpx
 
 from app.core.config import settings as app_settings
+from app.core.database import SessionLocal
 from app.models.news import ImpactPresentation, NewsTopic, PipelineStatus, ProcessedNews, RawNewsItem
 from app.repositories.news_repository import NewsRepository
 from app.schemas.llm_output import fallback_after_validation_failure
@@ -199,17 +201,52 @@ class PipelineService:
                 saved: ProcessedNews = self.repository.create_processed_news(processed_item)
                 if publication_status == PipelineStatus.PUBLISHED:
                     if is_urgent:
-                        sent_breaking: bool = send_auto_published_notice(
-                            title_ru=saved.title,
-                            topic=saved.topic,
-                            one_sentence_summary=saved.one_sentence_summary,
-                            source_url=saved.source_url,
-                            image_url=saved.image_url,
-                            processed_id=saved.id,
-                            use_urgent_retries=True,
-                        )
-                        if sent_breaking:
-                            self.repository.mark_telegram_notified(saved.id)
+                        if app_settings.telegram_urgent_background_enabled:
+                            urgent_id: int = saved.id
+                            urgent_title: str = saved.title
+                            urgent_topic: NewsTopic = saved.topic
+                            urgent_summary: str = saved.one_sentence_summary
+                            urgent_source_url: str = saved.source_url
+                            urgent_image: str | None = saved.image_url
+
+                            def _urgent_telegram_worker() -> None:
+                                try:
+                                    sent_bg: bool = send_auto_published_notice(
+                                        title_ru=urgent_title,
+                                        topic=urgent_topic,
+                                        one_sentence_summary=urgent_summary,
+                                        source_url=urgent_source_url,
+                                        image_url=urgent_image,
+                                        processed_id=urgent_id,
+                                        use_urgent_retries=True,
+                                    )
+                                    if not sent_bg:
+                                        return
+                                    with SessionLocal() as bg_session:
+                                        NewsRepository(bg_session).mark_telegram_notified(urgent_id)
+                                except Exception:
+                                    logger.exception(
+                                        "Background urgent Telegram failed processed_news_id=%s",
+                                        urgent_id,
+                                    )
+
+                            threading.Thread(
+                                target=_urgent_telegram_worker,
+                                daemon=True,
+                                name=f"telegram-urgent-{urgent_id}",
+                            ).start()
+                        else:
+                            sent_breaking: bool = send_auto_published_notice(
+                                title_ru=saved.title,
+                                topic=saved.topic,
+                                one_sentence_summary=saved.one_sentence_summary,
+                                source_url=saved.source_url,
+                                image_url=saved.image_url,
+                                processed_id=saved.id,
+                                use_urgent_retries=True,
+                            )
+                            if sent_breaking:
+                                self.repository.mark_telegram_notified(saved.id)
                 self.repository.update_raw_status(
                     raw_item=raw_item,
                     status=PipelineStatus.PROCESSED,

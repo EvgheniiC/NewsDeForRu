@@ -5,7 +5,7 @@ import re
 from json import JSONDecodeError
 from typing import Any
 
-from app.schemas.llm_output import LLMNewsOutput
+from app.schemas.llm_output import LLMNewsOutput, coerce_llm_news_dict_before_validate
 
 _FENCE_RE: re.Pattern[str] = re.compile(
     r"```(?:json)?\s*([\s\S]*?)\s*```",
@@ -28,7 +28,12 @@ def extract_json_string(raw: str) -> str:
     return t
 
 
-def parse_llm_news_json(text: str) -> LLMNewsOutput:
+def parse_llm_news_json(
+    text: str,
+    *,
+    raw_title: str = "",
+    raw_summary: str = "",
+) -> LLMNewsOutput:
     """Parse model output into a validated :class:`LLMNewsOutput`."""
     s: str = extract_json_string(text)
     try:
@@ -39,7 +44,12 @@ def parse_llm_news_json(text: str) -> LLMNewsOutput:
     if not isinstance(data, dict):
         omsg: str = "JSON root must be an object"
         raise TypeError(omsg)
-    return LLMNewsOutput.model_validate(data)
+    coerced: dict[str, Any] = coerce_llm_news_dict_before_validate(
+        data,
+        raw_title=raw_title,
+        raw_summary=raw_summary,
+    )
+    return LLMNewsOutput.model_validate(coerced)
 
 
 def build_repair_user_message(validation_error: str, raw_snippet: str) -> str:

@@ -85,6 +85,15 @@ class Settings(BaseSettings):
     # Breaking (urgent) auto-publish: retries with exponential backoff on full delivery failure.
     telegram_urgent_send_max_attempts: int = Field(default=3, ge=1, le=10)
     telegram_urgent_send_retry_base_seconds: float = Field(default=30.0, ge=0.0, le=3600.0)
+    # When True, urgent Telegram sends run in a daemon thread so the RSS pipeline loop is not blocked by retries.
+    telegram_urgent_background_enabled: bool = False
+    # Moderation approve / digest HTTP delivery retries (independent of urgent breaking-news retries).
+    telegram_moderation_send_max_attempts: int = Field(default=3, ge=1, le=10)
+    telegram_moderation_send_retry_base_seconds: float = Field(default=5.0, ge=0.0, le=600.0)
+    telegram_digest_send_max_attempts: int = Field(default=3, ge=1, le=10)
+    telegram_digest_send_retry_base_seconds: float = Field(default=5.0, ge=0.0, le=600.0)
+    # SQLite / generic DB: TTL for digest mutex row; release() clears it when the job finishes.
+    telegram_digest_lock_ttl_seconds: int = Field(default=600, ge=30, le=3600)
 
     model_config = SettingsConfigDict(
         env_file=".env",
