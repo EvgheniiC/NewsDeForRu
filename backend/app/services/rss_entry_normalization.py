@@ -11,6 +11,7 @@ from email.utils import parsedate_to_datetime
 from time import mktime
 from typing import Any
 
+from app.schemas.llm_output import meaningful_feed_text
 from app.services.preview_image_service import normalize_image_url
 
 # Match DB column limits
@@ -173,9 +174,11 @@ def normalize_feedparser_entry(entry: Mapping[str, Any]) -> NormalizedFeedEntry 
     if not guid_raw:
         return None
 
-    title_plain: str = strip_html_to_text(str(entry.get("title") or "Untitled"))
+    title_plain: str = meaningful_feed_text(
+        strip_html_to_text(str(entry.get("title") or "Untitled"))
+    )
     summary_html: str = _extract_summary(entry)
-    summary_plain: str = strip_html_to_text(summary_html)
+    summary_plain: str = meaningful_feed_text(strip_html_to_text(summary_html))
     url: str = str(entry.get("link") or "").strip()
     image_url: str | None = extract_feed_entry_image_url(entry, url)
 

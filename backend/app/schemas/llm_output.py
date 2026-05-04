@@ -88,6 +88,52 @@ def _coerce_topic_for_llm(value: object) -> NewsTopicLiteral:
     return "life"
 
 
+ImpactPresentationLiteral = Literal["multi", "single", "none"]
+
+# LLMs sometimes return JSON string placeholders instead of real text.
+_FORBIDDEN_LLM_TOKENS: frozenset[str] = frozenset(
+    {
+        "None",
+        "null",
+        "NULL",
+        "N/A",
+        "n/a",
+        "<none>",
+        "undefined",
+    }
+)
+
+_FORBIDDEN_FEED_SNIPPET_TOKENS_CF: frozenset[str] = frozenset(
+    x.casefold() for x in _FORBIDDEN_LLM_TOKENS
+)
+
+
+def meaningful_feed_text(value: str) -> str:
+    """
+    Return stripped RSS/HTML text, or empty if it is only a null placeholder.
+
+    Some feeds emit the literal word "None" (or "null") when the description
+    is missing; treat that as no snippet so we do not prefix it as a German draft.
+    """
+    t: str = value.strip()
+    if not t:
+        return ""
+    if t.casefold() in _FORBIDDEN_FEED_SNIPPET_TOKENS_CF:
+        return ""
+    return t
+
+
+def _llm_string(v: str) -> str:
+    t: str = v.strip()
+    if not t:
+        msg: str = "String field must be non-empty after trim"
+        raise ValueError(msg)
+    if t in _FORBIDDEN_LLM_TOKENS:
+        msg2: str = "String field must not be a null placeholder (e.g. None, null, N/A)"
+        raise ValueError(msg2)
+    return t
+
+
 def coerce_llm_news_dict_before_validate(
     data: dict[str, Any],
     *,
@@ -107,8 +153,8 @@ def coerce_llm_news_dict_before_validate(
             return ""
         return str(v).strip()
 
-    rt: str = raw_title.strip()
-    rs: str = raw_summary.strip()
+    rt: str = meaningful_feed_text(raw_title)
+    rs: str = meaningful_feed_text(raw_summary)
 
     title_v: str = _txt("title")
     if not title_v and rt:
@@ -152,34 +198,6 @@ def coerce_llm_news_dict_before_validate(
 
     out["topic"] = _coerce_topic_for_llm(out.get("topic"))
     return out
-
-
-ImpactPresentationLiteral = Literal["multi", "single", "none"]
-
-
-# LLMs sometimes return JSON string placeholders instead of real text.
-_FORBIDDEN_LLM_TOKENS: frozenset[str] = frozenset(
-    {
-        "None",
-        "null",
-        "NULL",
-        "N/A",
-        "n/a",
-        "<none>",
-        "undefined",
-    }
-)
-
-
-def _llm_string(v: str) -> str:
-    t: str = v.strip()
-    if not t:
-        msg: str = "String field must be non-empty after trim"
-        raise ValueError(msg)
-    if t in _FORBIDDEN_LLM_TOKENS:
-        msg2: str = "String field must not be a null placeholder (e.g. None, null, N/A)"
-        raise ValueError(msg2)
-    return t
 
 
 class LLMNewsOutput(BaseModel):
@@ -312,7 +330,12 @@ def fallback_after_validation_failure(
 ) -> LLMNewsOutput:
     """Deterministic, schema-valid copy when the model output cannot be validated."""
     tech: str = f"(JSON не прошёл проверку: {failure_reason[:180]})"
-    de_hint: str = (summary.strip() or title.strip())[:400]
+    de_hint: str = (
+        meaningful_feed_text(summary) or meaningful_feed_text(title)
+    )[:400]
+    de_part: str = (
+        f"Оригинал (фрагмент, нем.): {de_hint}. " if de_hint else ""
+    )
     unified: str = (
         "Автоматическая обработка не построила отдельный блок «влияния». "
         "Опирайтесь на «Суть» и «Простым языком» выше; оригинал — по ссылке в карточке. "
@@ -327,7 +350,7 @@ def fallback_after_validation_failure(
         )[:2000],
         plain_language=(
             "Если коротко: ответ ИИ нельзя было надёжно разобрать. "
-            f"Оригинал (фрагмент, нем.): {de_hint}. " + tech
+            f"{de_part}" + tech
         )[:8000],
         impact_presentation="single",
         impact_unified=unified,

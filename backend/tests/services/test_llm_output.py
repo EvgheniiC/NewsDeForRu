@@ -124,6 +124,18 @@ def test_parse_llm_news_json_fills_empty_action_bonus_spoiler() -> None:
     assert len(out.spoiler) >= 10
 
 
+def test_parse_llm_news_json_ignores_placeholder_raw_summary_for_draft() -> None:
+    p: dict[str, object] = _valid_payload()
+    p["one_sentence_summary"] = ""
+    p["plain_language"] = ""
+    out: LLMNewsOutput = parse_llm_news_json(
+        json.dumps(p, ensure_ascii=True),
+        raw_summary="None",
+    )
+    assert "Краткая сводка не была возвращена моделью" in out.one_sentence_summary
+    assert "Черновик из описания фида" not in out.one_sentence_summary
+
+
 def test_parse_llm_news_json_fills_summary_plain_from_raw_feed() -> None:
     p: dict[str, object] = _valid_payload()
     p["one_sentence_summary"] = ""
