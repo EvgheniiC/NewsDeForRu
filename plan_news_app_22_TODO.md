@@ -62,6 +62,18 @@
 - [x] Read-only API: `GET /internal/provenance/by-raw/{id}`, `GET /internal/provenance/by-processed/{id}` — цепочка raw → cluster → processed.
 - [x] Защита: заголовок `X-Internal-Api-Key` = `PROVENANCE_API_KEY` (пусто → 404); пример — `README.md` / `backend/.env.example`.
 
+### Пункт 8 — Публикация в Google Play / App Store (финальный этап)
+
+**Статус:** не начато (текущий клиент — веб на React; магазины требуют нативный пакет или обёртку).
+
+**Контекст:** в репозитории нет готового APK/AAB/IPA. Нужен публичный прод (HTTPS) для фронта и API, затем один из путей: **TWA / PWA в Google Play** (Bubblewrap, PWA Builder), **Capacitor/Cordova** (WebView + прод-сборка), либо отдельное нативное приложение.
+
+- [ ] **Прод-окружение:** стабильный URL фронта (`VITE_API_BASE_URL` → публичный API), TLS, CORS, масштабирование бэкенда по чеклисту из `README.md` (планировщик, секреты).
+- [ ] **Стратегия упаковки:** зафиксировать вариант (TWA vs Capacitor vs native); для iOS и Android магазины могут отличаться по политике (минимальный функционал «оболочки», WebView-only и т.д.).
+- [ ] **Google Play:** аккаунт разработчика, подпись приложения (upload key), сборка **AAB**, карточка приложения (скриншоты, описание, категория), ссылка на политику конфиденциальности (согласовать `docs/privacy-EU-DE.md` / `/privacy`), при необходимости Data safety form.
+- [ ] **App Store / TestFlight:** Apple Developer Program, сертификаты и профили, обёртка под iOS (Capacitor или актуальные правила для PWA), App Store Connect (метаданные, возрастной рейтинг, приватность), прохождение ревью.
+- [ ] **Целостность продукта:** `PUBLIC_APP_BASE_URL` и диплинки для Telegram/шаринга указывают на опубликованный origin веб-/store-клиента.
+
 ---
 
 ## Примечания
