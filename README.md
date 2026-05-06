@@ -125,6 +125,14 @@ Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (push/PR на `
 - [x] Эндпоинты описаны здесь и в `backend/.env.example`; резюме — `/privacy`, шаблон: [`docs/privacy-EU-DE.md`](docs/privacy-EU-DE.md).
 - [x] Не использовать как публичную поверхность.
 
+---
+
+### Пункт 8 — Публикация в Google Play / App Store
+
+**Статус:** не начато.
+
+Пошаговый чеклист (прод, обёртка TWA/Capacitor/native, требования магазинов, `PUBLIC_APP_BASE_URL`): [`plan_news_app_22_TODO.md`](plan_news_app_22_TODO.md) — раздел **«Пункт 8»**.
+
 ## Frontend quick start
 
 1. `cd frontend`
