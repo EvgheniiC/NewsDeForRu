@@ -45,3 +45,4 @@ backend/news.db
 LOCAL_RUN_GUIDE.md
 how_to_start_app_local.md
 deploy.md
+updateOnserver.md
