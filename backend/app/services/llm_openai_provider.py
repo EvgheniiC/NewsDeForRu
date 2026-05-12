@@ -8,6 +8,7 @@ import httpx
 from pydantic import ValidationError
 
 from app.core.config import settings
+from app.core.http_tls import httpx_verify_arg
 from app.schemas.llm_output import LLMNewsOutput, fallback_after_validation_failure
 from app.services.llm_json import build_repair_user_message, parse_llm_news_json
 from app.services.llm_provider import LLMProvider
@@ -29,6 +30,7 @@ class OpenAILLMProvider(LLMProvider):
                 "Content-Type": "application/json",
             },
             timeout=httpx.Timeout(120.0),
+            verify=httpx_verify_arg(settings),
         )
 
     def close(self) -> None:

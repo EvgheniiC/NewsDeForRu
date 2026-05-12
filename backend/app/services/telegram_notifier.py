@@ -10,9 +10,11 @@ from typing import Final
 import httpx
 
 from app.core.config import Settings, settings
+from app.core.http_tls import httpx_verify_arg
 from app.models.news import NewsTopic
 
 logger: logging.Logger = logging.getLogger(__name__)
+
 
 _MAX_MESSAGE_CHARS: Final[int] = 3900
 _MAX_CAPTION_CHARS: Final[int] = 1024
@@ -181,6 +183,7 @@ def _send_telegram_message(
     text: str,
     reply_markup: dict[str, object] | None,
     processed_id: int,
+    tls_verify: bool | str,
 ) -> bool:
     msg_url: str = f"https://api.telegram.org/bot{token}/sendMessage"
     payload_msg: dict[str, object] = {
@@ -193,7 +196,9 @@ def _send_telegram_message(
         payload_msg["reply_markup"] = reply_markup
 
     try:
-        response = httpx.post(msg_url, json=payload_msg, timeout=20.0)
+        response = httpx.post(
+            msg_url, json=payload_msg, timeout=20.0, verify=tls_verify
+        )
         response.raise_for_status()
     except Exception:
         logger.exception(
@@ -219,6 +224,8 @@ def _post_telegram_payload(
         )
         return False
 
+    tls_verify: bool | str = httpx_verify_arg(cfg)
+
     read_url: str | None = _read_in_app_url(cfg, processed_id)
     reply_markup: dict[str, object] | None = (
         _inline_read_in_app_markup(read_url) if read_url is not None else None
@@ -238,7 +245,9 @@ def _post_telegram_payload(
         if reply_markup is not None:
             payload_photo["reply_markup"] = reply_markup
         try:
-            response: httpx.Response = httpx.post(photo_api, json=payload_photo, timeout=35.0)
+            response: httpx.Response = httpx.post(
+                photo_api, json=payload_photo, timeout=35.0, verify=tls_verify
+            )
             response.raise_for_status()
         except Exception:
             logger.warning(
@@ -260,6 +269,7 @@ def _post_telegram_payload(
         text=text,
         reply_markup=reply_markup,
         processed_id=processed_id,
+        tls_verify=tls_verify,
     )
 
 

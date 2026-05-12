@@ -1,6 +1,6 @@
 from typing import Literal, Self
 
-from pydantic import Field, model_validator
+from pydantic import AliasChoices, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -45,6 +45,24 @@ class Settings(BaseSettings):
     # Per-feed fetch attempts; exponential delay between attempts (base below).
     rss_feed_max_attempts: int = 3
     rss_feed_retry_base_delay_seconds: float = 0.5
+    # Outbound HTTPS (RSS, OpenAI, Telegram, og:image): PEM bundle or verify toggle.
+    # Alias TELEGRAM_HTTP_* kept for backward-compatible .env files.
+    http_ca_bundle_path: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "http_ca_bundle_path",
+            "HTTP_CA_BUNDLE_PATH",
+            "TELEGRAM_HTTP_CA_BUNDLE_PATH",
+        ),
+    )
+    http_verify_ssl: bool = Field(
+        default=True,
+        validation_alias=AliasChoices(
+            "http_verify_ssl",
+            "HTTP_VERIFY_SSL",
+            "TELEGRAM_HTTP_VERIFY_SSL",
+        ),
+    )
     # When RSS has no image, optionally GET article HTML and parse og:image (extra latency per item).
     og_image_fetch_enabled: bool = False
     og_image_fetch_timeout_seconds: float = 12.0

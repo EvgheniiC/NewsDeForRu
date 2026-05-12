@@ -4,6 +4,12 @@ from __future__ import annotations
 
 import os
 
+# Isolate from developer .env (e.g. HTTP_VERIFY_SSL=false breaks httpx verify assertions).
+os.environ["HTTP_VERIFY_SSL"] = "true"
+os.environ.pop("HTTP_CA_BUNDLE_PATH", None)
+os.environ.pop("TELEGRAM_HTTP_CA_BUNDLE_PATH", None)
+os.environ.pop("TELEGRAM_HTTP_VERIFY_SSL", None)
+
 # Isolated DB for tests (avoids schema drift vs a dev sqlite file on disk).
 os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 os.environ.setdefault("SEMANTIC_EMBEDDING_BACKEND", "hash")

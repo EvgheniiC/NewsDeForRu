@@ -6,6 +6,7 @@ import httpx
 import pytest
 
 from app.core.config import Settings
+from app.core.http_tls import httpx_verify_arg
 from app.models.news import NewsTopic
 from app.services.telegram_notifier import (
     format_auto_published_html,
@@ -14,6 +15,12 @@ from app.services.telegram_notifier import (
     send_auto_published_notice,
     send_moderation_approved_notice,
 )
+
+
+@pytest.fixture(autouse=True)
+def reset_http_tls_insecure_warning_flag() -> None:
+    setattr(httpx_verify_arg, "_insecure_warned", False)
+    yield
 
 
 def _mock_telegram_response(*, ok: bool, description: str = "") -> MagicMock:
@@ -105,6 +112,7 @@ def test_send_notice_posts_when_enabled() -> None:
     assert out is True
     call_kw: dict[str, object] = mock_post.call_args.kwargs
     assert call_kw["json"]["chat_id"] == "999"
+    assert call_kw.get("verify") is True
     assert "parse_mode" in call_kw["json"]
     body: str = str(call_kw["json"]["text"])
     assert "Автопубликация" not in body
@@ -343,3 +351,44 @@ def test_send_photo_ok_false_falls_back_to_send_message() -> None:
             app_settings=cfg,
         )
     assert out is True
+
+
+def test_send_notice_passes_ca_bundle_path_to_httpx() -> None:
+    cfg: Settings = Settings(
+        telegram_notifications_enabled=True,
+        telegram_bot_token="TOKEN",
+        telegram_chat_id="999",
+        http_ca_bundle_path=r"C:\certs\corp-bundle.pem",
+    )
+    mock_resp: MagicMock = _mock_telegram_response(ok=True)
+    with patch("app.services.telegram_notifier.httpx.post", return_value=mock_resp) as mock_post:
+        send_auto_published_notice(
+            title_ru="t",
+            topic=NewsTopic.LIFE,
+            one_sentence_summary="s",
+            source_url="https://x",
+            processed_id=1,
+            app_settings=cfg,
+        )
+    kw: dict[str, object] = mock_post.call_args.kwargs
+    assert kw["verify"] == r"C:\certs\corp-bundle.pem"
+
+
+def test_send_notice_disables_tls_verify_when_configured() -> None:
+    cfg: Settings = Settings(
+        telegram_notifications_enabled=True,
+        telegram_bot_token="TOKEN",
+        telegram_chat_id="999",
+        http_verify_ssl=False,
+    )
+    mock_resp: MagicMock = _mock_telegram_response(ok=True)
+    with patch("app.services.telegram_notifier.httpx.post", return_value=mock_resp) as mock_post:
+        send_auto_published_notice(
+            title_ru="t",
+            topic=NewsTopic.LIFE,
+            one_sentence_summary="s",
+            source_url="https://x",
+            processed_id=1,
+            app_settings=cfg,
+        )
+    assert mock_post.call_args.kwargs["verify"] is False

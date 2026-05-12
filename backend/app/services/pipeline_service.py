@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import httpx
 
 from app.core.config import settings as app_settings
+from app.core.http_tls import httpx_verify_arg
 from app.core.database import SessionLocal
 from app.models.news import ImpactPresentation, NewsTopic, PipelineStatus, ProcessedNews, RawNewsItem
 from app.repositories.news_repository import NewsRepository
@@ -65,6 +66,7 @@ class PipelineService:
                 timeout=httpx.Timeout(app_settings.og_image_fetch_timeout_seconds),
                 headers={"User-Agent": app_settings.rss_user_agent},
                 follow_redirects=True,
+                verify=httpx_verify_arg(app_settings),
             )
         try:
             for raw_item in raw_items:

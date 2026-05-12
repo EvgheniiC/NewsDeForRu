@@ -10,6 +10,7 @@ from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from app.api.router import api_router
 from app.core.config import settings
 from app.core.database import init_database
+from app.core.http_tls import configure_huggingface_hub_http
 from app.core.logging_config import configure_logging
 from app.workers.scheduler import create_scheduler
 
@@ -17,6 +18,7 @@ from app.workers.scheduler import create_scheduler
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     configure_logging()
+    configure_huggingface_hub_http(settings)
     if settings.sentry_dsn.strip():
         import sentry_sdk
 
