@@ -113,15 +113,15 @@ def test_parse_llm_news_json_coerces_german_topic_wirtschaft() -> None:
     assert out.topic == "economy"
 
 
-def test_parse_llm_news_json_fills_empty_action_bonus_spoiler() -> None:
+def test_parse_llm_news_json_fills_empty_action_only_bonus_spoiler_optional() -> None:
     p: dict[str, object] = _valid_payload()
     p["action_items"] = ""
     p["bonus_block"] = "   "
     p["spoiler"] = ""
     out: LLMNewsOutput = parse_llm_news_json(json.dumps(p, ensure_ascii=True))
     assert "источникам" in out.action_items
-    assert len(out.bonus_block) >= 10
-    assert len(out.spoiler) >= 10
+    assert out.bonus_block == ""
+    assert out.spoiler == ""
 
 
 def test_parse_llm_news_json_ignores_placeholder_raw_summary_for_draft() -> None:

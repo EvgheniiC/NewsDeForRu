@@ -6,10 +6,24 @@ import { newsTopicLabelRu, type ImpactPresentation, type ProcessedNews } from ".
 
 const READ_ARTICLE_RATIO: number = 0.91;
 
+/** Legacy API placeholders (no longer stored for new items); treat as absent. */
+const LEGACY_EMPTY_BONUS: string =
+  "Дополнительного редакционного блока не передано.";
+const LEGACY_EMPTY_SPOILER: string =
+  "Отдельной «интриги» нет — главное изложено в тексте выше.";
+
+function normalizeEditorialExtra(raw: string, legacyPlaceholder: string): string {
+  const t: string = raw.trim();
+  if (t === "" || t === legacyPlaceholder) {
+    return "";
+  }
+  return t;
+}
+
 /** One additional-details line; identical bonus and spoiler strings are de-duplicated. */
 function formatAdditionalBlock(bonusBlock: string, spoiler: string): string | null {
-  const bonus: string = bonusBlock.trim();
-  const sp: string = spoiler.trim();
+  const bonus: string = normalizeEditorialExtra(bonusBlock, LEGACY_EMPTY_BONUS);
+  const sp: string = normalizeEditorialExtra(spoiler, LEGACY_EMPTY_SPOILER);
   if (bonus === "" && sp === "") {
     return null;
   }

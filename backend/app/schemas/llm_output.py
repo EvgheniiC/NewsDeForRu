@@ -12,8 +12,6 @@ _PLACEHOLDER_PLAIN_EMPTY: str = (
     "Разъяснение не было возвращено моделью. Откройте оригинал материала по ссылке в карточке."
 )
 _PLACEHOLDER_ACTION_EMPTY: str = "- Уточните детали по официальным источникам и актуальным объявлениям."
-_PLACEHOLDER_BONUS_EMPTY: str = "Дополнительного редакционного блока не передано."
-_PLACEHOLDER_SPOILER_EMPTY: str = "Отдельной «интриги» нет — главное изложено в тексте выше."
 
 
 def _coerce_topic_for_llm(value: object) -> NewsTopicLiteral:
@@ -134,6 +132,16 @@ def _llm_string(v: str) -> str:
     return t
 
 
+def _optional_llm_string(v: str) -> str:
+    """Like :func:`_llm_string` but allows empty (for optional editorial slots)."""
+    t: str = v.strip()
+    if not t:
+        return ""
+    if t in _FORBIDDEN_LLM_TOKENS:
+        return ""
+    return t
+
+
 def coerce_llm_news_dict_before_validate(
     data: dict[str, Any],
     *,
@@ -191,10 +199,10 @@ def coerce_llm_news_dict_before_validate(
     out["action_items"] = (act if act else _PLACEHOLDER_ACTION_EMPTY)[:4000]
 
     bonus: str = _txt("bonus_block")
-    out["bonus_block"] = (bonus if bonus else _PLACEHOLDER_BONUS_EMPTY)[:2000]
+    out["bonus_block"] = bonus[:2000]
 
     spoil: str = _txt("spoiler")
-    out["spoiler"] = (spoil if spoil else _PLACEHOLDER_SPOILER_EMPTY)[:2000]
+    out["spoiler"] = spoil[:2000]
 
     out["topic"] = _coerce_topic_for_llm(out.get("topic"))
     return out
@@ -217,8 +225,8 @@ class LLMNewsOutput(BaseModel):
     impact_tenant: str = Field(default="", max_length=4000)
     impact_buyer: str = Field(default="", max_length=4000)
     action_items: str = Field(..., min_length=1, max_length=4000)
-    bonus_block: str = Field(..., min_length=1, max_length=2000)
-    spoiler: str = Field(..., min_length=1, max_length=2000)
+    bonus_block: str = Field(default="", max_length=2000)
+    spoiler: str = Field(default="", max_length=2000)
     topic: NewsTopicLiteral = Field(
         ...,
         description="Primary category: politics, economy, or everyday life in Germany.",
@@ -236,8 +244,6 @@ class LLMNewsOutput(BaseModel):
         "one_sentence_summary",
         "plain_language",
         "action_items",
-        "bonus_block",
-        "spoiler",
         mode="before",
     )
     @classmethod
@@ -245,6 +251,13 @@ class LLMNewsOutput(BaseModel):
         if not isinstance(v, str):
             return v
         return _llm_string(v)
+
+    @field_validator("bonus_block", "spoiler", mode="before")
+    @classmethod
+    def _optional_editorial_strings(cls, v: object) -> object:
+        if not isinstance(v, str):
+            return v
+        return _optional_llm_string(v)
 
     @model_validator(mode="before")
     @classmethod
@@ -321,7 +334,9 @@ class LLMNewsOutput(BaseModel):
             "section would be redundant (rare). Set all four impact string fields to \"\".\n"
             "All other string values must be in Russian. confidence_score is a number from 0 to 1.\n"
             "importance_score is an integer from 1 to 10: how important this news is for residents "
-            "of Germany (laws, economy, safety, major public life changes = higher; local trivia = lower)."
+            "of Germany (laws, economy, safety, major public life changes = higher; local trivia = lower). "
+            "bonus_block and spoiler may be empty strings \"\" when there is no separate editorial angle "
+            "or hook beyond plain_language (no filler text)."
         )
 
 
