@@ -223,9 +223,11 @@ export function NewsDetailsPage(): JSX.Element {
         <strong>Простым языком:</strong> {news.plain_language}
       </p>
       {renderImpactBlock(presentation, news)}
-      <p>
-        <strong>Что сделать:</strong> {news.action_items}
-      </p>
+      {news.action_items.trim().length > 0 ? (
+        <p>
+          <strong>Что сделать:</strong> {news.action_items}
+        </p>
+      ) : null}
       {additionalText !== null ? (
         <p>
           <strong>Дополнительно:</strong> {additionalText}

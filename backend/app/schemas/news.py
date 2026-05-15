@@ -19,6 +19,19 @@ def normalize_one_sentence_for_api(value: str) -> str:
     return t
 
 
+_LEGACY_ACTION_ITEMS_PLACEHOLDER_NO_INFO: str = (
+    "- Уточните детали по официальным источникам и актуальным объявлениям."
+)
+
+
+def normalize_action_items_for_api(value: str) -> str:
+    """Older pipeline rows used a generic filler line; omit it when exposing JSON to clients."""
+    t: str = value.strip()
+    if t == _LEGACY_ACTION_ITEMS_PLACEHOLDER_NO_INFO:
+        return ""
+    return t
+
+
 class ProcessedNewsResponse(BaseModel):
     id: int
     title: str
@@ -53,6 +66,13 @@ class ProcessedNewsResponse(BaseModel):
         fixed: str = normalize_one_sentence_for_api(self.one_sentence_summary)
         if fixed != self.one_sentence_summary:
             return self.model_copy(update={"one_sentence_summary": fixed})
+        return self
+
+    @model_validator(mode="after")
+    def _strip_legacy_action_items_placeholder(self) -> Self:
+        fixed: str = normalize_action_items_for_api(self.action_items)
+        if fixed != self.action_items:
+            return self.model_copy(update={"action_items": fixed})
         return self
 
 

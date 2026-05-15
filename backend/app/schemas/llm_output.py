@@ -11,7 +11,6 @@ _PLACEHOLDER_SUMMARY_EMPTY: str = (
 _PLACEHOLDER_PLAIN_EMPTY: str = (
     "Разъяснение не было возвращено моделью. Откройте оригинал материала по ссылке в карточке."
 )
-_PLACEHOLDER_ACTION_EMPTY: str = "- Уточните детали по официальным источникам и актуальным объявлениям."
 
 
 def _coerce_topic_for_llm(value: object) -> NewsTopicLiteral:
@@ -196,7 +195,7 @@ def coerce_llm_news_dict_before_validate(
     out["plain_language"] = plain[:8000]
 
     act: str = _txt("action_items")
-    out["action_items"] = (act if act else _PLACEHOLDER_ACTION_EMPTY)[:4000]
+    out["action_items"] = _optional_llm_string(act)[:4000]
 
     bonus: str = _txt("bonus_block")
     out["bonus_block"] = bonus[:2000]
@@ -224,7 +223,7 @@ class LLMNewsOutput(BaseModel):
     impact_owner: str = Field(default="", max_length=4000)
     impact_tenant: str = Field(default="", max_length=4000)
     impact_buyer: str = Field(default="", max_length=4000)
-    action_items: str = Field(..., min_length=1, max_length=4000)
+    action_items: str = Field(default="", max_length=4000)
     bonus_block: str = Field(default="", max_length=2000)
     spoiler: str = Field(default="", max_length=2000)
     topic: NewsTopicLiteral = Field(
@@ -243,7 +242,6 @@ class LLMNewsOutput(BaseModel):
         "title",
         "one_sentence_summary",
         "plain_language",
-        "action_items",
         mode="before",
     )
     @classmethod
@@ -252,7 +250,7 @@ class LLMNewsOutput(BaseModel):
             return v
         return _llm_string(v)
 
-    @field_validator("bonus_block", "spoiler", mode="before")
+    @field_validator("action_items", "bonus_block", "spoiler", mode="before")
     @classmethod
     def _optional_editorial_strings(cls, v: object) -> object:
         if not isinstance(v, str):
@@ -335,6 +333,9 @@ class LLMNewsOutput(BaseModel):
             "All other string values must be in Russian. confidence_score is a number from 0 to 1.\n"
             "importance_score is an integer from 1 to 10: how important this news is for residents "
             "of Germany (laws, economy, safety, major public life changes = higher; local trivia = lower). "
+            "action_items lists concrete reader steps in Russian (bullet lines starting with \"- \"); "
+            "use an empty string \"\" when the story has no actionable checklist (pure commentary, "
+            "no practical steps — do not invent generic «check official sources» filler). "
             "bonus_block and spoiler may be empty strings \"\" when there is no separate editorial angle "
             "or hook beyond plain_language (no filler text)."
         )

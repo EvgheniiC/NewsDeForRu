@@ -6,7 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.schemas.llm_output import LLMNewsOutput, fallback_after_validation_failure
-from app.schemas.news import normalize_one_sentence_for_api
+from app.schemas.news import normalize_action_items_for_api, normalize_one_sentence_for_api
 from app.services.llm_json import extract_json_string, parse_llm_news_json
 from app.services.llm_provider import StubLLMProvider, create_llm_provider
 
@@ -113,13 +113,13 @@ def test_parse_llm_news_json_coerces_german_topic_wirtschaft() -> None:
     assert out.topic == "economy"
 
 
-def test_parse_llm_news_json_fills_empty_action_only_bonus_spoiler_optional() -> None:
+def test_parse_llm_news_json_leaves_empty_action_items_optional_like_bonus_spoiler() -> None:
     p: dict[str, object] = _valid_payload()
     p["action_items"] = ""
     p["bonus_block"] = "   "
     p["spoiler"] = ""
     out: LLMNewsOutput = parse_llm_news_json(json.dumps(p, ensure_ascii=True))
-    assert "источникам" in out.action_items
+    assert out.action_items == ""
     assert out.bonus_block == ""
     assert out.spoiler == ""
 
@@ -176,6 +176,16 @@ def test_create_llm_provider_default_is_stub(
 def test_normalize_one_sentence_replaces_string_none_placeholder() -> None:
     assert "Сводка" in normalize_one_sentence_for_api("None")
     assert normalize_one_sentence_for_api("  Нормальный текст. ") == "Нормальный текст."
+
+
+def test_normalize_action_items_strips_legacy_placeholder() -> None:
+    assert (
+        normalize_action_items_for_api(
+            "- Уточните детали по официальным источникам и актуальным объявлениям."
+        )
+        == ""
+    )
+    assert normalize_action_items_for_api("  - Проверить сроки  ") == "- Проверить сроки"
 
 
 def test_fallback_after_validation_failure_is_valid() -> None:
