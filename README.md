@@ -9,6 +9,7 @@
 
 - `backend/` — FastAPI + pipeline + scheduler + тесты
 - `frontend/` — React (TypeScript) лента, детали, модерация
+- **Мобильная обёртка (Capacitor, Android):** см. [`frontend/MOBILE.md`](frontend/MOBILE.md); диплинки `/news/…` и шаблоны `/.well-known/*` в `frontend/public/.well-known/`
 
 ## Backend quick start
 

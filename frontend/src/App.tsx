@@ -1,5 +1,6 @@
 import { Link, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { useOperatorAuth } from "./context/OperatorAuthContext";
+import { DeepLinkListener } from "./mobile/DeepLinkListener";
 import { FeedPage } from "./pages/FeedPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ModerationPage } from "./pages/ModerationPage";
@@ -54,6 +55,7 @@ function ModeratorRoute(): JSX.Element {
 function App(): JSX.Element {
   return (
     <main className="container">
+      <DeepLinkListener />
       <nav className="main-nav">
         <Link to="/">Лента</Link>
         <OperatorNavActions />
