@@ -1,25 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getModerationQueue, moderate } from "../api/client";import { useOperatorAuth } from "../context/OperatorAuthContext";
+import { ApiError, getModerationQueue, moderate } from "../api/client";
+import { useOperatorAuth } from "../context/OperatorAuthContext";
 import { newsTopicLabelRu, type ProcessedNews } from "../types/news";
 
 export function ModerationPage(): JSX.Element {
   const navigate = useNavigate();
-  const { initializing, user, withModerationAccess } = useOperatorAuth();
+  const { user, withModerationAccess, logout } = useOperatorAuth();
   const [queue, setQueue] = useState<ProcessedNews[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [actionError, setActionError] = useState<string>("");
   const [busyId, setBusyId] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (initializing) {
-      return;
-    }
-    if (!user?.can_moderate) {
-      navigate("/login", { replace: true, state: { from: "/moderation" } });
-    }
-  }, [initializing, navigate, user?.can_moderate]);
 
   const loadQueue = useCallback(
     async (options?: { silent?: boolean }): Promise<void> => {
@@ -34,6 +26,11 @@ export function ModerationPage(): JSX.Element {
         setQueue(data);
         setError("");
       } catch (fetchError: unknown) {
+        if (fetchError instanceof ApiError && fetchError.status === 401) {
+          await logout();
+          navigate("/login", { replace: true, state: { from: "/moderation" } });
+          return;
+        }
         setError(fetchError instanceof Error ? fetchError.message : "Не удалось загрузить очередь.");
       } finally {
         if (!silent) {
@@ -41,15 +38,15 @@ export function ModerationPage(): JSX.Element {
         }
       }
     },
-    [withModerationAccess],
+    [logout, navigate, withModerationAccess],
   );
 
   useEffect(() => {
-    if (initializing || !user?.can_moderate) {
+    if (!user?.can_moderate) {
       return;
     }
     void loadQueue();
-  }, [initializing, user?.can_moderate, loadQueue]);
+  }, [loadQueue, user?.can_moderate]);
 
   const handleAction = async (newsId: number, action: "approve" | "reject"): Promise<void> => {
     setActionError("");
@@ -58,6 +55,11 @@ export function ModerationPage(): JSX.Element {
       await withModerationAccess(async (token: string) => moderate(newsId, action, token));
       await loadQueue({ silent: true });
     } catch (fetchError: unknown) {
+      if (fetchError instanceof ApiError && fetchError.status === 401) {
+        await logout();
+        navigate("/login", { replace: true, state: { from: "/moderation" } });
+        return;
+      }
       setActionError(
         fetchError instanceof Error ? fetchError.message : "Не удалось выполнить действие.",
       );
@@ -65,24 +67,6 @@ export function ModerationPage(): JSX.Element {
       setBusyId(null);
     }
   };
-
-  if (initializing || (!user?.can_moderate && loading)) {
-    return (
-      <section>
-        <h1>Модерация</h1>
-        <p className="loading-inline">Проверка доступа…</p>
-      </section>
-    );
-  }
-
-  if (!user?.can_moderate) {
-    return (
-      <section>
-        <h1>Модерация</h1>
-        <p className="muted">Перенаправляем на страницу входа…</p>
-      </section>
-    );
-  }
 
   return (
     <section>

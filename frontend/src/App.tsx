@@ -1,4 +1,4 @@
-import { Link, Route, Routes } from "react-router-dom";
+import { Link, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { useOperatorAuth } from "./context/OperatorAuthContext";
 import { FeedPage } from "./pages/FeedPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -16,9 +16,7 @@ function OperatorNavActions(): JSX.Element {
   if (user) {
     return (
       <>
-        {user.can_moderate ? (
-          <Link to="/moderation">Модерация</Link>
-        ) : null}
+        {user.can_moderate ? <Link to="/moderation">Модерация</Link> : null}
         <button
           className="main-nav-button"
           onClick={() => void logout()}
@@ -33,6 +31,26 @@ function OperatorNavActions(): JSX.Element {
   return <Link to="/login">Вход оператора</Link>;
 }
 
+/** Renders child routes only when the operator can moderate (after session is hydrated). */
+function ModeratorRoute(): JSX.Element {
+  const { initializing, user } = useOperatorAuth();
+  const location = useLocation();
+
+  if (initializing) {
+    return (
+      <section>
+        <p className="loading-inline">Проверка доступа…</p>
+      </section>
+    );
+  }
+
+  if (!user?.can_moderate) {
+    return <Navigate replace to="/login" state={{ from: location.pathname }} />;
+  }
+
+  return <Outlet />;
+}
+
 function App(): JSX.Element {
   return (
     <main className="container">
@@ -44,7 +62,9 @@ function App(): JSX.Element {
       <Routes>
         <Route element={<FeedPage />} path="/" />
         <Route element={<NewsDetailsPage />} path="/news/:id" />
-        <Route element={<ModerationPage />} path="/moderation" />
+        <Route element={<ModeratorRoute />} path="/moderation">
+          <Route index element={<ModerationPage />} />
+        </Route>
         <Route element={<LoginPage />} path="/login" />
         <Route element={<PrivacyPage />} path="/privacy" />
       </Routes>
