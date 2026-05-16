@@ -45,22 +45,28 @@ def postgres_test_db_url() -> Generator[str, None, None]:
     target_url: str = _build_test_database_url(admin_url, unique_db_name)
 
     psycopg_admin_url: str = _to_psycopg_url(admin_url)
-    with psycopg.connect(psycopg_admin_url, autocommit=True) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(f'CREATE DATABASE "{unique_db_name}"')
+    try:
+        with psycopg.connect(psycopg_admin_url, autocommit=True, connect_timeout=5) as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(f'CREATE DATABASE "{unique_db_name}"')
+    except psycopg.Error:
+        pytest.skip("PostgreSQL for migration test is not reachable (set MIGRATION_TEST_ADMIN_URL).")
 
     try:
         yield target_url
     finally:
-        with psycopg.connect(psycopg_admin_url, autocommit=True) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(
-                    "SELECT pg_terminate_backend(pid) "
-                    "FROM pg_stat_activity "
-                    "WHERE datname = %s AND pid <> pg_backend_pid()",
-                    (unique_db_name,),
-                )
-                cursor.execute(f'DROP DATABASE IF EXISTS "{unique_db_name}"')
+        try:
+            with psycopg.connect(psycopg_admin_url, autocommit=True, connect_timeout=5) as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute(
+                        "SELECT pg_terminate_backend(pid) "
+                        "FROM pg_stat_activity "
+                        "WHERE datname = %s AND pid <> pg_backend_pid()",
+                        (unique_db_name,),
+                    )
+                    cursor.execute(f'DROP DATABASE IF EXISTS "{unique_db_name}"')
+        except psycopg.Error:
+            pass
 
 
 def test_alembic_upgrade_creates_expected_schema(postgres_test_db_url: str) -> None:
@@ -87,6 +93,8 @@ def test_alembic_upgrade_creates_expected_schema(postgres_test_db_url: str) -> N
             "cluster_items",
             "moderation_events",
             "app_job_locks",
+            "staff_users",
+            "staff_refresh_tokens",
         } <= table_names
 
         raw_columns: set[str] = {column["name"] for column in inspector.get_columns("raw_news_items")}
@@ -115,7 +123,12 @@ def test_alembic_upgrade_creates_expected_schema(postgres_test_db_url: str) -> N
         with engine.connect() as connection:
             version_rows = connection.execute(text("SELECT version_num FROM alembic_version")).all()
         assert len(version_rows) == 1
-        assert version_rows[0][0] == "20260430_03"
+        assert version_rows[0][0] == "20260515_01"
+
+        moderation_cols: set[str] = {
+            column["name"] for column in inspector.get_columns("moderation_events")
+        }
+        assert "staff_user_id" in moderation_cols
 
         engagement_columns: set[str] = {column["name"] for column in inspector.get_columns("user_engagement_events")}
         assert {"anonymous_user_id", "processed_news_id", "event_type", "payload_json", "client_event_id"} <= engagement_columns

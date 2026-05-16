@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { installApiMock } from "./fixtures/apiMock";
 
 test.describe("end-to-end", () => {
-  test("лента → детали → модерация (Publish)", async ({ page }) => {
+  test("лента → детали → вход оператора → модерация (Publish)", async ({ page }) => {
     await installApiMock(page);
     await page.goto("/");
 
@@ -16,7 +16,15 @@ test.describe("end-to-end", () => {
     await expect(page.getByRole("heading", { name: "Что это значит с разных сторон" })).toBeVisible();
     await expect(page.getByText("тестовый текст перспективы 2.")).toBeVisible();
 
+    await page.getByRole("link", { name: "Вход оператора" }).click();
+    await expect(page.getByRole("heading", { name: "Вход для операторов" })).toBeVisible();
+    await page.getByRole("textbox", { name: /Email оператора/i }).fill("e2e@test.local");
+    await page.getByLabel(/Пароль оператора/i).fill("e2e-secret");
+    await page.getByRole("button", { name: "Войти" }).click();
+
+    await expect(page.getByRole("link", { name: "Модерация" })).toBeVisible({ timeout: 15_000 });
     await page.getByRole("link", { name: "Модерация" }).click();
+
     await expect(page.getByRole("heading", { name: "Модерация" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Publish" })).toBeVisible();
 

@@ -3,6 +3,7 @@ import { FastSwipeFeed } from "../components/FastSwipeFeed";
 import { GridFeed } from "../components/GridFeed";
 import { TikTokFeed } from "../components/TikTokFeed";
 import { ApiError, getHealth, NetworkError, runPipeline } from "../api/client";
+import { useOperatorAuth } from "../context/OperatorAuthContext";
 import { useInfiniteFeed } from "../hooks/useInfiniteFeed";
 import { useUsefulSavedFeed } from "../hooks/useUsefulSavedFeed";
 import { describePipelinePartialFailure, formatHealthTime } from "../lib/pipelineUi";
@@ -12,6 +13,7 @@ import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
 type FeedViewMode = "grid" | "tiktok" | "fast";
 
 export function FeedPage(): JSX.Element {
+  const { initializing: operatorSessionLoading, user, withPipelineAccess } = useOperatorAuth();
   const [feedFilter, setFeedFilter] = useState<FeedFilterKey>("life");
   const [feedPeriod, setFeedPeriod] = useState<FeedPeriodKey>("all");
   const [feedViewMode, setFeedViewMode] = useState<FeedViewMode>("grid");
@@ -47,6 +49,8 @@ export function FeedPage(): JSX.Element {
   const [pipelineNetworkError, setPipelineNetworkError] = useState<string>("");
   const [pipelineHttpError, setPipelineHttpError] = useState<string>("");
 
+  const canRunPipeline: boolean = !operatorSessionLoading && user?.can_run_pipeline === true;
+
   const loadHealth = useCallback(async (): Promise<void> => {
     try {
       const h: HealthResponse = await getHealth();
@@ -66,15 +70,20 @@ export function FeedPage(): JSX.Element {
   }, []);
 
   useEffect(() => {
+    if (!canRunPipeline) {
+      setHealth(null);
+      setHealthError("");
+      return;
+    }
     void loadHealth();
-  }, [loadHealth]);
+  }, [loadHealth, canRunPipeline]);
 
   const handleRefresh = async (): Promise<void> => {
     setPipelineNetworkError("");
     setPipelineHttpError("");
     setPipelineRunning(true);
     try {
-      const result: PipelineRunResponse = await runPipeline();
+      const result: PipelineRunResponse = await withPipelineAccess((token: string) => runPipeline(token));
       setLastManualRun(result);
       await reload();
       if (feedFilter === "saved_useful") {
@@ -97,15 +106,17 @@ export function FeedPage(): JSX.Element {
   const pipelineOkMessage: string | null =
     lastManualRun !== null ? describePipelinePartialFailure(lastManualRun) : null;
 
-  const showDevPanels: boolean = feedViewMode === "grid" && !isSavedUsefulTab;
+  const showDevPanels: boolean = feedViewMode === "grid" && !isSavedUsefulTab && canRunPipeline;
 
   return (
     <section>
       <header className="page-header">
         <h1>Объясняем новости</h1>
-        <button disabled={pipelineRunning} onClick={() => void handleRefresh()} type="button">
-          {pipelineRunning ? "Выполняется pipeline…" : "Обновить через pipeline"}
-        </button>
+        {canRunPipeline ? (
+          <button disabled={pipelineRunning} onClick={() => void handleRefresh()} type="button">
+            {pipelineRunning ? "Выполняется pipeline…" : "Обновить через pipeline"}
+          </button>
+        ) : null}
       </header>
 
       <div className="feed-topic-bar" role="tablist" aria-label="Темы ленты">

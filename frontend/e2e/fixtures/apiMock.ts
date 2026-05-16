@@ -5,20 +5,31 @@ const MOCK_API: string = "http://127.0.0.1:8000";
 const corsHeaders: Readonly<Record<string, string>> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS, HEAD",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization"
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
 const jsonHeaders: Readonly<Record<string, string>> = {
   ...corsHeaders,
-  "Content-Type": "application/json; charset=utf-8"
+  "Content-Type": "application/json; charset=utf-8",
 };
 
 async function fulfillJson(route: Route, data: unknown, status: number = 200): Promise<void> {
   await route.fulfill({
     status,
     headers: { ...jsonHeaders },
-    body: JSON.stringify(data)
+    body: JSON.stringify(data),
   });
+}
+
+function bearerPresent(route: Route): boolean {
+  const headers = route.request().headers();
+  const raw =
+    typeof headers.authorization === "string"
+      ? headers.authorization
+      : typeof headers.Authorization === "string"
+        ? headers.Authorization
+        : "";
+  return raw.trim().toLowerCase().startsWith("bearer ");
 }
 
 /**
@@ -33,7 +44,7 @@ export async function installApiMock(page: Page): Promise<void> {
     read_time_minutes: 2,
     topic: "life",
     is_urgent: false,
-    created_at: "2024-01-15T10:00:00"
+    created_at: "2024-01-15T10:00:00",
   };
 
   const processedBody: Record<string, unknown> = {
@@ -55,7 +66,7 @@ export async function installApiMock(page: Page): Promise<void> {
     read_time_minutes: 2,
     topic: "life",
     is_urgent: false,
-    created_at: "2024-01-15T10:00:00"
+    created_at: "2024-01-15T10:00:00",
   };
 
   let queue: Record<string, unknown>[] = [processedBody];
@@ -70,6 +81,43 @@ export async function installApiMock(page: Page): Promise<void> {
     const method: string = route.request().method();
     const path: string = url.pathname;
 
+    if (path === "/auth/login" && method === "POST") {
+      await fulfillJson(route, {
+        access_token: "e2e-access-token-mock",
+        refresh_token: "e2e-refresh-token-mock",
+        token_type: "bearer",
+      });
+      return;
+    }
+
+    if (path === "/auth/refresh" && method === "POST") {
+      await fulfillJson(route, {
+        access_token: "e2e-access-token-mock-refreshed",
+        refresh_token: "e2e-refresh-token-mock-rotated",
+        token_type: "bearer",
+      });
+      return;
+    }
+
+    if (path === "/auth/logout" && method === "POST") {
+      await fulfillJson(route, { detail: "ok" });
+      return;
+    }
+
+    if (path === "/auth/me" && method === "GET") {
+      if (!bearerPresent(route)) {
+        await fulfillJson(route, { detail: "Not authenticated" }, 401);
+        return;
+      }
+      await fulfillJson(route, {
+        id: 1,
+        email: "e2e@test.local",
+        can_moderate: true,
+        can_run_pipeline: true,
+      });
+      return;
+    }
+
     if (path === "/health" && method === "GET") {
       await fulfillJson(route, {
         status: "ok",
@@ -77,7 +125,7 @@ export async function installApiMock(page: Page): Promise<void> {
         last_pipeline_run_at: "2024-01-15T10:00:00Z",
         last_pipeline_ok: true,
         last_pipeline_run_id: null,
-        pipeline_scheduler: "disabled"
+        pipeline_scheduler: "disabled",
       });
       return;
     }
@@ -85,7 +133,7 @@ export async function installApiMock(page: Page): Promise<void> {
     if (path === "/news" && method === "GET") {
       await fulfillJson(route, {
         items: [feedItem],
-        next_cursor: null
+        next_cursor: null,
       });
       return;
     }
@@ -100,10 +148,10 @@ export async function installApiMock(page: Page): Promise<void> {
               source_count: 2,
               mentions_points: 2,
               freshness_points: 3,
-              ai_importance: 7
-            }
-          }
-        ]
+              ai_importance: 7,
+            },
+          },
+        ],
       });
       return;
     }
@@ -114,11 +162,19 @@ export async function installApiMock(page: Page): Promise<void> {
     }
 
     if (path === "/moderation/queue" && method === "GET") {
+      if (!bearerPresent(route)) {
+        await fulfillJson(route, { detail: "Not authenticated" }, 401);
+        return;
+      }
       await fulfillJson(route, queue);
       return;
     }
 
     if (path === "/moderation/1/action" && method === "POST") {
+      if (!bearerPresent(route)) {
+        await fulfillJson(route, { detail: "Not authenticated" }, 401);
+        return;
+      }
       queue = [];
       const after: Record<string, unknown> = { ...processedBody, publication_status: "published" };
       await fulfillJson(route, after);

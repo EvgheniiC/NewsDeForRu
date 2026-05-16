@@ -1,8 +1,13 @@
+import type {
+  OperatorLoginCredentials,
+  OperatorMe,
+  OperatorTokenPair,
+} from "../types/operatorAuth";
 import type { EngagementBatchRequestBody, EngagementBatchResponseBody } from "../types/engagement";
 import type { FeedPeriodKey, NewsFeedItem, NewsTopic, ProcessedNews } from "../types/news";
 import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
 
-const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
+export const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
 export class ApiError extends Error {
   public readonly status: number;
@@ -119,10 +124,6 @@ export async function getTopNewsToday(limit: number = 5): Promise<TopNewsTodayRe
   return fetchJson<TopNewsTodayResponse>(`/news/top-today?${params.toString()}`);
 }
 
-export async function getNews(newsId: number): Promise<ProcessedNews> {
-  return fetchJson<ProcessedNews>(`/news/${newsId}`);
-}
-
 export async function postEngagementBatch(body: EngagementBatchRequestBody): Promise<EngagementBatchResponseBody> {
   return fetchJson<EngagementBatchResponseBody>("/engagement/events", {
     method: "POST",
@@ -131,15 +132,68 @@ export async function postEngagementBatch(body: EngagementBatchRequestBody): Pro
   });
 }
 
-export async function getModerationQueue(): Promise<ProcessedNews[]> {
-  return fetchJson<ProcessedNews[]>("/moderation/queue");
+export async function getNews(newsId: number): Promise<ProcessedNews> {
+  return fetchJson<ProcessedNews>(`/news/${newsId}`);
 }
 
-export async function moderate(newsId: number, action: "approve" | "reject"): Promise<ProcessedNews> {
-  return fetchJson<ProcessedNews>(`/moderation/${newsId}/action`, {
+function bearerHeaders(accessToken: string): HeadersInit {
+  return { Authorization: `Bearer ${accessToken}` };
+}
+
+async function fetchJsonAuthorized<T>(
+  path: string,
+  accessToken: string,
+  init?: Omit<RequestInit, "headers"> & { headers?: HeadersInit },
+): Promise<T> {
+  const merged: RequestInit = {
+    ...init,
+    headers: { ...bearerHeaders(accessToken), ...init?.headers },
+  };
+  return fetchJson<T>(path, merged);
+}
+
+export async function staffLogin(payload: OperatorLoginCredentials): Promise<OperatorTokenPair> {
+  const body: OperatorLoginCredentials = payload;
+  return fetchJson<OperatorTokenPair>("/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action })
+    body: JSON.stringify(body),
+  });
+}
+
+export async function refreshStaffSession(refreshTokenPlain: string): Promise<OperatorTokenPair> {
+  return fetchJson<OperatorTokenPair>("/auth/refresh", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_token: refreshTokenPlain }),
+  });
+}
+
+export async function logoutStaff(refreshTokenPlain: string): Promise<void> {
+  await fetchJson<{ detail?: string }>("/auth/logout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_token: refreshTokenPlain }),
+  });
+}
+
+export async function staffMe(accessToken: string): Promise<OperatorMe> {
+  return fetchJsonAuthorized<OperatorMe>("/auth/me", accessToken, { method: "GET" });
+}
+
+export async function getModerationQueue(accessToken: string): Promise<ProcessedNews[]> {
+  return fetchJsonAuthorized<ProcessedNews[]>("/moderation/queue", accessToken, { method: "GET" });
+}
+
+export async function moderate(
+  newsId: number,
+  action: "approve" | "reject",
+  accessToken: string,
+): Promise<ProcessedNews> {
+  return fetchJsonAuthorized<ProcessedNews>(`/moderation/${newsId}/action`, accessToken, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action }),
   });
 }
 
@@ -147,8 +201,11 @@ export async function moderate(newsId: number, action: "approve" | "reject"): Pr
  * Manual `POST /pipeline/run`. On HTTP 2xx returns typed body (may include `ok: false`
  * when the backend swallows errors; manual run usually raises on failure → 5xx).
  */
-export async function runPipeline(): Promise<PipelineRunResponse> {
-  const response: Response = await fetchWithNetworkGuard("/pipeline/run", { method: "POST" });
+export async function runPipeline(accessToken: string): Promise<PipelineRunResponse> {
+  const response: Response = await fetchWithNetworkGuard("/pipeline/run", {
+    method: "POST",
+    headers: { ...bearerHeaders(accessToken) },
+  });
   const text: string = await response.text();
   let body: unknown = {};
   try {

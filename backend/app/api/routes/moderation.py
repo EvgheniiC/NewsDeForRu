@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.api.deps.auth_staff import require_staff_moderator
 from app.core.database import get_db_session
 from app.models.news import PipelineStatus, ProcessedNews
+from app.models.staff_user import StaffUser
 from app.repositories.news_repository import NewsRepository
 from app.schemas.news import ModerationActionRequest, ProcessedNewsResponse
 from app.services.telegram_notifier import send_moderation_approved_notice
@@ -11,7 +13,10 @@ router: APIRouter = APIRouter()
 
 
 @router.get("/queue", response_model=list[ProcessedNewsResponse])
-def list_queue(db_session: Session = Depends(get_db_session)) -> list[ProcessedNewsResponse]:
+def list_queue(
+    db_session: Session = Depends(get_db_session),
+    _staff: StaffUser = Depends(require_staff_moderator),
+) -> list[ProcessedNewsResponse]:
     repository = NewsRepository(db_session)
     return [ProcessedNewsResponse.model_validate(item) for item in repository.list_needs_review()]
 
@@ -21,6 +26,7 @@ def moderate_news(
     news_id: int,
     request: ModerationActionRequest,
     db_session: Session = Depends(get_db_session),
+    staff_user: StaffUser = Depends(require_staff_moderator),
 ) -> ProcessedNewsResponse:
     repository: NewsRepository = NewsRepository(db_session)
     before: ProcessedNews | None = repository.get_processed_by_id(news_id)
@@ -35,6 +41,7 @@ def moderate_news(
         news_id=news_id,
         status=target_status,
         audit_action=request.action,
+        staff_user_id=staff_user.id,
     )
     if item is None:
         raise HTTPException(status_code=404, detail="News item not found.")

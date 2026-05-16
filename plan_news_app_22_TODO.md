@@ -18,6 +18,17 @@
 - [x] **Логи** — итоговая строка после `PipelineService.run()`, предупреждения RSS, ошибки планировщика.
 - [x] **Пример env** — новые переменные в `backend/.env.example`.
 
+### Продакшен: VPS, домен, HTTPS (выполнено в базовом объёме)
+
+- [x] **Один VPS (Hetzner Cloud)** — один сервер; без managed DB у провайдера: **PostgreSQL 16 в Docker** (`/opt/news-stack`), порт **5432** только на `127.0.0.1`.
+- [x] **DNS** — записи **A** для `@`, **www**, **api** → IPv4 VPS; разделение фронта и API по хостам (**simplenewsapp.de** / **api.simplenewsapp.de**).
+- [x] **Репозиторий на сервере** — `/opt/NewsDeForRu`, миграции Alembic на Postgres, **`backend/.env`** (в git не коммитится): `DATABASE_URL`, `CORS_ORIGINS` (HTTPS), `PUBLIC_APP_BASE_URL`, `APP_ENV=production`, секреты Telegram/OpenAI и т.д.
+- [x] **API как служба** — **gunicorn** + **uvicorn worker**, **systemd** `news-api` (`enable` + `restart`), слушает **127.0.0.1:8000**; один воркер — планировщик пайплайна без дублирования.
+- [x] **nginx** — статика SPA из **`/var/www/simplenewsapp/html`** (сборка Vite на сервере); **reverse proxy** на API для **api.simplenewsapp.de**; дефолтный сайт отключён.
+- [x] **HTTPS** — **Let’s Encrypt** (certbot + плагин nginx), сертификаты для основного домена, **www** и **api**; редирект с HTTP на HTTPS.
+- [x] **Фронт в проде** — `npm run build` с **`VITE_API_BASE_URL=https://api.simplenewsapp.de`**.
+- [x] **Локальные runbook-файлы** (в `.gitignore`, не в репозитории): `prod-deployment-summary-ru.md`, `prod-architecture-ru.md`, `prod-logs-ru.md`, `prod-restart-ru.md`, `updateOnserver.md`, `deploy.md`.
+
 ---
 
 ## Надо сделать
@@ -66,13 +77,28 @@
 
 **Статус:** не начато (текущий клиент — веб на React; магазины требуют нативный пакет или обёртку).
 
-**Контекст:** в репозитории нет готового APK/AAB/IPA. Нужен публичный прод (HTTPS) для фронта и API, затем один из путей: **TWA / PWA в Google Play** (Bubblewrap, PWA Builder), **Capacitor/Cordova** (WebView + прод-сборка), либо отдельное нативное приложение.
+**Контекст:** в репозитории нет готового APK/AAB/IPA. Публичный прод (HTTPS, домены, CORS) **уже поднят** на VPS; дальше — выбор способа упаковки: **TWA / PWA в Google Play** (Bubblewrap, PWA Builder), **Capacitor/Cordova** (WebView + прод-сборка), либо отдельное нативное приложение.
 
-- [ ] **Прод-окружение:** стабильный URL фронта (`VITE_API_BASE_URL` → публичный API), TLS, CORS, масштабирование бэкенда по чеклисту из `README.md` (планировщик, секреты).
+- [x] **Прод-окружение (база):** стабильный публичный API (**`https://api.simplenewsapp.de`**), фронт по **HTTPS**, **CORS** на `https://simplenewsapp.de` / `www`, **`PUBLIC_APP_BASE_URL`**, секреты в **`.env` на сервере** (не в git); один воркер gunicorn + встроенный планировщик — ок для одного инстанса.
+- [ ] **Прод-окружение (усиление):** вынести секреты в **Secrets Manager / нишевое хранилище** при росте требований; при появлении **нескольких реплик** API — вынести планировщик в один worker/cron или отключить `PIPELINE_SCHEDULER_ENABLED` на репликах; бэкапы БД по расписанию.
 - [ ] **Стратегия упаковки:** зафиксировать вариант (TWA vs Capacitor vs native); для iOS и Android магазины могут отличаться по политике (минимальный функционал «оболочки», WebView-only и т.д.).
 - [ ] **Google Play:** аккаунт разработчика, подпись приложения (upload key), сборка **AAB**, карточка приложения (скриншоты, описание, категория), ссылка на политику конфиденциальности (согласовать `docs/privacy-EU-DE.md` / `/privacy`), при необходимости Data safety form.
 - [ ] **App Store / TestFlight:** Apple Developer Program, сертификаты и профили, обёртка под iOS (Capacitor или актуальные правила для PWA), App Store Connect (метаданные, возрастной рейтинг, приватность), прохождение ревью.
-- [ ] **Целостность продукта:** `PUBLIC_APP_BASE_URL` и диплинки для Telegram/шаринга указывают на опубликованный origin веб-/store-клиента.
+- [ ] **Целостность продукта:** для веба — `PUBLIC_APP_BASE_URL=https://simplenewsapp.de` уже задаёт публичный origin; для магазинов при необходимости скорректировать диплинки под финальный клиент.
+
+---
+
+### Пост-деплой и эксплуатация (рекомендуется закрыть по мере созревания)
+
+**Статус:** частично сделано / в бэклоге.
+
+- [ ] **Файрвол:** включить **UFW** (или **Hetzner Cloud Firewall**) — **22** (SSH, лучше только свой IP), **`Nginx Full`** (80/443); не открывать **5432** и **8000** наружу.
+- [ ] **Защита публичного API:** ограничить **`POST /pipeline/run`** (IP allowlist в nginx, секрет в заголовке, или только localhost + **cron** на сервере) — сейчас эндпоинт теоретически доступен с интернета через **api**-хост.
+- [ ] **Бэкапы PostgreSQL:** периодический **`pg_dump`** (cron) + копия off-site; снапшоты диска Hetzner как дополнение, не замена логическим бэкапам.
+- [ ] **Наблюдаемость в проде:** при желании **`LOG_JSON=true`**; при необходимости **Sentry** / метрики **`GET /metrics`** защитить или не включать публично (см. `README.md`).
+- [ ] **Внутренние маршруты:** **`/internal/provenance/*`** и **`/metrics`** не выставлять «как есть» без сетевой изоляции или auth (см. `README.md`).
+- [ ] **Обновления ОС:** после **`apt upgrade`** при запросе ядра — контролируемый **`reboot`**; проверить автозапуск **Docker**, **nginx**, **news-api**.
+- [ ] **Let's Encrypt:** убедиться, что таймер **certbot** активен (`systemctl list-timers`); до истечения 90 дней сертификаты продлеваются автоматически.
 
 ---
 

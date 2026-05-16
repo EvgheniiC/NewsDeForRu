@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { flushEngagementQueueSyncOnUnload } from "./analytics/engagementQueue";
 import App from "./App";
+import { OperatorAuthProvider } from "./context/OperatorAuthContext";
 import "./styles.css";
 
 flushEngagementQueueSyncOnUnload();
@@ -10,7 +11,9 @@ flushEngagementQueueSyncOnUnload();
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <BrowserRouter>
-      <App />
+      <OperatorAuthProvider>
+        <App />
+      </OperatorAuthProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

@@ -86,6 +86,12 @@ class Settings(BaseSettings):
     # Read-only provenance routes (GET /internal/provenance/*). Empty = routes return 404.
     provenance_api_key: str = ""
 
+    # Operator auth (JWT access + opaque refresh). Use a strong secret in production.
+    jwt_secret_key: str = "development-only-change-in-production-min-32-chars!!"
+    jwt_algorithm: str = "HS256"
+    jwt_access_expire_minutes: int = Field(default=30, ge=5, le=24 * 60)
+    jwt_refresh_expire_days: int = Field(default=14, ge=1, le=365)
+
     # Telegram Bot API (optional): autopublish in pipeline + immediate send when a moderator approves queue items.
     telegram_notifications_enabled: bool = False
     telegram_bot_token: str = ""
@@ -126,6 +132,14 @@ class Settings(BaseSettings):
                 "pipeline_schedule_start_hour must be <= pipeline_schedule_end_hour "
                 "(same calendar day window)"
             )
+        return self
+
+    @model_validator(mode="after")
+    def jwt_secret_required_in_production(self) -> Self:
+        if self.app_env.strip().lower() == "production" and not self.jwt_secret_key.strip():
+            raise ValueError("JWT_SECRET_KEY is required when APP_ENV=production")
+        if len(self.jwt_secret_key) < 32:
+            raise ValueError("JWT_SECRET_KEY must be at least 32 characters")
         return self
 
 

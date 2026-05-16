@@ -13,3 +13,5 @@ sentence-transformers
 torch
 prometheus-client
 sentry-sdk[fastapi]
+PyJWT
+bcrypt>=4.0

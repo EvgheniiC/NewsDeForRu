@@ -161,6 +161,11 @@ class ModerationEvent(Base):
         nullable=False,
         index=True,
     )
+    staff_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("staff_users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     action: Mapped[str] = mapped_column(String(16), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 

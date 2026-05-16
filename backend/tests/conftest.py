@@ -12,6 +12,7 @@ os.environ.pop("TELEGRAM_HTTP_VERIFY_SSL", None)
 
 # Isolated DB for tests (avoids schema drift vs a dev sqlite file on disk).
 os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
+os.environ.setdefault("JWT_SECRET_KEY", "integration-test-secret-must-be-32-characters-min!!")
 os.environ.setdefault("SEMANTIC_EMBEDDING_BACKEND", "hash")
 os.environ.setdefault("SEMANTIC_RELEVANCE_MIN_SCORE", "0.12")
 os.environ.setdefault("SEMANTIC_DEDUP_MIN_SIMILARITY", "0.99")
