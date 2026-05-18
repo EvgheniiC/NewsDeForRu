@@ -13,8 +13,30 @@ body {
 
 .main-nav {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 16px;
   margin-bottom: 16px;
+}
+
+.main-nav-start,
+.main-nav-end {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.main-nav-end {
+  margin-left: auto;
+}
+
+@media (max-width: 640px) {
+  .main-nav-end {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
 
 .main-nav-muted {
@@ -492,5 +514,77 @@ body {
 .operator-login-actions button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.account-page .account-benefits {
+  margin: 20px 0 24px;
+  padding: 16px 18px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.account-page .account-benefits h2 {
+  margin: 0 0 12px;
+  font-size: 1.1rem;
+}
+
+.account-page .account-benefits ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.account-page .account-benefits li {
+  margin-bottom: 10px;
+}
+
+.account-forms-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  margin-bottom: 24px;
+}
+
+.account-form-card {
+  padding: 16px 18px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.account-form-card h2 {
+  margin: 0 0 14px;
+  font-size: 1.05rem;
+}
+
+.account-form-card form button {
+  font: inherit;
+  margin-top: 12px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid #475569;
+  background: #334155;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.account-form-card form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.account-logout-wide {
+  font: inherit;
+  margin-top: 12px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid #991b1b;
+  background: #b91c1c;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.account-editorial-link {
+  margin-top: 24px;
 }
 

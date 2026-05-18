@@ -118,6 +118,50 @@ export async function installApiMock(page: Page): Promise<void> {
       return;
     }
 
+    if (path === "/reader/auth/register" && method === "POST") {
+      await fulfillJson(route, {
+        access_token: "e2e-reader-access",
+        refresh_token: "e2e-reader-refresh",
+        token_type: "bearer",
+      });
+      return;
+    }
+
+    if (path === "/reader/auth/login" && method === "POST") {
+      await fulfillJson(route, {
+        access_token: "e2e-reader-access",
+        refresh_token: "e2e-reader-refresh",
+        token_type: "bearer",
+      });
+      return;
+    }
+
+    if (path === "/reader/auth/refresh" && method === "POST") {
+      await fulfillJson(route, {
+        access_token: "e2e-reader-access-refreshed",
+        refresh_token: "e2e-reader-refresh-rotated",
+        token_type: "bearer",
+      });
+      return;
+    }
+
+    if (path === "/reader/auth/logout" && method === "POST") {
+      await fulfillJson(route, { detail: "ok" });
+      return;
+    }
+
+    if (path === "/reader/auth/me" && method === "GET") {
+      if (!bearerPresent(route)) {
+        await fulfillJson(route, { detail: "Not authenticated" }, 401);
+        return;
+      }
+      await fulfillJson(route, {
+        id: 1,
+        email: "reader-e2e@test.local",
+      });
+      return;
+    }
+
     if (path === "/health" && method === "GET") {
       await fulfillJson(route, {
         status: "ok",

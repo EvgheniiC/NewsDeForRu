@@ -1,6 +1,7 @@
 import { Link, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { useOperatorAuth } from "./context/OperatorAuthContext";
 import { DeepLinkListener } from "./mobile/DeepLinkListener";
+import { AccountPage } from "./pages/AccountPage";
 import { FeedPage } from "./pages/FeedPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ModerationPage } from "./pages/ModerationPage";
@@ -57,9 +58,14 @@ function App(): JSX.Element {
     <main className="container">
       <DeepLinkListener />
       <nav className="main-nav">
-        <Link to="/">Лента</Link>
-        <OperatorNavActions />
-        <Link to="/privacy">Конфиденциальность</Link>
+        <div className="main-nav-start">
+          <Link to="/">Лента</Link>
+          <Link to="/privacy">Конфиденциальность</Link>
+        </div>
+        <div className="main-nav-end">
+          <OperatorNavActions />
+          <Link to="/account">Аккаунт</Link>
+        </div>
       </nav>
       <Routes>
         <Route element={<FeedPage />} path="/" />
@@ -68,6 +74,7 @@ function App(): JSX.Element {
           <Route index element={<ModerationPage />} />
         </Route>
         <Route element={<LoginPage />} path="/login" />
+        <Route element={<AccountPage />} path="/account" />
         <Route element={<PrivacyPage />} path="/privacy" />
       </Routes>
     </main>

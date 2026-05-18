@@ -50,19 +50,17 @@ def upgrade() -> None:
 
     moderation_cols = {c["name"] for c in inspector.get_columns("moderation_events")} if "moderation_events" in tables else set()
     if "staff_user_id" not in moderation_cols:
-        op.add_column(
-            "moderation_events",
-            sa.Column("staff_user_id", sa.Integer(), nullable=True),
-        )
-        op.create_foreign_key(
-            "fk_moderation_events_staff_user_id",
-            "moderation_events",
-            "staff_users",
-            ["staff_user_id"],
-            ["id"],
-            ondelete="SET NULL",
-        )
-        op.create_index(op.f("ix_moderation_events_staff_user_id"), "moderation_events", ["staff_user_id"])
+        # SQLite cannot ALTER TABLE ADD CONSTRAINT; batch mode rebuilds the table.
+        with op.batch_alter_table("moderation_events", schema=None) as batch_op:
+            batch_op.add_column(sa.Column("staff_user_id", sa.Integer(), nullable=True))
+            batch_op.create_foreign_key(
+                "fk_moderation_events_staff_user_id",
+                "staff_users",
+                ["staff_user_id"],
+                ["id"],
+                ondelete="SET NULL",
+            )
+            batch_op.create_index(op.f("ix_moderation_events_staff_user_id"), ["staff_user_id"])
 
 
 def downgrade() -> None:
@@ -71,18 +69,22 @@ def downgrade() -> None:
     if "moderation_events" in inspector.get_table_names():
         cols = {c["name"] for c in inspector.get_columns("moderation_events")}
         if "staff_user_id" in cols:
-            fk_names = [
+            fk_names: list[str] = [
                 fk["name"]
                 for fk in inspector.get_foreign_keys("moderation_events")
                 if "staff_user_id" in fk.get("constrained_columns", ())
             ]
-            for name in fk_names:
-                op.drop_constraint(name, "moderation_events", type_="foreignkey")
-            ix = inspector.get_indexes("moderation_events")
-            for ixdef in ix:
-                if ixdef.get("column_names") == ["staff_user_id"]:
-                    op.drop_index(ixdef["name"], table_name="moderation_events")
-            op.drop_column("moderation_events", "staff_user_id")
+            index_names: list[str] = [
+                ixdef["name"]
+                for ixdef in inspector.get_indexes("moderation_events")
+                if ixdef.get("column_names") == ["staff_user_id"]
+            ]
+            with op.batch_alter_table("moderation_events", schema=None) as batch_op:
+                for ix_name in index_names:
+                    batch_op.drop_index(ix_name)
+                for name in fk_names:
+                    batch_op.drop_constraint(name, type_="foreignkey")
+                batch_op.drop_column("staff_user_id")
 
     if "staff_refresh_tokens" in inspector.get_table_names():
         op.drop_table("staff_refresh_tokens")

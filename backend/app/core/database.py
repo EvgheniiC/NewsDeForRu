@@ -48,6 +48,7 @@ def init_database() -> None:
     from app.models import engagement  # noqa: F401
     from app.models import job_lock  # noqa: F401
     from app.models import news  # noqa: F401
+    from app.models import reader_user  # noqa: F401
     from app.models import staff_user  # noqa: F401
 
     Base.metadata.create_all(bind=engine)

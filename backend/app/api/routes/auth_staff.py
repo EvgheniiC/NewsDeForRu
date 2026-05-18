@@ -27,6 +27,7 @@ def _issue_tokens_for_user(repo: StaffRepository, user_id: int) -> StaffTokenPai
         secret=settings.jwt_secret_key,
         algorithm=settings.jwt_algorithm,
         expires_delta=timedelta(minutes=settings.jwt_access_expire_minutes),
+        audience="staff",
     )
     refresh_plain: str = new_refresh_plain()
     hashed: str = refresh_token_hash_hex(refresh_plain)

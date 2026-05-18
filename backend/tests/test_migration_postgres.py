@@ -95,6 +95,8 @@ def test_alembic_upgrade_creates_expected_schema(postgres_test_db_url: str) -> N
             "app_job_locks",
             "staff_users",
             "staff_refresh_tokens",
+            "reader_users",
+            "reader_refresh_tokens",
         } <= table_names
 
         raw_columns: set[str] = {column["name"] for column in inspector.get_columns("raw_news_items")}

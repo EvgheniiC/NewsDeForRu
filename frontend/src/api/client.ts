@@ -3,11 +3,14 @@ import type {
   OperatorMe,
   OperatorTokenPair,
 } from "../types/operatorAuth";
+import type { ReaderLoginCredentials, ReaderMe, ReaderRegisterCredentials, ReaderTokenPair } from "../types/readerAuth";
 import type { EngagementBatchRequestBody, EngagementBatchResponseBody } from "../types/engagement";
 import type { FeedPeriodKey, NewsFeedItem, NewsTopic, ProcessedNews } from "../types/news";
 import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
 
-export const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
+export const API_BASE_URL: string = (
+  import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000"
+).trim();
 
 export class ApiError extends Error {
   public readonly status: number;
@@ -179,6 +182,42 @@ export async function logoutStaff(refreshTokenPlain: string): Promise<void> {
 
 export async function staffMe(accessToken: string): Promise<OperatorMe> {
   return fetchJsonAuthorized<OperatorMe>("/auth/me", accessToken, { method: "GET" });
+}
+
+export async function readerRegister(payload: ReaderRegisterCredentials): Promise<ReaderTokenPair> {
+  return fetchJson<ReaderTokenPair>("/reader/auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function readerLogin(payload: ReaderLoginCredentials): Promise<ReaderTokenPair> {
+  return fetchJson<ReaderTokenPair>("/reader/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function refreshReaderSession(refreshTokenPlain: string): Promise<ReaderTokenPair> {
+  return fetchJson<ReaderTokenPair>("/reader/auth/refresh", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_token: refreshTokenPlain }),
+  });
+}
+
+export async function logoutReader(refreshTokenPlain: string): Promise<void> {
+  await fetchJson<{ detail?: string }>("/reader/auth/logout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_token: refreshTokenPlain }),
+  });
+}
+
+export async function readerMe(accessToken: string): Promise<ReaderMe> {
+  return fetchJsonAuthorized<ReaderMe>("/reader/auth/me", accessToken, { method: "GET" });
 }
 
 export async function getModerationQueue(accessToken: string): Promise<ProcessedNews[]> {

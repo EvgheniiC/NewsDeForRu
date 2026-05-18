@@ -34,7 +34,8 @@ class Settings(BaseSettings):
     semantic_dedup_lookback_days: int = 21
 
     # Comma-separated origins for browser clients (e.g. Vite dev server). Empty disables CORS middleware.
-    cors_origins: str = "http://127.0.0.1:5173,http://localhost:5173"
+    # Include https://localhost for Capacitor Android WebView (androidScheme https).
+    cors_origins: str = "http://127.0.0.1:5173,http://localhost:5173,http://localhost,https://localhost"
 
     # In-process background RSS/pipeline (single-worker dev). Use external cron/beat for multi-replica.
     pipeline_scheduler_enabled: bool = False
