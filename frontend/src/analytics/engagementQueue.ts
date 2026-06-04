@@ -1,3 +1,4 @@
+import { hasAnalyticsConsent } from "../lib/analyticsConsent";
 import { getAnonymousUserId } from "../lib/anonymousUserId";
 import { getSessionId } from "../lib/sessionId";
 import type { ClientEngagementEvent, EngagementBatchResponseBody, EngagementEventType } from "../types/engagement";
@@ -18,7 +19,7 @@ function newClientEventId(): string {
 }
 
 export function enqueueEngagement(events: ClientEngagementEvent[]): void {
-  if (events.length === 0) {
+  if (!hasAnalyticsConsent() || events.length === 0) {
     return;
   }
   for (const e of events) {
@@ -57,7 +58,7 @@ function scheduleFlush(): void {
 }
 
 export async function flushEngagementQueue(): Promise<void> {
-  if (flushing || queue.length === 0) {
+  if (!hasAnalyticsConsent() || flushing || queue.length === 0) {
     return;
   }
   flushing = true;

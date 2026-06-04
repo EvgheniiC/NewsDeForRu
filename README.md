@@ -174,9 +174,12 @@ Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (push/PR на `
 - `POST /pipeline/run` — запуск полного ingestion pipeline
 - Внутреннее (см. `backend/.env.example`): `GET /internal/provenance/by-raw/{id}`, `GET /internal/provenance/by-processed/{id}` с заголовком `X-Internal-Api-Key`; `GET /metrics` при `PROMETHEUS_METRICS_ENABLED=true`
 
-## Конфиденциальность (EU)
+## Конфиденциальность и Impressum (EU / DE)
 
-Страница приложения: `/privacy`. Шаблон для юриста и текстов GDPR: [`docs/privacy-EU-DE.md`](docs/privacy-EU-DE.md).
+- `/privacy` — Datenschutzerklärung (OpenAI, Telegram, GMX SMTP, хостинг DE, аналитика по согласию).
+- `/impressum` — § 5 TMG (физлицо; данные из `VITE_LEGAL_*` в `frontend/.env`).
+- Баннер согласия на engagement-аналитику (TTDSG) до отправки событий на `/engagement/events`.
+- Шаблон и чеклист: [`docs/privacy-EU-DE.md`](docs/privacy-EU-DE.md), пример env: [`frontend/.env.example`](frontend/.env.example).
 
 ## Эксплуатация в продакшене
 

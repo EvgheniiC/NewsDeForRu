@@ -11,6 +11,14 @@ function randomUuid(): string {
   });
 }
 
+export function clearAnonymousUserId(): void {
+  try {
+    window.localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 /** Stable anonymous profile id (localStorage). */
 export function getAnonymousUserId(): string {
   try {

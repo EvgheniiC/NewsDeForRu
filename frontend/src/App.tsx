@@ -8,6 +8,8 @@ import { FeedPage } from "./pages/FeedPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ModerationPage } from "./pages/ModerationPage";
 import { NewsDetailsPage } from "./pages/NewsDetailsPage";
+import { AnalyticsConsentBanner } from "./components/AnalyticsConsentBanner";
+import { ImpressumPage } from "./pages/ImpressumPage";
 import { PrivacyPage } from "./pages/PrivacyPage";
 
 function NavAuthActions(): JSX.Element {
@@ -59,12 +61,14 @@ function App(): JSX.Element {
         <div className="main-nav-start">
           <Link to="/">Лента</Link>
           <Link to="/privacy">Конфиденциальность</Link>
+          <Link to="/impressum">Impressum</Link>
         </div>
         <div className="main-nav-end">
           <NavAuthActions />
           <Link to="/account">Аккаунт</Link>
         </div>
       </nav>
+      <AnalyticsConsentBanner />
       <Routes>
         <Route element={<FeedPage />} path="/" />
         <Route element={<NewsDetailsPage />} path="/news/:id" />
@@ -76,6 +80,7 @@ function App(): JSX.Element {
         <Route element={<ForgotPasswordPage />} path="/account/forgot" />
         <Route element={<ResetPasswordPage />} path="/account/reset" />
         <Route element={<PrivacyPage />} path="/privacy" />
+        <Route element={<ImpressumPage />} path="/impressum" />
       </Routes>
     </main>
   );
