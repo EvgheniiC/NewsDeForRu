@@ -5,6 +5,7 @@ import { clearAnonymousUserId } from "./anonymousUserId";
 export type AnalyticsConsentValue = "granted" | "denied";
 
 const STORAGE_KEY: string = "nga_analytics_consent";
+const STORAGE_AT_KEY: string = "nga_analytics_consent_at";
 
 type ConsentListener = () => void;
 
@@ -32,27 +33,45 @@ export function hasAnalyticsConsent(): boolean {
   return getAnalyticsConsent() === "granted";
 }
 
-export function grantAnalyticsConsent(): void {
+/** ISO timestamp when user last chose granted or denied (browser only, not sent to server). */
+export function getAnalyticsConsentRecordedAt(): string | null {
   try {
-    window.localStorage.setItem(STORAGE_KEY, "granted");
+    return window.localStorage.getItem(STORAGE_AT_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function recordConsentChoice(value: AnalyticsConsentValue): void {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, value);
+    window.localStorage.setItem(STORAGE_AT_KEY, new Date().toISOString());
   } catch {
     /* ignore quota / private mode */
   }
+}
+
+export function grantAnalyticsConsent(): void {
+  recordConsentChoice("granted");
   notifyListeners();
 }
 
 export function denyAnalyticsConsent(): void {
+  recordConsentChoice("denied");
+  clearAnonymousUserId();
+  notifyListeners();
+}
+
+/** Clears consent so the banner can be shown again; stops analytics immediately. */
+export function revokeAnalyticsConsent(): void {
   try {
-    window.localStorage.setItem(STORAGE_KEY, "denied");
+    window.localStorage.removeItem(STORAGE_KEY);
+    window.localStorage.removeItem(STORAGE_AT_KEY);
   } catch {
     /* ignore */
   }
   clearAnonymousUserId();
   notifyListeners();
-}
-
-export function revokeAnalyticsConsent(): void {
-  denyAnalyticsConsent();
 }
 
 export function subscribeAnalyticsConsent(listener: ConsentListener): () => void {

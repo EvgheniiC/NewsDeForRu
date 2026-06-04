@@ -1,14 +1,21 @@
 import { getLegalConfig } from "../config/legal";
+import type { LegalLocale } from "../lib/legalLocale";
 
-export function LegalOperatorBlock(): JSX.Element {
+interface LegalOperatorBlockProps {
+  locale: LegalLocale;
+}
+
+export function LegalOperatorBlock({ locale }: LegalOperatorBlockProps): JSX.Element {
   const legal = getLegalConfig();
 
   if (!legal.operatorComplete) {
+    const message: string =
+      locale === "de"
+        ? "Bitte in frontend/.env setzen: VITE_LEGAL_OPERATOR_NAME, VITE_LEGAL_OPERATOR_STREET, VITE_LEGAL_OPERATOR_POSTAL_CITY, VITE_LEGAL_CONTACT_EMAIL."
+        : "Для публикации укажите в frontend/.env: VITE_LEGAL_OPERATOR_NAME, VITE_LEGAL_OPERATOR_STREET, VITE_LEGAL_OPERATOR_POSTAL_CITY, VITE_LEGAL_CONTACT_EMAIL.";
     return (
       <p className="legal-warning" role="status">
-        Для публикации укажите в <code>frontend/.env</code>:{" "}
-        <code>VITE_LEGAL_OPERATOR_NAME</code>, <code>VITE_LEGAL_OPERATOR_STREET</code>,{" "}
-        <code>VITE_LEGAL_OPERATOR_POSTAL_CITY</code>, <code>VITE_LEGAL_CONTACT_EMAIL</code>.
+        {message}
       </p>
     );
   }

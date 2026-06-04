@@ -4,8 +4,18 @@ import {
   revokeAnalyticsConsent,
   subscribeAnalyticsConsent,
 } from "../lib/analyticsConsent";
+import type { LegalLocale } from "../lib/legalLocale";
 
-export function AnalyticsRevokeButton(): JSX.Element | null {
+const LABELS: Record<LegalLocale, string> = {
+  de: "Einwilligung zur Nutzungsanalyse widerrufen",
+  ru: "Отозвать согласие на аналитику",
+};
+
+interface AnalyticsRevokeButtonProps {
+  locale: LegalLocale;
+}
+
+export function AnalyticsRevokeButton({ locale }: AnalyticsRevokeButtonProps): JSX.Element | null {
   const [granted, setGranted] = useState<boolean>(hasAnalyticsConsent());
 
   useEffect(() => {
@@ -21,7 +31,7 @@ export function AnalyticsRevokeButton(): JSX.Element | null {
   return (
     <p>
       <button className="legal-revoke-consent" onClick={revokeAnalyticsConsent} type="button">
-        Согласие на аналитику отозвать / Einwilligung zur Nutzungsanalyse widerrufen
+        {LABELS[locale]}
       </button>
     </p>
   );

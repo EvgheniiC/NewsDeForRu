@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   denyAnalyticsConsent,
   getAnalyticsConsent,
+  getAnalyticsConsentRecordedAt,
   grantAnalyticsConsent,
   hasAnalyticsConsent,
   revokeAnalyticsConsent,
@@ -30,6 +31,7 @@ describe("analyticsConsent", () => {
     grantAnalyticsConsent();
     expect(getAnalyticsConsent()).toBe("granted");
     expect(hasAnalyticsConsent()).toBe(true);
+    expect(getAnalyticsConsentRecordedAt()).not.toBeNull();
   });
 
   it("deny stores denied and clears anonymous id", () => {
@@ -39,10 +41,10 @@ describe("analyticsConsent", () => {
     expect(localStorage.getItem(ANON_KEY)).toBeNull();
   });
 
-  it("revoke equals deny", () => {
+  it("revoke clears choice so banner can show again", () => {
     grantAnalyticsConsent();
     revokeAnalyticsConsent();
-    expect(getAnalyticsConsent()).toBe("denied");
+    expect(getAnalyticsConsent()).toBeNull();
     expect(hasAnalyticsConsent()).toBe(false);
   });
 

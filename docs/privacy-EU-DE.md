@@ -68,8 +68,11 @@ Keine aktive Nutzung: Sentry, öffentliches Prometheus.
 | `nga_anonymous_user_id` | nein | ja |
 | `nga_session_id` (sessionStorage) | nein | ja |
 | POST `/engagement/events` | nein | ja |
+| `nga_analytics_consent_at` | nein | Zeitpunkt der Wahl (nur Browser) |
 
-Implementierung: `frontend/src/lib/analyticsConsent.ts`, `AnalyticsConsentBanner`.
+**Server:** keine Protokollierung, wer „Akzeptieren“ / „Ablehnen“ gewählt hat.
+
+Implementierung: `frontend/src/lib/analyticsConsent.ts`, `AnalyticsConsentBanner`, Sprachen DE/RU (`nga_legal_locale`).
 
 ---
 

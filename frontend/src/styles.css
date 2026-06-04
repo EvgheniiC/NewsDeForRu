@@ -738,6 +738,50 @@ body {
   text-decoration: underline;
 }
 
+.legal-lang-switch {
+  display: inline-flex;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.legal-lang-switch button {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #dde3ea;
+  background: #fff;
+  cursor: pointer;
+}
+
+.legal-lang-active {
+  background: #1d4ed8 !important;
+  border-color: #1d4ed8 !important;
+  color: #fff;
+}
+
+.consent-banner .legal-lang-switch button {
+  border-color: #475569;
+  background: #334155;
+  color: #f2f4f8;
+}
+
+.consent-banner .legal-lang-active {
+  background: #93c5fd !important;
+  border-color: #93c5fd !important;
+  color: #1c2430 !important;
+}
+
+.consent-banner-top {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+
+.consent-banner-top .legal-lang-switch {
+  margin-bottom: 0;
+}
+
 .consent-banner {
   position: sticky;
   bottom: 0;
