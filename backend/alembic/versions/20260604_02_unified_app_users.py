@@ -23,8 +23,9 @@ def _migrate_legacy_accounts(bind: sa.engine.Connection, inspector: inspect.Insp
         sa.text(
             """
             INSERT INTO app_users (id, email, password_hash, is_active, role, can_moderate, can_run_pipeline, created_at)
-            SELECT id, email, password_hash, is_active, 'admin', can_moderate, can_run_pipeline, created_at
-            FROM staff_users
+            SELECT su.id, su.email, su.password_hash, su.is_active, 'admin', su.can_moderate, su.can_run_pipeline, su.created_at
+            FROM staff_users su
+            WHERE NOT EXISTS (SELECT 1 FROM app_users au WHERE au.id = su.id)
             """
         )
     )
@@ -34,7 +35,8 @@ def _migrate_legacy_accounts(bind: sa.engine.Connection, inspector: inspect.Insp
             sa.text(
                 """
                 INSERT INTO app_users (email, password_hash, is_active, role, can_moderate, can_run_pipeline, created_at)
-                SELECT ru.email, ru.password_hash, ru.is_active, 'reader', 0, 0, ru.created_at
+                SELECT ru.email, ru.password_hash, ru.is_active, 'reader',
+                       CAST(false AS BOOLEAN), CAST(false AS BOOLEAN), ru.created_at
                 FROM reader_users ru
                 WHERE NOT EXISTS (SELECT 1 FROM app_users au WHERE au.email = ru.email)
                 """
@@ -46,8 +48,11 @@ def _migrate_legacy_accounts(bind: sa.engine.Connection, inspector: inspect.Insp
             sa.text(
                 """
                 INSERT INTO app_refresh_tokens (user_id, token_hash, expires_at, created_at, revoked_at)
-                SELECT staff_user_id, token_hash, expires_at, created_at, revoked_at
-                FROM staff_refresh_tokens
+                SELECT srt.staff_user_id, srt.token_hash, srt.expires_at, srt.created_at, srt.revoked_at
+                FROM staff_refresh_tokens srt
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM app_refresh_tokens art WHERE art.token_hash = srt.token_hash
+                )
                 """
             )
         )
@@ -61,6 +66,9 @@ def _migrate_legacy_accounts(bind: sa.engine.Connection, inspector: inspect.Insp
                 FROM reader_refresh_tokens rt
                 JOIN reader_users ru ON ru.id = rt.reader_user_id
                 JOIN app_users au ON au.email = ru.email
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM app_refresh_tokens art WHERE art.token_hash = rt.token_hash
+                )
                 """
             )
         )
