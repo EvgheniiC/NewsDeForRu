@@ -5,6 +5,7 @@ import type {
 } from "../types/operatorAuth";
 import type { ReaderLoginCredentials, ReaderMe, ReaderRegisterCredentials, ReaderTokenPair } from "../types/readerAuth";
 import type { EngagementBatchRequestBody, EngagementBatchResponseBody } from "../types/engagement";
+import type { FullArticleResponse } from "../types/fullArticle";
 import type { FeedPeriodKey, NewsFeedItem, NewsTopic, ProcessedNews } from "../types/news";
 import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
 
@@ -137,6 +138,10 @@ export async function postEngagementBatch(body: EngagementBatchRequestBody): Pro
 
 export async function getNews(newsId: number): Promise<ProcessedNews> {
   return fetchJson<ProcessedNews>(`/news/${newsId}`);
+}
+
+export async function getNewsFullArticle(newsId: number): Promise<FullArticleResponse> {
+  return fetchJson<FullArticleResponse>(`/news/${newsId}/full-article`);
 }
 
 function bearerHeaders(accessToken: string): HeadersInit {

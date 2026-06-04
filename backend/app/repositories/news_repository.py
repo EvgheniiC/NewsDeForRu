@@ -319,6 +319,27 @@ class NewsRepository:
         query: Select[tuple[ProcessedNews]] = select(ProcessedNews).where(ProcessedNews.id == news_id)
         return self.db_session.execute(query).scalar_one_or_none()
 
+    def get_processed_by_id_with_raw(self, news_id: int) -> ProcessedNews | None:
+        query: Select[tuple[ProcessedNews]] = (
+            select(ProcessedNews)
+            .where(ProcessedNews.id == news_id)
+            .options(selectinload(ProcessedNews.raw_item))
+        )
+        return self.db_session.execute(query).scalar_one_or_none()
+
+    def save_full_article_ru_if_empty(self, news_id: int, text: str) -> bool:
+        """Persist translation when cache is empty; return False if another request filled it."""
+        row: ProcessedNews | None = self.get_processed_by_id(news_id)
+        if row is None:
+            return False
+        if row.full_article_ru is not None and row.full_article_ru.strip():
+            return False
+        row.full_article_ru = text
+        self.db_session.add(row)
+        self.db_session.commit()
+        self.db_session.refresh(row)
+        return True
+
     def list_telegram_digest_candidates(
         self,
         *,

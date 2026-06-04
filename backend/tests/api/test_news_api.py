@@ -38,3 +38,9 @@ def test_top_news_today_returns_shape() -> None:
         r: dict = it["rank"]
         assert "total_score" in r
         assert "source_count" in r
+
+
+def test_full_article_endpoint_404_when_missing() -> None:
+    init_database()
+    response = client.get("/news/999_999/full-article")
+    assert response.status_code in (404, 503)

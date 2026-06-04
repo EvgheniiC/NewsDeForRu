@@ -205,6 +205,15 @@ export async function installApiMock(page: Page): Promise<void> {
       return;
     }
 
+    if (path === "/news/1/full-article" && method === "GET") {
+      await fulfillJson(route, {
+        news_id: 1,
+        full_article_ru: "Полный текст статьи для E2E.",
+        cached: true,
+      });
+      return;
+    }
+
     if (path === "/moderation/queue" && method === "GET") {
       if (!bearerPresent(route)) {
         await fulfillJson(route, { detail: "Not authenticated" }, 401);

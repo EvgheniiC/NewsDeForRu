@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { enqueueOne } from "../analytics/engagementQueue";
 import { ApiError, getNews } from "../api/client";
+import { FullArticleMobileSection } from "../components/FullArticleMobileSection";
 import { newsTopicLabelRu, type ImpactPresentation, type ProcessedNews } from "../types/news";
 
 const READ_ARTICLE_RATIO: number = 0.91;
@@ -233,6 +234,7 @@ export function NewsDetailsPage(): JSX.Element {
           <strong>Дополнительно:</strong> {additionalText}
         </p>
       ) : null}
+      <FullArticleMobileSection newsId={newsId} />
       <p className="news-detail-category">
         Категория:{" "}
         <span className="news-topic-label">{newsTopicLabelRu(news.topic)}</span>

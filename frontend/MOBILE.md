@@ -19,6 +19,12 @@
 
 После изменений фронтенда перед сборкой APK снова выполняйте `npm run build:mobile`.
 
+## Полная статья на русском (только в приложении)
+
+На экране `/news/:id` в **native** (Capacitor) под блоком «Что сделать» есть кнопка **«Читать статью целиком»**. По нажатию вызывается `GET /news/{id}/full-article`: при первом запросе бэкенд скачивает страницу источника, переводит через OpenAI и сохраняет в `processed_news.full_article_ru`; повторные открытия берут текст из БД.
+
+Требования на сервере: `LLM_PROVIDER=openai`, `OPENAI_API_KEY`, миграция `alembic upgrade head`. Опции — в `backend/.env.example` (`FULL_ARTICLE_*`, `OPENAI_FULL_ARTICLE_MODEL`).
+
 ## Диплинки и Telegram
 
 - Кнопка «Читать в приложении» в Telegram использует `{PUBLIC_APP_BASE_URL}/news/{id}` (см. backend).

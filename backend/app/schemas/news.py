@@ -32,6 +32,14 @@ def normalize_action_items_for_api(value: str) -> str:
     return t
 
 
+class FullArticleResponse(BaseModel):
+    news_id: int
+    full_article_ru: str
+    cached: bool = Field(
+        description="True when text was already stored; False when generated on this request.",
+    )
+
+
 class ProcessedNewsResponse(BaseModel):
     id: int
     title: str

@@ -5,11 +5,31 @@
 Приложение для понятной русскоязычной ленты новостей из Германии:
 `RSS -> нормализация -> фильтрация -> дедупликация -> AI-обработка -> публикация`.
 
+Читать ленту можно без регистрации. **Аккаунт читателя** — опционально: в шапке справа ссылка «Аккаунт» (`/account`), формы регистрации и входа, краткий блок «зачем регистрироваться» для гостей. Вход **операторов редакции** остаётся отдельным (`/login`, прежняя логика сотрудников).
+
 ## Текущая структура
 
-- `backend/` — FastAPI + pipeline + scheduler + тесты
-- `frontend/` — React (TypeScript) лента, детали, модерация
+- `backend/` — FastAPI + pipeline + scheduler + тесты; API аккаунта читателя (`/reader/auth/*`), отдельно от авторизации операторов (JWT с разным `aud`: `reader` / `staff`)
+- `frontend/` — React (TypeScript) лента, детали, модерация, страница аккаунта читателя и контекст `ReaderAuthContext`
 - **Мобильная обёртка (Capacitor, Android):** см. [`frontend/MOBILE.md`](frontend/MOBILE.md); диплинки `/news/…` и шаблоны `/.well-known/*` в `frontend/public/.well-known/`
+
+## Аккаунт читателя (реализация)
+
+**Фронтенд**
+
+- Навигация: справа вверху **«Аккаунт»** → `frontend/src/App.tsx`, маршрут `/account` → `frontend/src/pages/AccountPage.tsx`.
+- Для незалогиненных: список плюсов регистрации (умная лента в перспективе, профиль на нескольких устройствах, голос/прогресс, без навязчивой рассылки), формы регистрации и входа, ссылка на вход оператора.
+- Состояние сессии и refresh: `frontend/src/context/ReaderAuthContext.tsx`, типы `frontend/src/types/readerAuth.ts`, клиент `frontend/src/api/client.ts` (методы `readerRegister`, `readerLogin`, и т.д.).
+- E2E: моки `/reader/auth/*` в `frontend/e2e/fixtures/apiMock.ts`; для Playwright при необходимости задан `VITE_API_BASE_URL` в `frontend/playwright.config.ts`.
+
+**Бэкенд**
+
+- Таблицы: `reader_users`, `reader_refresh_tokens` (миграция: [`backend/alembic/versions/20260520_01_reader_accounts.py`](backend/alembic/versions/20260520_01_reader_accounts.py)).
+- Маршруты: `backend/app/api/routes/auth_reader.py`, префикс **`/reader/auth`**: `POST /register`, `POST /login`, `POST /refresh`, `POST /logout`, `GET /me` (Bearer access token с аудиторией `reader`).
+- Операторы по-прежнему используют staff-токены (`aud=staff`); валидация audience в коде отделена от устаревших токенов без `aud` (считаются staff). См. `backend/app/services/staff_tokens.py`, `backend/app/api/deps/auth_staff.py`, `backend/app/api/deps/auth_reader.py`.
+- Тесты: `backend/tests/test_auth_reader.py`; при полной миграции БД учтены новые таблицы в `backend/tests/test_migration_postgres.py`.
+
+На новом окружении после обновления кода выполните **`alembic upgrade head`**, чтобы создать таблицы читателей.
 
 ## Backend quick start
 
@@ -143,6 +163,9 @@ Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (push/PR на `
 
 ## Основные API
 
+- `POST /reader/auth/register`, `POST /reader/auth/login` — регистрация и вход **читателя** (email + пароль)
+- `POST /reader/auth/refresh`, `POST /reader/auth/logout` — обновление и завершение сессии читателя
+- `GET /reader/auth/me` — профиль текущего читателя (Bearer)
 - `GET /news` — опубликованная лента
 - `GET /news/{id}` — карточка новости
 - `GET /news/{id}` — поле `impact_presentation`: `multi` (три угла), `single` (один абзац в `impact_unified`) или `none` (без отдельного блока)
