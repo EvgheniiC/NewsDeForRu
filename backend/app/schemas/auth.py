@@ -45,3 +45,26 @@ class MeResponse(BaseModel):
     role: str
     can_moderate: bool
     can_run_pipeline: bool
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=254)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        return value.strip().lower()
+
+
+class ForgotPasswordResponse(BaseModel):
+    detail: str
+    dev_reset_link: str | None = None
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(min_length=10, max_length=2048)
+    new_password: str = Field(min_length=8, max_length=256)
+
+
+class ResetPasswordResponse(BaseModel):
+    detail: str

@@ -113,6 +113,18 @@ export async function installApiMock(page: Page): Promise<void> {
       return;
     }
 
+    if (path === "/auth/forgot-password" && method === "POST") {
+      await fulfillJson(route, {
+        detail: "If this email is registered, you will receive password reset instructions shortly.",
+      });
+      return;
+    }
+
+    if (path === "/auth/reset-password" && method === "POST") {
+      await fulfillJson(route, { detail: "Password updated. You can sign in with the new password." });
+      return;
+    }
+
     if (path === "/auth/me" && method === "GET") {
       if (!bearerPresent(route)) {
         await fulfillJson(route, { detail: "Not authenticated" }, 401);

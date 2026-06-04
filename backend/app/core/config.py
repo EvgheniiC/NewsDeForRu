@@ -100,6 +100,21 @@ class Settings(BaseSettings):
     jwt_access_expire_minutes: int = Field(default=30, ge=5, le=24 * 60)
     jwt_refresh_expire_days: int = Field(default=14, ge=1, le=365)
 
+    # Password reset (email link). Requires SMTP for delivery in production.
+    password_reset_enabled: bool = True
+    password_reset_expire_minutes: int = Field(default=60, ge=15, le=24 * 60)
+    # Frontend origin for links in email (e.g. https://simplenewsapp.de). Falls back to PUBLIC_APP_BASE_URL.
+    password_reset_frontend_base_url: str = ""
+    # Development only: return reset link in API when SMTP is off (never enable in production).
+    password_reset_dev_expose_link: bool = False
+    support_contact_email: str = ""
+    smtp_host: str = ""
+    smtp_port: int = Field(default=587, ge=1, le=65535)
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from_email: str = ""
+    smtp_use_tls: bool = True
+
     # Telegram Bot API (optional): autopublish in pipeline + immediate send when a moderator approves queue items.
     telegram_notifications_enabled: bool = False
     telegram_bot_token: str = ""

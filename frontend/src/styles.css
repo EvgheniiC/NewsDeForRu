@@ -185,6 +185,47 @@ body {
   color: #475569;
 }
 
+.news-share {
+  margin: 16px 0;
+}
+
+.news-share__title {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.news-share__actions {
+  display: flex;
+  gap: 10px;
+}
+
+.news-share__button {
+  flex: 1;
+  display: block;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.news-share__button--whatsapp {
+  color: #14532d;
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+.news-share__button--telegram {
+  color: #0c4a6e;
+  background: #e0f2fe;
+  border-color: #7dd3fc;
+}
+
 .news-full-article {
   margin: 16px 0;
 }
@@ -625,6 +666,11 @@ body {
   background: #b91c1c;
   color: #ffffff;
   cursor: pointer;
+}
+
+.account-forgot-link {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
 }
 
 .account-editorial-link {

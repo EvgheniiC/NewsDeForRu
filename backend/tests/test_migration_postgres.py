@@ -95,6 +95,7 @@ def test_alembic_upgrade_creates_expected_schema(postgres_test_db_url: str) -> N
             "app_job_locks",
             "app_users",
             "app_refresh_tokens",
+            "password_reset_tokens",
         } <= table_names
         assert "staff_users" not in table_names
         assert "reader_users" not in table_names
@@ -126,7 +127,7 @@ def test_alembic_upgrade_creates_expected_schema(postgres_test_db_url: str) -> N
         with engine.connect() as connection:
             version_rows = connection.execute(text("SELECT version_num FROM alembic_version")).all()
         assert len(version_rows) == 1
-        assert version_rows[0][0] == "20260604_02"
+        assert version_rows[0][0] == "20260605_01"
 
         moderation_cols: set[str] = {
             column["name"] for column in inspector.get_columns("moderation_events")

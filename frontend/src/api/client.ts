@@ -196,6 +196,27 @@ export async function authMe(accessToken: string): Promise<UserMe> {
   return fetchJsonAuthorized<UserMe>("/auth/me", accessToken, { method: "GET" });
 }
 
+export interface ForgotPasswordResponse {
+  detail: string;
+  dev_reset_link?: string | null;
+}
+
+export async function authForgotPassword(email: string): Promise<ForgotPasswordResponse> {
+  return fetchJson<ForgotPasswordResponse>("/auth/forgot-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function authResetPassword(token: string, newPassword: string): Promise<{ detail: string }> {
+  return fetchJson<{ detail: string }>("/auth/reset-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, new_password: newPassword }),
+  });
+}
+
 export async function getModerationQueue(accessToken: string): Promise<ProcessedNews[]> {
   return fetchJsonAuthorized<ProcessedNews[]>("/moderation/queue", accessToken, { method: "GET" });
 }

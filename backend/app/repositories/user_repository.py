@@ -58,6 +58,13 @@ class UserRepository:
         self._db.refresh(user)
         return user
 
+    def update_password(self, user: AppUser, *, password_hash: str) -> AppUser:
+        user.password_hash = password_hash
+        self._db.add(user)
+        self._db.commit()
+        self._db.refresh(user)
+        return user
+
     def grant_staff_privileges(
         self,
         user: AppUser,

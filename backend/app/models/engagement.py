@@ -23,6 +23,7 @@ class EngagementEventType(StrEnum):
     READ_COMPLETE_ARTICLE = "read_complete_article"
     EXPAND_FULL_ARTICLE = "expand_full_article"
     NAVIGATE_NEXT = "navigate_next"
+    SHARE = "share"
 
 
 class UserEngagementEvent(Base):

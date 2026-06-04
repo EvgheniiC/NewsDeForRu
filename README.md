@@ -162,6 +162,7 @@ Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (push/PR на `
 ## Основные API
 
 - `POST /auth/register`, `POST /auth/login` — регистрация (роль `reader`) и вход
+- `POST /auth/forgot-password`, `POST /auth/reset-password` — сброс пароля по email (SMTP в `.env`)
 - `POST /auth/refresh`, `POST /auth/logout` — сессия
 - `GET /auth/me` — профиль и права (`can_moderate`, `can_run_pipeline`)
 - `GET /news` — опубликованная лента

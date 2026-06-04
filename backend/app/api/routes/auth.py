@@ -14,13 +14,18 @@ from app.core.database import get_db_session
 from app.models.app_user import AppUser
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import (
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
     LoginRequest,
     LogoutRequest,
     MeResponse,
     RefreshRequest,
     RegisterRequest,
+    ResetPasswordRequest,
+    ResetPasswordResponse,
     TokenPairResponse,
 )
+from app.services.password_reset_service import request_password_reset, reset_password_with_token
 from app.services.passwords import hash_password, verify_password
 from app.services.staff_tokens import issue_access_token, new_refresh_plain, refresh_token_hash_hex
 
@@ -95,6 +100,30 @@ def logout(payload: LogoutRequest, db_session: Session = Depends(get_db_session)
     if row is not None:
         repo.revoke_refresh(row.id)
     return {"detail": "ok"}
+
+
+@router.post("/forgot-password", response_model=ForgotPasswordResponse)
+def forgot_password(
+    payload: ForgotPasswordRequest,
+    db_session: Session = Depends(get_db_session),
+) -> ForgotPasswordResponse:
+    result = request_password_reset(db_session, str(payload.email))
+    return ForgotPasswordResponse(detail=result.message, dev_reset_link=result.dev_reset_link)
+
+
+@router.post("/reset-password", response_model=ResetPasswordResponse)
+def reset_password(
+    payload: ResetPasswordRequest,
+    db_session: Session = Depends(get_db_session),
+) -> ResetPasswordResponse:
+    try:
+        reset_password_with_token(db_session, payload.token, payload.new_password)
+    except ValueError as exc:
+        code: str = str(exc)
+        if code == "expired_token":
+            raise HTTPException(status_code=400, detail="Reset link has expired. Request a new one.") from exc
+        raise HTTPException(status_code=400, detail="Invalid or already used reset link.") from exc
+    return ResetPasswordResponse(detail="Password updated. You can sign in with the new password.")
 
 
 @router.get("/me", response_model=MeResponse)

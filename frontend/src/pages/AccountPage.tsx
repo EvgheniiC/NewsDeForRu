@@ -216,6 +216,9 @@ export function AccountPage(): JSX.Element {
             <button disabled={loginBusy} type="submit">
               {loginBusy ? "Вход…" : "Войти"}
             </button>
+            <p className="account-forgot-link">
+              <Link to="/account/forgot">Забыли пароль?</Link>
+            </p>
           </form>
         </div>
       </div>

@@ -2,6 +2,8 @@ import { Link, Navigate, Outlet, Route, Routes, useLocation } from "react-router
 import { useAuth } from "./context/AuthContext";
 import { DeepLinkListener } from "./mobile/DeepLinkListener";
 import { AccountPage } from "./pages/AccountPage";
+import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { FeedPage } from "./pages/FeedPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ModerationPage } from "./pages/ModerationPage";
@@ -71,6 +73,8 @@ function App(): JSX.Element {
         </Route>
         <Route element={<LoginPage />} path="/login" />
         <Route element={<AccountPage />} path="/account" />
+        <Route element={<ForgotPasswordPage />} path="/account/forgot" />
+        <Route element={<ResetPasswordPage />} path="/account/reset" />
         <Route element={<PrivacyPage />} path="/privacy" />
       </Routes>
     </main>

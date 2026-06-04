@@ -6,7 +6,8 @@ export type EngagementEventType =
   | "read_complete_preview"
   | "read_complete_article"
   | "expand_full_article"
-  | "navigate_next";
+  | "navigate_next"
+  | "share";
 
 export type FeedAnalyticsMode = "grid" | "tiktok" | "fast";
 
