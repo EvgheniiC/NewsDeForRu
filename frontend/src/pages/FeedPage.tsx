@@ -3,7 +3,7 @@ import { FastSwipeFeed } from "../components/FastSwipeFeed";
 import { GridFeed } from "../components/GridFeed";
 import { TikTokFeed } from "../components/TikTokFeed";
 import { ApiError, getHealth, NetworkError, runPipeline } from "../api/client";
-import { useOperatorAuth } from "../context/OperatorAuthContext";
+import { useAuth } from "../context/AuthContext";
 import { useInfiniteFeed } from "../hooks/useInfiniteFeed";
 import { useUsefulSavedFeed } from "../hooks/useUsefulSavedFeed";
 import { describePipelinePartialFailure, formatHealthTime } from "../lib/pipelineUi";
@@ -13,7 +13,7 @@ import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
 type FeedViewMode = "grid" | "tiktok" | "fast";
 
 export function FeedPage(): JSX.Element {
-  const { initializing: operatorSessionLoading, user, withPipelineAccess } = useOperatorAuth();
+  const { initializing: sessionLoading, user, withPipelineAccess } = useAuth();
   const [feedFilter, setFeedFilter] = useState<FeedFilterKey>("life");
   const [feedPeriod, setFeedPeriod] = useState<FeedPeriodKey>("all");
   const [feedViewMode, setFeedViewMode] = useState<FeedViewMode>("grid");
@@ -49,7 +49,7 @@ export function FeedPage(): JSX.Element {
   const [pipelineNetworkError, setPipelineNetworkError] = useState<string>("");
   const [pipelineHttpError, setPipelineHttpError] = useState<string>("");
 
-  const canRunPipeline: boolean = !operatorSessionLoading && user?.can_run_pipeline === true;
+  const canRunPipeline: boolean = !sessionLoading && user?.can_run_pipeline === true;
 
   const loadHealth = useCallback(async (): Promise<void> => {
     try {

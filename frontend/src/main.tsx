@@ -3,8 +3,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { flushEngagementQueueSyncOnUnload } from "./analytics/engagementQueue";
 import App from "./App";
-import { OperatorAuthProvider } from "./context/OperatorAuthContext";
-import { ReaderAuthProvider } from "./context/ReaderAuthContext";
+import { AuthProvider } from "./context/AuthContext";
 import "./styles.css";
 
 flushEngagementQueueSyncOnUnload();
@@ -12,11 +11,9 @@ flushEngagementQueueSyncOnUnload();
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <BrowserRouter>
-      <OperatorAuthProvider>
-        <ReaderAuthProvider>
-          <App />
-        </ReaderAuthProvider>
-      </OperatorAuthProvider>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

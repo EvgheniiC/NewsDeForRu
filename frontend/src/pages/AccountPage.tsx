@@ -1,10 +1,17 @@
 import { FormEvent, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
-import { useReaderAuth } from "../context/ReaderAuthContext";
+import { useAuth } from "../context/AuthContext";
+
+interface LocationState {
+  from?: string;
+}
 
 export function AccountPage(): JSX.Element {
-  const { initializing, login, logout, register, user } = useReaderAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const redirectState = location.state as LocationState | null | undefined;
+  const { initializing, login, logout, register, user } = useAuth();
 
   const [registerEmail, setRegisterEmail] = useState<string>("");
   const [registerPassword, setRegisterPassword] = useState<string>("");
@@ -43,9 +50,16 @@ export function AccountPage(): JSX.Element {
     setLoginError("");
     setLoginBusy(true);
     try {
-      await login({ email: loginEmail, password: loginPassword });
+      const me = await login({ email: loginEmail, password: loginPassword });
       setLoginEmail("");
       setLoginPassword("");
+      if (typeof redirectState?.from === "string" && redirectState.from.startsWith("/")) {
+        navigate(redirectState.from, { replace: true });
+        return;
+      }
+      if (me.can_moderate) {
+        navigate("/moderation", { replace: true });
+      }
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 401) {
         setLoginError("Неверный email или пароль.");
@@ -75,15 +89,18 @@ export function AccountPage(): JSX.Element {
           Вы вошли как <strong>{user.email}</strong>.
         </p>
         <p className="muted">
-          Скоро здесь появятся персональные функции: умная лента, синхронизация и голосовое прослушивание — вход нужен,
-          чтобы не потерять настройки между устройствами.
+          Скоро здесь появятся персональные функции: умная лента, синхронизация и голосовое прослушивание.
+          {user.can_moderate ? " У вашего аккаунта есть доступ к модерации." : ""}
         </p>
+        {user.can_moderate ? (
+          <p>
+            <Link to="/moderation">Очередь модерации</Link>
+          </p>
+        ) : null}
         <button className="account-logout-wide" onClick={() => void logout()} type="button">
           Выйти из аккаунта
         </button>
         <p className="muted account-editorial-link">
-          <Link to="/login">Вход для операторов редакции</Link>
-          {" · "}
           <Link to="/">На главную</Link>
         </p>
       </section>
@@ -204,8 +221,6 @@ export function AccountPage(): JSX.Element {
       </div>
 
       <p className="muted account-editorial-link">
-        Вы редактор? <Link to="/login">Вход для операторов</Link>
-        {" · "}
         <Link to="/">На главную</Link>
       </p>
     </section>

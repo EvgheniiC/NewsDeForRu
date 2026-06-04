@@ -81,6 +81,15 @@ export async function installApiMock(page: Page): Promise<void> {
     const method: string = route.request().method();
     const path: string = url.pathname;
 
+    if (path === "/auth/register" && method === "POST") {
+      await fulfillJson(route, {
+        access_token: "e2e-access-token-mock",
+        refresh_token: "e2e-refresh-token-mock",
+        token_type: "bearer",
+      });
+      return;
+    }
+
     if (path === "/auth/login" && method === "POST") {
       await fulfillJson(route, {
         access_token: "e2e-access-token-mock",
@@ -112,52 +121,9 @@ export async function installApiMock(page: Page): Promise<void> {
       await fulfillJson(route, {
         id: 1,
         email: "e2e@test.local",
+        role: "admin",
         can_moderate: true,
         can_run_pipeline: true,
-      });
-      return;
-    }
-
-    if (path === "/reader/auth/register" && method === "POST") {
-      await fulfillJson(route, {
-        access_token: "e2e-reader-access",
-        refresh_token: "e2e-reader-refresh",
-        token_type: "bearer",
-      });
-      return;
-    }
-
-    if (path === "/reader/auth/login" && method === "POST") {
-      await fulfillJson(route, {
-        access_token: "e2e-reader-access",
-        refresh_token: "e2e-reader-refresh",
-        token_type: "bearer",
-      });
-      return;
-    }
-
-    if (path === "/reader/auth/refresh" && method === "POST") {
-      await fulfillJson(route, {
-        access_token: "e2e-reader-access-refreshed",
-        refresh_token: "e2e-reader-refresh-rotated",
-        token_type: "bearer",
-      });
-      return;
-    }
-
-    if (path === "/reader/auth/logout" && method === "POST") {
-      await fulfillJson(route, { detail: "ok" });
-      return;
-    }
-
-    if (path === "/reader/auth/me" && method === "GET") {
-      if (!bearerPresent(route)) {
-        await fulfillJson(route, { detail: "Not authenticated" }, 401);
-        return;
-      }
-      await fulfillJson(route, {
-        id: 1,
-        email: "reader-e2e@test.local",
       });
       return;
     }

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiError, getModerationQueue, moderate } from "../api/client";
-import { useOperatorAuth } from "../context/OperatorAuthContext";
+import { useAuth } from "../context/AuthContext";
 import { newsTopicLabelRu, type ProcessedNews } from "../types/news";
 
 export function ModerationPage(): JSX.Element {
   const navigate = useNavigate();
-  const { user, withModerationAccess, logout } = useOperatorAuth();
+  const { user, withModerationAccess, logout } = useAuth();
   const [queue, setQueue] = useState<ProcessedNews[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");

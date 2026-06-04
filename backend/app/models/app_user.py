@@ -1,4 +1,6 @@
-"""Operators (staff accounts) — moderation and manual pipeline."""
+"""Unified app accounts: readers by default; editorial rights via script flags."""
+
+from __future__ import annotations
 
 from datetime import datetime
 
@@ -7,30 +9,34 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
+READER_ROLE: str = "reader"
+ADMIN_ROLE: str = "admin"
 
-class StaffUser(Base):
-    __tablename__ = "staff_users"
+
+class AppUser(Base):
+    __tablename__ = "app_users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(Text, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    can_moderate: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    can_run_pipeline: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    role: Mapped[str] = mapped_column(String(32), default=READER_ROLE, nullable=False)
+    can_moderate: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    can_run_pipeline: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
-    refresh_tokens: Mapped[list["StaffRefreshToken"]] = relationship(
-        back_populates="staff_user",
+    refresh_tokens: Mapped[list["AppRefreshToken"]] = relationship(
+        back_populates="user",
         cascade="all, delete-orphan",
     )
 
 
-class StaffRefreshToken(Base):
-    __tablename__ = "staff_refresh_tokens"
+class AppRefreshToken(Base):
+    __tablename__ = "app_refresh_tokens"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    staff_user_id: Mapped[int] = mapped_column(
-        ForeignKey("staff_users.id", ondelete="CASCADE"),
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("app_users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -39,4 +45,4 @@ class StaffRefreshToken(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=None)
 
-    staff_user: Mapped[StaffUser] = relationship(back_populates="refresh_tokens")
+    user: Mapped[AppUser] = relationship(back_populates="refresh_tokens")

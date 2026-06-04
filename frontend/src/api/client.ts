@@ -1,9 +1,9 @@
 import type {
-  OperatorLoginCredentials,
-  OperatorMe,
-  OperatorTokenPair,
-} from "../types/operatorAuth";
-import type { ReaderLoginCredentials, ReaderMe, ReaderRegisterCredentials, ReaderTokenPair } from "../types/readerAuth";
+  UserLoginCredentials,
+  UserMe,
+  UserRegisterCredentials,
+  UserTokenPair,
+} from "../types/userAuth";
 import type { EngagementBatchRequestBody, EngagementBatchResponseBody } from "../types/engagement";
 import type { FullArticleResponse } from "../types/fullArticle";
 import type { FeedPeriodKey, NewsFeedItem, NewsTopic, ProcessedNews } from "../types/news";
@@ -160,24 +160,31 @@ async function fetchJsonAuthorized<T>(
   return fetchJson<T>(path, merged);
 }
 
-export async function staffLogin(payload: OperatorLoginCredentials): Promise<OperatorTokenPair> {
-  const body: OperatorLoginCredentials = payload;
-  return fetchJson<OperatorTokenPair>("/auth/login", {
+export async function authRegister(payload: UserRegisterCredentials): Promise<UserTokenPair> {
+  return fetchJson<UserTokenPair>("/auth/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify(payload),
   });
 }
 
-export async function refreshStaffSession(refreshTokenPlain: string): Promise<OperatorTokenPair> {
-  return fetchJson<OperatorTokenPair>("/auth/refresh", {
+export async function authLogin(payload: UserLoginCredentials): Promise<UserTokenPair> {
+  return fetchJson<UserTokenPair>("/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function authRefresh(refreshTokenPlain: string): Promise<UserTokenPair> {
+  return fetchJson<UserTokenPair>("/auth/refresh", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ refresh_token: refreshTokenPlain }),
   });
 }
 
-export async function logoutStaff(refreshTokenPlain: string): Promise<void> {
+export async function authLogout(refreshTokenPlain: string): Promise<void> {
   await fetchJson<{ detail?: string }>("/auth/logout", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -185,44 +192,8 @@ export async function logoutStaff(refreshTokenPlain: string): Promise<void> {
   });
 }
 
-export async function staffMe(accessToken: string): Promise<OperatorMe> {
-  return fetchJsonAuthorized<OperatorMe>("/auth/me", accessToken, { method: "GET" });
-}
-
-export async function readerRegister(payload: ReaderRegisterCredentials): Promise<ReaderTokenPair> {
-  return fetchJson<ReaderTokenPair>("/reader/auth/register", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-}
-
-export async function readerLogin(payload: ReaderLoginCredentials): Promise<ReaderTokenPair> {
-  return fetchJson<ReaderTokenPair>("/reader/auth/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-}
-
-export async function refreshReaderSession(refreshTokenPlain: string): Promise<ReaderTokenPair> {
-  return fetchJson<ReaderTokenPair>("/reader/auth/refresh", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refresh_token: refreshTokenPlain }),
-  });
-}
-
-export async function logoutReader(refreshTokenPlain: string): Promise<void> {
-  await fetchJson<{ detail?: string }>("/reader/auth/logout", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refresh_token: refreshTokenPlain }),
-  });
-}
-
-export async function readerMe(accessToken: string): Promise<ReaderMe> {
-  return fetchJsonAuthorized<ReaderMe>("/reader/auth/me", accessToken, { method: "GET" });
+export async function authMe(accessToken: string): Promise<UserMe> {
+  return fetchJsonAuthorized<UserMe>("/auth/me", accessToken, { method: "GET" });
 }
 
 export async function getModerationQueue(accessToken: string): Promise<ProcessedNews[]> {

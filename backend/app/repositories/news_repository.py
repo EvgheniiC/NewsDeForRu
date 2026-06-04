@@ -414,7 +414,7 @@ class NewsRepository:
         news_id: int,
         status: PipelineStatus,
         audit_action: Literal["approve", "reject"],
-        staff_user_id: int | None = None,
+        user_id: int | None = None,
     ) -> ProcessedNews | None:
         """Update publication status and record an audit row (manual moderation only)."""
         processed: ProcessedNews | None = self.get_processed_by_id(news_id)
@@ -426,7 +426,7 @@ class NewsRepository:
             ModerationEvent(
                 processed_news_id=processed.id,
                 action=audit_action,
-                staff_user_id=staff_user_id,
+                user_id=user_id,
             )
         )
         self.db_session.commit()

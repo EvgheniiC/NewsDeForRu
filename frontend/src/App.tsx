@@ -1,5 +1,5 @@
 import { Link, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
-import { useOperatorAuth } from "./context/OperatorAuthContext";
+import { useAuth } from "./context/AuthContext";
 import { DeepLinkListener } from "./mobile/DeepLinkListener";
 import { AccountPage } from "./pages/AccountPage";
 import { FeedPage } from "./pages/FeedPage";
@@ -8,8 +8,8 @@ import { ModerationPage } from "./pages/ModerationPage";
 import { NewsDetailsPage } from "./pages/NewsDetailsPage";
 import { PrivacyPage } from "./pages/PrivacyPage";
 
-function OperatorNavActions(): JSX.Element {
-  const { initializing, logout, user } = useOperatorAuth();
+function NavAuthActions(): JSX.Element {
+  const { initializing, logout, user } = useAuth();
 
   if (initializing) {
     return <span className="main-nav-muted"> … </span>;
@@ -19,23 +19,19 @@ function OperatorNavActions(): JSX.Element {
     return (
       <>
         {user.can_moderate ? <Link to="/moderation">Модерация</Link> : null}
-        <button
-          className="main-nav-button"
-          onClick={() => void logout()}
-          type="button"
-        >
+        <button className="main-nav-button" onClick={() => void logout()} type="button">
           Выйти ({user.email})
         </button>
       </>
     );
   }
 
-  return <Link to="/login">Вход оператора</Link>;
+  return <Link to="/account">Войти</Link>;
 }
 
-/** Renders child routes only when the operator can moderate (after session is hydrated). */
+/** Renders child routes only when the user can moderate (after session is hydrated). */
 function ModeratorRoute(): JSX.Element {
-  const { initializing, user } = useOperatorAuth();
+  const { initializing, user } = useAuth();
   const location = useLocation();
 
   if (initializing) {
@@ -47,7 +43,7 @@ function ModeratorRoute(): JSX.Element {
   }
 
   if (!user?.can_moderate) {
-    return <Navigate replace to="/login" state={{ from: location.pathname }} />;
+    return <Navigate replace to="/account" state={{ from: location.pathname }} />;
   }
 
   return <Outlet />;
@@ -63,7 +59,7 @@ function App(): JSX.Element {
           <Link to="/privacy">Конфиденциальность</Link>
         </div>
         <div className="main-nav-end">
-          <OperatorNavActions />
+          <NavAuthActions />
           <Link to="/account">Аккаунт</Link>
         </div>
       </nav>

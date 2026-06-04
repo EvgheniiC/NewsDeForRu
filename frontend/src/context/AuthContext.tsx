@@ -9,41 +9,37 @@ import React, {
 } from "react";
 import {
   ApiError,
-  logoutStaff,
-  refreshStaffSession,
-  staffLogin,
-  staffMe,
+  authLogin,
+  authLogout,
+  authMe,
+  authRefresh,
+  authRegister,
 } from "../api/client";
 import type {
-  OperatorLoginCredentials,
-  OperatorMe,
-  OperatorTokenPair,
-} from "../types/operatorAuth";
+  UserLoginCredentials,
+  UserMe,
+  UserRegisterCredentials,
+  UserTokenPair,
+} from "../types/userAuth";
 
-const ACCESS_KEY: string = "newsfr.operator.access_token";
-const REFRESH_KEY: string = "newsfr.operator.refresh_token";
+const ACCESS_KEY: string = "newsfr.auth.access_token";
+const REFRESH_KEY: string = "newsfr.auth.refresh_token";
 
-interface OperatorAuthState {
-  user: OperatorMe | null;
-  /** True until first hydrate from storage (or absent storage) completes. */
+interface AuthState {
+  user: UserMe | null;
   initializing: boolean;
-  login: (credentials: OperatorLoginCredentials) => Promise<OperatorMe>;
+  login: (credentials: UserLoginCredentials) => Promise<UserMe>;
+  register: (credentials: UserRegisterCredentials) => Promise<UserMe>;
   logout: () => Promise<void>;
-  /**
-   * Run an API callback with a Bearer access token (refresh once on HTTP 401 if possible).
-   * Caller must enforce permissions via guards; callbacks should use moderator-only endpoints.
-   */
   withModerationAccess: <T>(run: (accessToken: string) => Promise<T>) => Promise<T>;
-  /**
-   * Same refresh behaviour for endpoints that require `can_run_pipeline` on the account.
-   */
   withPipelineAccess: <T>(run: (accessToken: string) => Promise<T>) => Promise<T>;
 }
 
-const OperatorAuthContext: React.Context<OperatorAuthState | undefined> =
-  createContext<OperatorAuthState | undefined>(undefined);
+const AuthContext: React.Context<AuthState | undefined> = createContext<AuthState | undefined>(
+  undefined,
+);
 
-function persistTokens(pair: OperatorTokenPair | null): void {
+function persistTokens(pair: UserTokenPair | null): void {
   if (pair === null) {
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(REFRESH_KEY);
@@ -53,7 +49,7 @@ function persistTokens(pair: OperatorTokenPair | null): void {
   localStorage.setItem(REFRESH_KEY, pair.refresh_token);
 }
 
-function readStoredPair(): OperatorTokenPair | null {
+function readStoredPair(): UserTokenPair | null {
   const access: string | null = localStorage.getItem(ACCESS_KEY);
   const refresh: string | null = localStorage.getItem(REFRESH_KEY);
   if (access !== null && access.length > 0 && refresh !== null && refresh.length > 0) {
@@ -68,43 +64,53 @@ function readStoredPair(): OperatorTokenPair | null {
 
 async function revokeRemoteRefreshQuietly(refresh: string): Promise<void> {
   try {
-    await logoutStaff(refresh);
+    await authLogout(refresh);
   } catch {
-    /* ignore logout transport errors */
+    /* ignore */
   }
 }
 
-export function OperatorAuthProvider(props: Readonly<{ children: React.ReactNode }>): JSX.Element {
+export function AuthProvider(props: Readonly<{ children: React.ReactNode }>): JSX.Element {
   const { children } = props;
-  const [user, setUser] = useState<OperatorMe | null>(null);
+  const [user, setUser] = useState<UserMe | null>(null);
   const [initializing, setInitializing] = useState<boolean>(true);
-  const tokensRef = useRef<OperatorTokenPair | null>(null);
+  const tokensRef = useRef<UserTokenPair | null>(null);
 
-  const applyPairState = useCallback((pair: OperatorTokenPair | null, nextUser: OperatorMe | null): void => {
+  const applyPairState = useCallback((pair: UserTokenPair | null, nextUser: UserMe | null): void => {
     tokensRef.current = pair;
     persistTokens(pair);
     setUser(nextUser);
   }, []);
 
-  const rotatePairWithRefresh = useCallback(async (): Promise<OperatorTokenPair> => {
+  const rotatePairWithRefresh = useCallback(async (): Promise<UserTokenPair> => {
     const currentRefresh: string | null = tokensRef.current?.refresh_token ?? null;
     if (currentRefresh === null || currentRefresh === "") {
       throw new ApiError("No refresh token", 401);
     }
-    const next: OperatorTokenPair = await refreshStaffSession(currentRefresh);
+    const next: UserTokenPair = await authRefresh(currentRefresh);
     tokensRef.current = next;
     persistTokens(next);
     return next;
   }, []);
 
-  const requestMe = useCallback(async (accessToken: string): Promise<OperatorMe> => {
-    return staffMe(accessToken);
+  const requestMe = useCallback(async (accessToken: string): Promise<UserMe> => {
+    return authMe(accessToken);
   }, []);
 
   const login = useCallback(
-    async (credentials: OperatorLoginCredentials): Promise<OperatorMe> => {
-      const pair: OperatorTokenPair = await staffLogin(credentials);
-      const me: OperatorMe = await requestMe(pair.access_token);
+    async (credentials: UserLoginCredentials): Promise<UserMe> => {
+      const pair: UserTokenPair = await authLogin(credentials);
+      const me: UserMe = await requestMe(pair.access_token);
+      applyPairState(pair, me);
+      return me;
+    },
+    [applyPairState, requestMe],
+  );
+
+  const register = useCallback(
+    async (credentials: UserRegisterCredentials): Promise<UserMe> => {
+      const pair: UserTokenPair = await authRegister(credentials);
+      const me: UserMe = await requestMe(pair.access_token);
       applyPairState(pair, me);
       return me;
     },
@@ -132,8 +138,8 @@ export function OperatorAuthProvider(props: Readonly<{ children: React.ReactNode
           throw err;
         }
         try {
-          const rotated: OperatorTokenPair = await rotatePairWithRefresh();
-          const me: OperatorMe = await requestMe(rotated.access_token);
+          const rotated: UserTokenPair = await rotatePairWithRefresh();
+          const me: UserMe = await requestMe(rotated.access_token);
           setUser(me);
           return await run(rotated.access_token);
         } catch (second: unknown) {
@@ -167,19 +173,19 @@ export function OperatorAuthProvider(props: Readonly<{ children: React.ReactNode
 
   useEffect(() => {
     const hydrate = async (): Promise<void> => {
-      const stored: OperatorTokenPair | null = readStoredPair();
+      const stored: UserTokenPair | null = readStoredPair();
       if (stored === null) {
         setInitializing(false);
         return;
       }
       tokensRef.current = stored;
       try {
-        const meFromAccess: OperatorMe = await staffMe(stored.access_token);
+        const meFromAccess: UserMe = await authMe(stored.access_token);
         applyPairState(stored, meFromAccess);
       } catch {
         try {
-          const rotated: OperatorTokenPair = await refreshStaffSession(stored.refresh_token);
-          const meAfter: OperatorMe = await staffMe(rotated.access_token);
+          const rotated: UserTokenPair = await authRefresh(stored.refresh_token);
+          const meAfter: UserMe = await authMe(rotated.access_token);
           applyPairState(rotated, meAfter);
         } catch {
           persistTokens(null);
@@ -193,26 +199,27 @@ export function OperatorAuthProvider(props: Readonly<{ children: React.ReactNode
     void hydrate();
   }, [applyPairState]);
 
-  const value = useMemo<OperatorAuthState>(
+  const value = useMemo<AuthState>(
     () => ({
       user,
       initializing,
       login,
+      register,
       logout,
       withModerationAccess,
       withPipelineAccess,
     }),
-    [initializing, login, logout, user, withModerationAccess, withPipelineAccess],
+    [initializing, login, logout, register, user, withModerationAccess, withPipelineAccess],
   );
 
-  return <OperatorAuthContext.Provider value={value}>{children}</OperatorAuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// eslint-disable-next-line react-refresh/only-export-components -- hook paired with OperatorAuthProvider
-export function useOperatorAuth(): OperatorAuthState {
-  const ctx: OperatorAuthState | undefined = useContext(OperatorAuthContext);
+// eslint-disable-next-line react-refresh/only-export-components -- hook paired with AuthProvider
+export function useAuth(): AuthState {
+  const ctx: AuthState | undefined = useContext(AuthContext);
   if (ctx === undefined) {
-    throw new Error("useOperatorAuth must be used within OperatorAuthProvider");
+    throw new Error("useAuth must be used within AuthProvider");
   }
   return ctx;
 }

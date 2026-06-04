@@ -93,11 +93,11 @@ def test_alembic_upgrade_creates_expected_schema(postgres_test_db_url: str) -> N
             "cluster_items",
             "moderation_events",
             "app_job_locks",
-            "staff_users",
-            "staff_refresh_tokens",
-            "reader_users",
-            "reader_refresh_tokens",
+            "app_users",
+            "app_refresh_tokens",
         } <= table_names
+        assert "staff_users" not in table_names
+        assert "reader_users" not in table_names
 
         raw_columns: set[str] = {column["name"] for column in inspector.get_columns("raw_news_items")}
         processed_columns: set[str] = {column["name"] for column in inspector.get_columns("processed_news")}
@@ -126,12 +126,12 @@ def test_alembic_upgrade_creates_expected_schema(postgres_test_db_url: str) -> N
         with engine.connect() as connection:
             version_rows = connection.execute(text("SELECT version_num FROM alembic_version")).all()
         assert len(version_rows) == 1
-        assert version_rows[0][0] == "20260604_01"
+        assert version_rows[0][0] == "20260604_02"
 
         moderation_cols: set[str] = {
             column["name"] for column in inspector.get_columns("moderation_events")
         }
-        assert "staff_user_id" in moderation_cols
+        assert "user_id" in moderation_cols
 
         engagement_columns: set[str] = {column["name"] for column in inspector.get_columns("user_engagement_events")}
         assert {"anonymous_user_id", "processed_news_id", "event_type", "payload_json", "client_event_id"} <= engagement_columns

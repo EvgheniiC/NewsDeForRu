@@ -162,8 +162,8 @@ class ModerationEvent(Base):
         nullable=False,
         index=True,
     )
-    staff_user_id: Mapped[int | None] = mapped_column(
-        ForeignKey("staff_users.id", ondelete="SET NULL"),
+    user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("app_users.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
