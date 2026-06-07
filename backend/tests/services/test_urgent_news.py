@@ -23,6 +23,7 @@ def _llm(*, importance: int = 5) -> LLMNewsOutput:
         bonus_block="b",
         spoiler="s",
         topic="life",
+        is_positive=False,
         confidence_score=0.5,
         importance_score=importance,
     )

@@ -40,6 +40,15 @@ def test_top_news_today_returns_shape() -> None:
         assert "source_count" in r
 
 
+def test_news_endpoint_accepts_positive_only_filter() -> None:
+    init_database()
+    response = client.get("/news", params={"positive_only": "true"})
+    assert response.status_code == 200
+    data: dict = response.json()
+    assert "items" in data
+    assert isinstance(data["items"], list)
+
+
 def test_full_article_endpoint_404_when_missing() -> None:
     init_database()
     response = client.get("/news/999_999/full-article")

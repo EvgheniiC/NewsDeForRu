@@ -25,6 +25,7 @@ def _valid_payload() -> dict[str, object]:
         "bonus_block": "факт",
         "spoiler": "интрига",
         "topic": "life",
+        "is_positive": False,
         "confidence_score": 0.9,
         "importance_score": 7,
     }
@@ -97,6 +98,20 @@ def test_parse_llm_news_json_placeholder_when_title_blank_and_no_raw() -> None:
     p["title"] = ""
     out: LLMNewsOutput = parse_llm_news_json(json.dumps(p, ensure_ascii=True))
     assert out.title.startswith("Заголовок не получен")
+
+
+def test_parse_llm_news_json_coerces_is_positive_from_string() -> None:
+    p: dict[str, object] = _valid_payload()
+    p["is_positive"] = "true"
+    out: LLMNewsOutput = parse_llm_news_json(json.dumps(p, ensure_ascii=True))
+    assert out.is_positive is True
+
+
+def test_parse_llm_news_json_defaults_missing_is_positive_to_false() -> None:
+    p: dict[str, object] = _valid_payload()
+    del p["is_positive"]
+    out: LLMNewsOutput = parse_llm_news_json(json.dumps(p, ensure_ascii=True))
+    assert out.is_positive is False
 
 
 def test_parse_llm_news_json_coerces_russian_topic_economy() -> None:

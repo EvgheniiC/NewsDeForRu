@@ -231,6 +231,7 @@ class NewsRepository:
         *,
         topic: NewsTopic | None = None,
         urgent_only: bool = False,
+        positive_only: bool = False,
         cursor_id: int | None = None,
         created_at_since: datetime | None = None,
     ) -> tuple[list[ProcessedNews], bool]:
@@ -245,6 +246,8 @@ class NewsRepository:
         )
         if urgent_only:
             base = base.where(ProcessedNews.is_urgent.is_(True))
+        elif positive_only:
+            base = base.where(ProcessedNews.is_positive.is_(True))
         elif topic is not None:
             base = base.where(ProcessedNews.topic == topic)
         if created_at_since is not None:
@@ -255,6 +258,8 @@ class NewsRepository:
             if anchor is None or anchor.publication_status != PipelineStatus.PUBLISHED:
                 return [], False
             if urgent_only and not anchor.is_urgent:
+                return [], False
+            if positive_only and not anchor.is_positive:
                 return [], False
             if topic is not None and anchor.topic != topic:
                 return [], False

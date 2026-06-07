@@ -85,6 +85,22 @@ def _coerce_topic_for_llm(value: object) -> NewsTopicLiteral:
     return "life"
 
 
+def _coerce_is_positive(value: object) -> bool:
+    """Normalize LLM drift (strings, ints) onto a strict boolean."""
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    s: str = str(value).strip().casefold()
+    if s in {"true", "1", "yes", "да", "positiv", "positive"}:
+        return True
+    if s in {"false", "0", "no", "нет", "negativ", "negative"}:
+        return False
+    return False
+
+
 ImpactPresentationLiteral = Literal["multi", "single", "none"]
 
 # LLMs sometimes return JSON string placeholders instead of real text.
@@ -204,6 +220,7 @@ def coerce_llm_news_dict_before_validate(
     out["spoiler"] = spoil[:2000]
 
     out["topic"] = _coerce_topic_for_llm(out.get("topic"))
+    out["is_positive"] = _coerce_is_positive(out.get("is_positive"))
     return out
 
 
@@ -229,6 +246,13 @@ class LLMNewsOutput(BaseModel):
     topic: NewsTopicLiteral = Field(
         ...,
         description="Primary category: politics, economy, or everyday life in Germany.",
+    )
+    is_positive: bool = Field(
+        ...,
+        description=(
+            "True only when the story is clearly uplifting, constructive, or reports a genuine "
+            "improvement — not merely neutral or mixed news."
+        ),
     )
     confidence_score: float = Field(..., ge=0.0, le=1.0)
     importance_score: int = Field(
@@ -308,7 +332,7 @@ class LLMNewsOutput(BaseModel):
             "Return exactly one JSON object (no markdown, no extra text) with these keys: "
             "title, one_sentence_summary, plain_language, impact_presentation, impact_unified, "
             "impact_owner, impact_tenant, impact_buyer, action_items, bonus_block, spoiler, "
-            "topic, confidence_score, importance_score. "
+            "topic, is_positive, confidence_score, importance_score. "
             "topic MUST be the English token exactly one of: politics, economy, life — "
             "never Russian (e.g. экономика) or German words; pick the story's main angle.\n"
             "Rubric: politics = government, political parties, elections, parliament/Bundestag, "
@@ -319,6 +343,15 @@ class LLMNewsOutput(BaseModel):
             "family/school, local rules, consumer tips) when the main frame is 'what it means for you "
             "day to day' rather than political process or business cycle. Do not default to life when "
             "the story is clearly political or business/economic news.\n"
+            "is_positive MUST be a JSON boolean true or false (not a string). "
+            "Set true ONLY when the core of the story is clearly good news, an improvement, "
+            "or something genuinely uplifting for residents: new social programs or subsidies, "
+            "price cuts or expanded benefits, scientific/medical breakthroughs that help people, "
+            "successful rescues, infrastructure or environmental improvements, charitable or "
+            "heartwarming human-interest stories with a constructive outcome. "
+            "Set false for disasters, crime, scandals, conflicts, protests, layoffs, mixed "
+            "stories (both upside and downside), routine neutral announcements, and anything "
+            "where the dominant tone is negative or merely informational.\n"
             "impact_presentation must be one of: multi, single, none.\n"
             "- Use multi when the story has three clearly different affected groups or standpoints and "
             "all three are worth showing together (e.g. fuel: station owner vs driver vs state budget). "
@@ -377,6 +410,7 @@ def fallback_after_validation_failure(
         bonus_block="Редакция отметила ошибку в ответе ИИ; материал уйдёт на ручную проверку.",
         spoiler="Политический компромисс мог смягчить первоначальный вариант реформы.",
         topic="life",
+        is_positive=False,
         confidence_score=0.12,
         importance_score=5,
     )

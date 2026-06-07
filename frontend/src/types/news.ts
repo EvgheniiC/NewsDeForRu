@@ -19,7 +19,7 @@ export function newsTopicLabelRu(topic: NewsTopic): string {
 /** How the impact block is shown: three angles, one paragraph, or hidden. */
 export type ImpactPresentation = "multi" | "single" | "none";
 
-export type FeedFilterKey = NewsTopic | "urgent" | "top_today" | "saved_useful";
+export type FeedFilterKey = NewsTopic | "urgent" | "positive" | "top_today" | "saved_useful";
 
 /** Matches GET /news ``period``; ``all`` omits the query param. */
 export type FeedPeriodKey = "all" | "today" | "last_3_days" | "this_week" | "this_month";
@@ -42,6 +42,7 @@ export interface NewsFeedItem {
   read_time_minutes: number;
   topic: NewsTopic;
   is_urgent: boolean;
+  is_positive: boolean;
   created_at: string;
   rank?: TopNewsRankMeta;
 }
@@ -67,6 +68,7 @@ export interface ProcessedNews {
   read_time_minutes: number;
   topic: NewsTopic;
   is_urgent: boolean;
+  is_positive: boolean;
   created_at: string;
 }
 
@@ -79,6 +81,7 @@ export function processedNewsToFeedItem(p: ProcessedNews): NewsFeedItem {
     read_time_minutes: p.read_time_minutes,
     topic: p.topic,
     is_urgent: p.is_urgent,
+    is_positive: p.is_positive,
     created_at: p.created_at
   };
 }

@@ -39,6 +39,10 @@ def list_news(
         default=False,
         description="Only items flagged as urgent / breaking (⚡ Срочно).",
     ),
+    positive_only: bool = Query(
+        default=False,
+        description="Only uplifting / constructive stories (☀️ ТПН). Ignored when urgent=true.",
+    ),
     period: FeedPeriod | None = Query(
         default=None,
         description="Lower bound on created_at: today, last 3 calendar days, this ISO week, or this month (Europe/Berlin).",
@@ -46,12 +50,13 @@ def list_news(
     db_session: Session = Depends(get_db_session),
 ) -> NewsFeedPageResponse:
     repository = NewsRepository(db_session)
-    topic_filter: NewsTopic | None = None if urgent else topic
+    topic_filter: NewsTopic | None = None if urgent or positive_only else topic
     since = period_start_utc_naive(period)
     news_rows, has_more = repository.list_published(
         limit=limit,
         topic=topic_filter,
         urgent_only=urgent,
+        positive_only=positive_only,
         cursor_id=cursor,
         created_at_since=since,
     )
@@ -64,6 +69,7 @@ def list_news(
             read_time_minutes=item.read_time_minutes,
             topic=item.topic,
             is_urgent=item.is_urgent,
+            is_positive=item.is_positive,
             created_at=item.created_at,
         )
         for item in news_rows
@@ -119,6 +125,7 @@ def list_top_news_today(
             read_time_minutes=row.read_time_minutes,
             topic=row.topic,
             is_urgent=row.is_urgent,
+            is_positive=row.is_positive,
             created_at=row.created_at,
             rank=meta,
         )

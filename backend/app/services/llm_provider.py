@@ -25,6 +25,7 @@ class StubLLMProvider(LLMProvider):
             "life",
         )
         topic: Literal["politics", "economy", "life"] = roll[key % 3]
+        is_positive: bool = key % 5 == 0
         if topic == "politics":
             return LLMNewsOutput(
                 title=(f"Новость из Германии (черновик {key % 1_000_000:06d})")[:500],
@@ -45,6 +46,7 @@ class StubLLMProvider(LLMProvider):
                 bonus_block="В политике (stub) отдельный блок влияния скрыт — типично для речей и цитат.",
                 spoiler="Политический компромисс смягчил первоначальный вариант реформы.",
                 topic=topic,
+                is_positive=is_positive,
                 confidence_score=0.82,
                 importance_score=1 + (key % 10),
             )
@@ -69,6 +71,7 @@ class StubLLMProvider(LLMProvider):
                 bonus_block="В экономике (stub) используется один абзац «что значит» вместо трёх углов.",
                 spoiler="Политический компромисс смягчил первоначальный вариант реформы.",
                 topic=topic,
+                is_positive=is_positive,
                 confidence_score=0.82,
                 importance_score=1 + (key % 10),
             )
@@ -98,6 +101,7 @@ class StubLLMProvider(LLMProvider):
             bonus_block="В быту (stub) показан формат «три стороны» вместе.",
             spoiler="Политический компромисс смягчил первоначальный вариант реформы.",
             topic=topic,
+            is_positive=is_positive,
             confidence_score=0.82,
             importance_score=1 + (key % 10),
         )

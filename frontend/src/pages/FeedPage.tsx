@@ -127,6 +127,7 @@ export function FeedPage(): JSX.Element {
             { key: "economy" as const, label: "Экономика" },
             { key: "life" as const, label: "Жизнь" },
             { key: "urgent" as const, label: "⚡ Срочно" },
+            { key: "positive" as const, label: "☀️ ТПН" },
             { key: "saved_useful" as const, label: "❤️ Полезные" }
           ] as const
         ).map((opt, index) => (

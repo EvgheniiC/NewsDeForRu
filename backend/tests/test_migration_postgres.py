@@ -113,6 +113,7 @@ def test_alembic_upgrade_creates_expected_schema(postgres_test_db_url: str) -> N
             "publication_status",
             "topic",
             "is_urgent",
+            "is_positive",
             "impact_presentation",
             "impact_unified",
             "image_url",

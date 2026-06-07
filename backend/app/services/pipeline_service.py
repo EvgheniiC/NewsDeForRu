@@ -199,6 +199,7 @@ class PipelineService:
                     read_time_minutes=2,
                     topic=topic,
                     is_urgent=is_urgent,
+                    is_positive=llm_output.is_positive,
                 )
                 saved: ProcessedNews = self.repository.create_processed_news(processed_item)
                 if publication_status == PipelineStatus.PUBLISHED:

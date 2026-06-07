@@ -82,6 +82,7 @@ export async function getHealth(): Promise<HealthResponse> {
 export interface GetFeedOptions {
   topic?: NewsTopic;
   urgent?: boolean;
+  positive_only?: boolean;
   /** Calendar window on server (Europe/Berlin); omit when ``all``. */
   period?: Exclude<FeedPeriodKey, "all">;
   /** Page size (default 30 on server). */
@@ -103,6 +104,8 @@ export async function getFeed(options?: GetFeedOptions): Promise<NewsFeedPageRes
   const params: URLSearchParams = new URLSearchParams();
   if (options?.urgent) {
     params.set("urgent", "true");
+  } else if (options?.positive_only) {
+    params.set("positive_only", "true");
   } else if (options?.topic) {
     params.set("topic", options.topic);
   }

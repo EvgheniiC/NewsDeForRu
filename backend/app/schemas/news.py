@@ -60,6 +60,7 @@ class ProcessedNewsResponse(BaseModel):
     read_time_minutes: int
     topic: NewsTopic
     is_urgent: bool
+    is_positive: bool
     importance_ai_score: int
     created_at: datetime
 
@@ -92,6 +93,7 @@ class NewsFeedItem(BaseModel):
     read_time_minutes: int
     topic: NewsTopic
     is_urgent: bool
+    is_positive: bool
     created_at: datetime
 
     model_config = {"from_attributes": True}

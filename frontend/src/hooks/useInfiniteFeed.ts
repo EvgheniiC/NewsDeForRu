@@ -11,7 +11,9 @@ function buildFeedRequestOptions(
   const base: Omit<GetFeedOptions, "cursor"> =
     feedFilter === "urgent"
       ? { urgent: true, limit: PAGE_SIZE }
-      : { topic: feedFilter, limit: PAGE_SIZE };
+      : feedFilter === "positive"
+        ? { positive_only: true, limit: PAGE_SIZE }
+        : { topic: feedFilter, limit: PAGE_SIZE };
   if (period === "all") {
     return base;
   }
