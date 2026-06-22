@@ -236,6 +236,24 @@ export async function moderate(
   });
 }
 
+export interface NewsMetadataPatch {
+  topic?: NewsTopic;
+  is_urgent?: boolean;
+  is_positive?: boolean;
+}
+
+export async function patchNewsMetadata(
+  newsId: number,
+  patch: NewsMetadataPatch,
+  accessToken: string,
+): Promise<ProcessedNews> {
+  return fetchJsonAuthorized<ProcessedNews>(`/moderation/${newsId}/metadata`, accessToken, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+}
+
 /**
  * Manual `POST /pipeline/run`. On HTTP 2xx returns typed body (may include `ok: false`
  * when the backend swallows errors; manual run usually raises on failure → 5xx).

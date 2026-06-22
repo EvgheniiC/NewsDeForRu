@@ -414,6 +414,46 @@ class NewsRepository:
         query: Select[tuple[NewsCluster]] = select(NewsCluster).where(NewsCluster.id == cluster_id)
         return self.db_session.execute(query).scalar_one_or_none()
 
+    def update_processed_metadata(
+        self,
+        news_id: int,
+        *,
+        topic: NewsTopic | None = None,
+        is_urgent: bool | None = None,
+        is_positive: bool | None = None,
+        user_id: int | None = None,
+    ) -> ProcessedNews | None:
+        """Update topic/flags for a processed item and record an audit row when values change."""
+        processed: ProcessedNews | None = self.get_processed_by_id(news_id)
+        if processed is None:
+            return None
+
+        changed: bool = False
+        if topic is not None and processed.topic != topic:
+            processed.topic = topic
+            changed = True
+        if is_urgent is not None and processed.is_urgent != is_urgent:
+            processed.is_urgent = is_urgent
+            changed = True
+        if is_positive is not None and processed.is_positive != is_positive:
+            processed.is_positive = is_positive
+            changed = True
+
+        if not changed:
+            return processed
+
+        self.db_session.add(processed)
+        self.db_session.add(
+            ModerationEvent(
+                processed_news_id=processed.id,
+                action="metadata_update",
+                user_id=user_id,
+            )
+        )
+        self.db_session.commit()
+        self.db_session.refresh(processed)
+        return processed
+
     def apply_moderation(
         self,
         news_id: int,

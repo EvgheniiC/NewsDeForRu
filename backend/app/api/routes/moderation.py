@@ -6,7 +6,7 @@ from app.core.database import get_db_session
 from app.models.app_user import AppUser
 from app.models.news import PipelineStatus, ProcessedNews
 from app.repositories.news_repository import NewsRepository
-from app.schemas.news import ModerationActionRequest, ProcessedNewsResponse
+from app.schemas.news import ModerationActionRequest, NewsMetadataPatchRequest, ProcessedNewsResponse
 from app.services.telegram_notifier import send_moderation_approved_notice
 
 router: APIRouter = APIRouter()
@@ -19,6 +19,35 @@ def list_queue(
 ) -> list[ProcessedNewsResponse]:
     repository = NewsRepository(db_session)
     return [ProcessedNewsResponse.model_validate(item) for item in repository.list_needs_review()]
+
+
+@router.patch("/{news_id}/metadata", response_model=ProcessedNewsResponse)
+def patch_news_metadata(
+    news_id: int,
+    request: NewsMetadataPatchRequest,
+    db_session: Session = Depends(get_db_session),
+    actor: AppUser = Depends(require_moderator),
+) -> ProcessedNewsResponse:
+    repository: NewsRepository = NewsRepository(db_session)
+    before: ProcessedNews | None = repository.get_processed_by_id(news_id)
+    if before is None:
+        raise HTTPException(status_code=404, detail="News item not found.")
+    if before.publication_status != PipelineStatus.NEEDS_REVIEW:
+        raise HTTPException(
+            status_code=409,
+            detail="Metadata can only be edited while the item is in the moderation queue.",
+        )
+
+    item: ProcessedNews | None = repository.update_processed_metadata(
+        news_id=news_id,
+        topic=request.topic,
+        is_urgent=request.is_urgent,
+        is_positive=request.is_positive,
+        user_id=actor.id,
+    )
+    if item is None:
+        raise HTTPException(status_code=404, detail="News item not found.")
+    return ProcessedNewsResponse.model_validate(item)
 
 
 @router.post("/{news_id}/action", response_model=ProcessedNewsResponse)

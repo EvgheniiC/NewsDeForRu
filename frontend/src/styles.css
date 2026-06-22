@@ -363,6 +363,54 @@ body {
   border-top: 1px solid var(--border-subtle);
 }
 
+.moderation-metadata-form {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+  display: grid;
+  gap: 10px;
+}
+
+.moderation-metadata-label {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted, #666);
+}
+
+.moderation-metadata-field {
+  display: grid;
+  gap: 4px;
+  font-size: 0.9rem;
+}
+
+.moderation-metadata-field select {
+  width: 100%;
+  max-width: 16rem;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface, #fff);
+}
+
+.moderation-metadata-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.moderation-metadata-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.moderation-metadata-error {
+  margin: 0;
+}
+
 .news-topic-chip {
   display: inline-block;
   font-size: 0.78rem;

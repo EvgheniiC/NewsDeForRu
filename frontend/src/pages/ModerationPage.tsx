@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ApiError, getModerationQueue, moderate } from "../api/client";
+import { ApiError, getModerationQueue, moderate, patchNewsMetadata } from "../api/client";
+import {
+  ModerationMetadataForm,
+  type NewsMetadataDraft,
+} from "../components/ModerationMetadataForm";
 import { useAuth } from "../context/AuthContext";
-import { newsTopicChipClass } from "../lib/newsUi";
-import { newsTopicLabelRu, type ProcessedNews } from "../types/news";
+import type { ProcessedNews } from "../types/news";
 
 export function ModerationPage(): JSX.Element {
   const navigate = useNavigate();
@@ -69,6 +72,35 @@ export function ModerationPage(): JSX.Element {
     }
   };
 
+  const handleSaveMetadata = async (newsId: number, draft: NewsMetadataDraft): Promise<void> => {
+    const current: ProcessedNews | undefined = queue.find((item: ProcessedNews) => item.id === newsId);
+    if (current === undefined) {
+      throw new Error("Новость не найдена в очереди.");
+    }
+
+    const patch: {
+      topic?: NewsMetadataDraft["topic"];
+      is_urgent?: boolean;
+      is_positive?: boolean;
+    } = {};
+    if (draft.topic !== current.topic) {
+      patch.topic = draft.topic;
+    }
+    if (draft.is_urgent !== current.is_urgent) {
+      patch.is_urgent = draft.is_urgent;
+    }
+    if (draft.is_positive !== current.is_positive) {
+      patch.is_positive = draft.is_positive;
+    }
+
+    const updated: ProcessedNews = await withModerationAccess(async (token: string) =>
+      patchNewsMetadata(newsId, patch, token),
+    );
+    setQueue((items: ProcessedNews[]) =>
+      items.map((item: ProcessedNews) => (item.id === newsId ? updated : item)),
+    );
+  };
+
   return (
     <section>
       <h1>Модерация</h1>
@@ -90,6 +122,11 @@ export function ModerationPage(): JSX.Element {
               />
             ) : null}
             <p>{item.one_sentence_summary}</p>
+            <ModerationMetadataForm
+              disabled={busyId !== null}
+              item={item}
+              onSave={handleSaveMetadata}
+            />
             <div className="news-card-footer">
               <button
                 disabled={busyId !== null}
@@ -105,9 +142,6 @@ export function ModerationPage(): JSX.Element {
               >
                 Reject
               </button>
-            </div>
-            <div className="news-card-topic-row">
-              <span className={newsTopicChipClass(item.topic)}>{newsTopicLabelRu(item.topic)}</span>
             </div>
           </article>
         ))}

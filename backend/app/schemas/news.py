@@ -130,6 +130,20 @@ class ModerationActionRequest(BaseModel):
     action: Literal["approve", "reject"]
 
 
+class NewsMetadataPatchRequest(BaseModel):
+    """Partial metadata edit for items in the moderation queue."""
+
+    topic: NewsTopic | None = None
+    is_urgent: bool | None = None
+    is_positive: bool | None = None
+
+    @model_validator(mode="after")
+    def _require_at_least_one_field(self) -> Self:
+        if self.topic is None and self.is_urgent is None and self.is_positive is None:
+            raise ValueError("At least one metadata field must be provided.")
+        return self
+
+
 class RoleImpactResponse(BaseModel):
     role: UserRole
     text: str
