@@ -21,6 +21,13 @@ export type ImpactPresentation = "multi" | "single" | "none";
 
 export type FeedFilterKey = NewsTopic | "urgent" | "positive" | "top_today" | "saved_useful";
 
+/** Labels for multi-perspective impact blocks on the detail page. */
+export const IMPACT_PERSPECTIVE_LABELS: readonly string[] = [
+  "Для собственника",
+  "Для арендатора",
+  "Для покупателя"
+] as const;
+
 /** Matches GET /news ``period``; ``all`` omits the query param. */
 export type FeedPeriodKey = "all" | "today" | "last_3_days" | "this_week" | "this_month";
 

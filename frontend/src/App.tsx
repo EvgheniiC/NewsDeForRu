@@ -22,6 +22,7 @@ function NavAuthActions(): JSX.Element {
   if (user) {
     return (
       <>
+        <Link to="/account">Аккаунт</Link>
         {user.can_moderate ? <Link to="/moderation">Модерация</Link> : null}
         <button className="main-nav-button" onClick={() => void logout()} type="button">
           Выйти ({user.email})
@@ -65,7 +66,6 @@ function App(): JSX.Element {
         </div>
         <div className="main-nav-end">
           <NavAuthActions />
-          <Link to="/account">Аккаунт</Link>
         </div>
       </nav>
       <AnalyticsConsentBanner />

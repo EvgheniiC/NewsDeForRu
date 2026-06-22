@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiError, getModerationQueue, moderate } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import { newsTopicChipClass } from "../lib/newsUi";
 import { newsTopicLabelRu, type ProcessedNews } from "../types/news";
 
 export function ModerationPage(): JSX.Element {
@@ -106,7 +107,7 @@ export function ModerationPage(): JSX.Element {
               </button>
             </div>
             <div className="news-card-topic-row">
-              <span className="news-topic-label">{newsTopicLabelRu(item.topic)}</span>
+              <span className={newsTopicChipClass(item.topic)}>{newsTopicLabelRu(item.topic)}</span>
             </div>
           </article>
         ))}

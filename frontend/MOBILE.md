@@ -94,4 +94,7 @@ keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -sto
 
 ## Публикация в магазинах
 
-Чеклист и контекст — в корневом `plan_news_app_22_TODO.md`, пункт 8.
+1. Заполните `VITE_LEGAL_*` и соберите `npm run build:mobile`.
+2. Убедитесь, что в приложении открываются `/privacy` и `/impressum`.
+3. Заполните формы в консолях по чеклисту: [`docs/store-privacy-forms.md`](../docs/store-privacy-forms.md) (Google Play Data safety, Apple App Privacy, URL политики).
+4. Дополнительный контекст — в [`docs/privacy-EU-DE.md`](../docs/privacy-EU-DE.md).

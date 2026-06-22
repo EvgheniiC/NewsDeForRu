@@ -180,6 +180,7 @@ Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (push/PR на `
 - `/impressum` — § 5 TMG (физлицо; данные из `VITE_LEGAL_*` в `frontend/.env`).
 - Баннер согласия на engagement-аналитику (TTDSG) до отправки событий на `/engagement/events`.
 - Шаблон и чеклист: [`docs/privacy-EU-DE.md`](docs/privacy-EU-DE.md), пример env: [`frontend/.env.example`](frontend/.env.example).
+- Формы Google Play Data safety и Apple App Privacy: [`docs/store-privacy-forms.md`](docs/store-privacy-forms.md).
 
 ## Эксплуатация в продакшене
 

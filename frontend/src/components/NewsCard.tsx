@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { enqueueOne } from "../analytics/engagementQueue";
+import { feedFilterPillClass, newsCardClassName, newsTopicChipClass } from "../lib/newsUi";
 import type { FeedAnalyticsMode } from "../types/engagement";
 import { newsTopicLabelRu, type NewsFeedItem } from "../types/news";
 import { notifyUsefulStorageChanged, readStoredUseful, USEFUL_STORAGE_PREFIX } from "../lib/usefulStorage";
@@ -59,9 +60,11 @@ export function NewsCard({ item, variant = "compact", feedMode = "grid" }: NewsC
     };
   }, [item.id, variant]);
 
-  const rootClass: string = variant === "immersive" ? "news-card news-card-immersive" : "news-card";
+  const rootClass: string = newsCardClassName(item, variant);
   const scrollClass: string =
     variant === "immersive" ? "news-card-scroll news-card-scroll-immersive" : "news-card-scroll";
+
+  const hasBadges: boolean = item.is_urgent || item.is_positive;
 
   const handleUsefulClick = (): void => {
     const next: boolean = !useful;
@@ -81,10 +84,15 @@ export function NewsCard({ item, variant = "compact", feedMode = "grid" }: NewsC
 
   return (
     <article className={rootClass}>
-      {item.is_urgent ? <span className="news-urgent-badge">⚡ Срочно</span> : null}
+      {hasBadges ? (
+        <div className="news-card-badges">
+          {item.is_urgent ? <span className="news-badge news-badge--urgent">Срочно</span> : null}
+          {item.is_positive ? <span className="news-badge news-badge--positive">Хорошая новость</span> : null}
+        </div>
+      ) : null}
       <h3>{item.title}</h3>
       {item.rank ? (
-        <p className="news-top-rank-line" title="Сводка скоринга для вкладки «Топ-5 сегодня»">
+        <p className="news-top-rank-line">
           Балл {item.rank.total_score}: {item.rank.source_count} источн. по теме · свежесть +{item.rank.freshness_points} · ИИ{" "}
           {item.rank.ai_importance}/10
         </p>
@@ -119,7 +127,7 @@ export function NewsCard({ item, variant = "compact", feedMode = "grid" }: NewsC
         </div>
       </div>
       <div className="news-card-topic-row">
-        <span className="news-topic-label">{newsTopicLabelRu(item.topic)}</span>
+        <span className={newsTopicChipClass(item.topic)}>{newsTopicLabelRu(item.topic)}</span>
       </div>
     </article>
   );

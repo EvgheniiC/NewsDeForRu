@@ -95,3 +95,4 @@ Separat unter `/impressum` — gleiche Kontaktdaten wie oben.
 - [ ] Consent-Banner getestet (Akzeptieren / Ablehnen / Widerruf auf `/privacy`)
 - [ ] AV-Verträge mit Hoster, OpenAI, GMX (soweit erforderlich)
 - [ ] Keine Secrets in Git (`.env` nur lokal)
+- [ ] Google Play Data safety + Apple App Privacy ausgefüllt — siehe [`store-privacy-forms.md`](store-privacy-forms.md)

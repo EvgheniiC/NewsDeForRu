@@ -6,6 +6,7 @@ import { ApiError, getHealth, NetworkError, runPipeline } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { useInfiniteFeed } from "../hooks/useInfiniteFeed";
 import { useUsefulSavedFeed } from "../hooks/useUsefulSavedFeed";
+import { feedFilterPillClass } from "../lib/newsUi";
 import { describePipelinePartialFailure, formatHealthTime } from "../lib/pipelineUi";
 import type { FeedFilterKey, FeedPeriodKey } from "../types/news";
 import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
@@ -135,7 +136,7 @@ export function FeedPage(): JSX.Element {
             {index > 0 ? <span className="feed-topic-sep" aria-hidden="true" /> : null}
             <button
               type="button"
-              className={feedFilter === opt.key ? "feed-topic-pill is-active" : "feed-topic-pill"}
+              className={feedFilterPillClass(opt.key, feedFilter === opt.key)}
               role="tab"
               aria-selected={feedFilter === opt.key}
               onClick={() => {

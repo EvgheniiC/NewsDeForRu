@@ -4,7 +4,19 @@ import { enqueueOne } from "../analytics/engagementQueue";
 import { ApiError, getNews } from "../api/client";
 import { FullArticleMobileSection } from "../components/FullArticleMobileSection";
 import { ShareNewsMobileSection } from "../components/ShareNewsMobileSection";
-import { newsTopicLabelRu, type ImpactPresentation, type ProcessedNews } from "../types/news";
+import { newsTopicChipClass } from "../lib/newsUi";
+import {
+  IMPACT_PERSPECTIVE_LABELS,
+  newsTopicLabelRu,
+  type ImpactPresentation,
+  type ProcessedNews
+} from "../types/news";
+
+const IMPACT_PERSPECTIVE_MODIFIERS: readonly string[] = [
+  "news-perspective--owner",
+  "news-perspective--tenant",
+  "news-perspective--buyer"
+] as const;
 
 const READ_ARTICLE_RATIO: number = 0.91;
 
@@ -66,15 +78,19 @@ function renderImpactBlock(
       <h2 className="news-perspectives__title" id="perspectives-heading">
         Что это значит с разных сторон
       </h2>
-      <div className="news-perspective">
-        <p className="news-perspective__text">{news.impact_owner}</p>
-      </div>
-      <div className="news-perspective">
-        <p className="news-perspective__text">{news.impact_tenant}</p>
-      </div>
-      <div className="news-perspective">
-        <p className="news-perspective__text">{news.impact_buyer}</p>
-      </div>
+      {[
+        news.impact_owner,
+        news.impact_tenant,
+        news.impact_buyer
+      ].map((text: string, index: number) => (
+        <div
+          key={IMPACT_PERSPECTIVE_MODIFIERS[index]}
+          className={`news-perspective ${IMPACT_PERSPECTIVE_MODIFIERS[index]}`}
+        >
+          <p className="news-perspective__label">{IMPACT_PERSPECTIVE_LABELS[index]}</p>
+          <p className="news-perspective__text">{text}</p>
+        </div>
+      ))}
     </section>
   );
 }
@@ -208,33 +224,41 @@ export function NewsDetailsPage(): JSX.Element {
   return (
     <section>
       <Link to="/">← Назад</Link>
-      <h1>{news.title}</h1>
-      {news.image_url ? (
-        <img
-          alt={news.title}
-          className="news-detail-image"
-          decoding="async"
-          loading="lazy"
-          src={news.image_url}
-        />
-      ) : null}
-      <p>
-        <strong>Суть:</strong> {news.one_sentence_summary}
-      </p>
-      <p>
-        <strong>Простым языком:</strong> {news.plain_language}
-      </p>
-      {renderImpactBlock(presentation, news)}
-      {news.action_items.trim().length > 0 ? (
-        <p>
-          <strong>Что сделать:</strong> {news.action_items}
+      <article className="news-detail-article">
+        {news.is_urgent || news.is_positive ? (
+          <div className="news-card-badges">
+            {news.is_urgent ? <span className="news-badge news-badge--urgent">Срочно</span> : null}
+            {news.is_positive ? <span className="news-badge news-badge--positive">Хорошая новость</span> : null}
+          </div>
+        ) : null}
+        <h1>{news.title}</h1>
+        {news.image_url ? (
+          <img
+            alt={news.title}
+            className="news-detail-image"
+            decoding="async"
+            loading="lazy"
+            src={news.image_url}
+          />
+        ) : null}
+        <p className="news-detail-lead">
+          <strong>Суть:</strong> {news.one_sentence_summary}
         </p>
-      ) : null}
-      {additionalText !== null ? (
-        <p>
-          <strong>Дополнительно:</strong> {additionalText}
+        <p className="news-detail-body">
+          <strong>Простым языком:</strong> {news.plain_language}
         </p>
-      ) : null}
+        {renderImpactBlock(presentation, news)}
+        {news.action_items.trim().length > 0 ? (
+          <p className="news-detail-body">
+            <strong>Что сделать:</strong> {news.action_items}
+          </p>
+        ) : null}
+        {additionalText !== null ? (
+          <p className="news-detail-body">
+            <strong>Дополнительно:</strong> {additionalText}
+          </p>
+        ) : null}
+      </article>
       <ShareNewsMobileSection
         newsId={newsId}
         oneSentenceSummary={news.one_sentence_summary}
@@ -242,8 +266,7 @@ export function NewsDetailsPage(): JSX.Element {
       />
       <FullArticleMobileSection newsId={newsId} />
       <p className="news-detail-category">
-        Категория:{" "}
-        <span className="news-topic-label">{newsTopicLabelRu(news.topic)}</span>
+        Категория: <span className={newsTopicChipClass(news.topic)}>{newsTopicLabelRu(news.topic)}</span>
       </p>
       <a href={news.source_url} onClick={handleOpenSourceClick} rel="noreferrer" target="_blank">
         Оригинальный источник
