@@ -313,9 +313,17 @@ class NewsRepository:
         return list(self.db_session.execute(query).scalars().all())
 
     def list_needs_review(self) -> list[ProcessedNews]:
+        from app.utils.feed_period import moderation_queue_since_utc_naive
+
+        since: datetime = moderation_queue_since_utc_naive()
         query: Select[tuple[ProcessedNews]] = (
             select(ProcessedNews)
-            .where(ProcessedNews.publication_status == PipelineStatus.NEEDS_REVIEW)
+            .where(
+                and_(
+                    ProcessedNews.publication_status == PipelineStatus.NEEDS_REVIEW,
+                    ProcessedNews.created_at >= since,
+                ),
+            )
             .order_by(ProcessedNews.created_at.desc())
         )
         return list(self.db_session.execute(query).scalars().all())
