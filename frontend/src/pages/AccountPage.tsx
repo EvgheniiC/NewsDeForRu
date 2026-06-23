@@ -112,21 +112,22 @@ export function AccountPage(): JSX.Element {
     return (
       <section className="account-page">
         <h1>Аккаунт</h1>
-        <p>
-          Вы вошли как <strong>{user.email}</strong>.
-        </p>
-        <p className="muted">
-          Скоро здесь появятся персональные функции: умная лента, синхронизация и голосовое прослушивание.
-          {user.can_moderate ? " У вашего аккаунта есть доступ к модерации." : ""}
-        </p>
-        {user.can_moderate ? (
-          <p>
-            <Link to="/moderation">Очередь модерации</Link>
+        <div className="account-form-card account-form-single account-session-card">
+          <p className="account-session-label">Вы вошли как</p>
+          <p className="account-session-email">{user.email}</p>
+          <p className="muted account-session-note">
+            Скоро здесь появятся персональные функции: умная лента, синхронизация и голосовое прослушивание.
+            {user.can_moderate ? " У вашего аккаунта есть доступ к модерации." : ""}
           </p>
-        ) : null}
-        <button className="account-logout-wide" onClick={() => void logout()} type="button">
-          Выйти из аккаунта
-        </button>
+          {user.can_moderate ? (
+            <p className="account-session-link">
+              <Link to="/moderation">Очередь модерации</Link>
+            </p>
+          ) : null}
+          <button className="account-logout-wide" onClick={() => void logout()} type="button">
+            Выйти из аккаунта
+          </button>
+        </div>
         <p className="muted account-editorial-link">
           <Link to="/">На главную</Link>
         </p>
