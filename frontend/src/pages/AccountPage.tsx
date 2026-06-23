@@ -7,6 +7,11 @@ interface LocationState {
   from?: string;
 }
 
+interface FeedRedirectState {
+  verificationPendingEmail: string;
+  devVerificationLink?: string | null;
+}
+
 type AuthFormMode = "login" | "register";
 
 export function AccountPage(): JSX.Element {
@@ -24,21 +29,14 @@ export function AccountPage(): JSX.Element {
   const [registerBusy, setRegisterBusy] = useState<boolean>(false);
   const [loginBusy, setLoginBusy] = useState<boolean>(false);
   const [formMode, setFormMode] = useState<AuthFormMode>("login");
-  const [verificationPendingEmail, setVerificationPendingEmail] = useState<string>("");
-  const [devVerificationLink, setDevVerificationLink] = useState<string | null>(null);
-
   const showLoginForm = (): void => {
     setFormMode("login");
     setRegisterError("");
-    setVerificationPendingEmail("");
-    setDevVerificationLink(null);
   };
 
   const showRegisterForm = (): void => {
     setFormMode("register");
     setLoginError("");
-    setVerificationPendingEmail("");
-    setDevVerificationLink(null);
   };
 
   const handleRegister = async (evt: FormEvent<HTMLFormElement>): Promise<void> => {
@@ -46,15 +44,17 @@ export function AccountPage(): JSX.Element {
     setRegisterError("");
     setRegisterBusy(true);
     try {
-      const response = await register({ email: registerEmail, password: registerPassword });
-      setVerificationPendingEmail(registerEmail.trim().toLowerCase());
-      setDevVerificationLink(
+      const registeredEmail: string = registerEmail.trim().toLowerCase();
+      const response = await register({ email: registeredEmail, password: registerPassword });
+      const devVerificationLink: string | null =
         typeof response.dev_verification_link === "string" && response.dev_verification_link.length > 0
           ? response.dev_verification_link
-          : null,
-      );
-      setRegisterEmail("");
-      setRegisterPassword("");
+          : null;
+      const redirectState: FeedRedirectState = {
+        verificationPendingEmail: registeredEmail,
+        devVerificationLink,
+      };
+      navigate("/", { replace: true, state: redirectState });
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 409) {
         setRegisterError("Этот email уже зарегистрирован. Войдите или используйте другой адрес.");
@@ -163,30 +163,6 @@ export function AccountPage(): JSX.Element {
         </div>
       ) : null}
 
-      {formMode === "register" && verificationPendingEmail !== "" ? (
-        <div className="account-form-card account-form-single">
-          <h2>Подтвердите email</h2>
-          <p>
-            Мы отправили ссылку на <strong>{verificationPendingEmail}</strong>. Откройте письмо и нажмите ссылку,
-            чтобы активировать аккаунт.
-          </p>
-          <p className="muted">Если письма нет, проверьте папку «Спам».</p>
-          {devVerificationLink !== null ? (
-            <p className="muted">
-              Режим разработки (SMTP не настроен):{" "}
-              <a href={devVerificationLink}>открыть ссылку подтверждения</a>
-            </p>
-          ) : null}
-          <p className="account-forgot-link">
-            <Link to="/account/resend-verification">Отправить ссылку повторно</Link>
-          </p>
-          <p className="account-mode-toggle">
-            <button onClick={showLoginForm} type="button">
-              Перейти ко входу
-            </button>
-          </p>
-        </div>
-      ) : (
       <div className="account-form-card account-form-single">
         {formMode === "login" ? (
           <>
@@ -290,7 +266,6 @@ export function AccountPage(): JSX.Element {
           </>
         )}
       </div>
-      )}
 
       <p className="muted account-editorial-link">
         <Link to="/">На главную</Link>

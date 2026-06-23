@@ -1011,6 +1011,10 @@ body {
   font-size: 1.05rem;
 }
 
+.feed-verification-notice {
+  margin-bottom: 16px;
+}
+
 .account-form-card form button {
   font: inherit;
   margin-top: 12px;

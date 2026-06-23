@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FastSwipeFeed } from "../components/FastSwipeFeed";
 import { GridFeed } from "../components/GridFeed";
 import { TikTokFeed } from "../components/TikTokFeed";
@@ -13,7 +14,20 @@ import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
 
 type FeedViewMode = "grid" | "tiktok" | "fast";
 
+interface FeedLocationState {
+  verificationPendingEmail?: string;
+  devVerificationLink?: string | null;
+}
+
 export function FeedPage(): JSX.Element {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const feedLocationState = location.state as FeedLocationState | null | undefined;
+  const verificationPendingEmail: string = feedLocationState?.verificationPendingEmail?.trim() ?? "";
+  const devVerificationLink: string | null =
+    typeof feedLocationState?.devVerificationLink === "string" && feedLocationState.devVerificationLink.length > 0
+      ? feedLocationState.devVerificationLink
+      : null;
   const { initializing: sessionLoading, user, withPipelineAccess } = useAuth();
   const [feedFilter, setFeedFilter] = useState<FeedFilterKey>("life");
   const [feedPeriod, setFeedPeriod] = useState<FeedPeriodKey>("all");
@@ -109,8 +123,37 @@ export function FeedPage(): JSX.Element {
 
   const showDevPanels: boolean = feedViewMode === "grid" && !isSavedUsefulTab && canRunPipeline;
 
+  const dismissVerificationNotice = (): void => {
+    navigate(location.pathname, { replace: true, state: null });
+  };
+
   return (
     <section>
+      {verificationPendingEmail !== "" ? (
+        <div className="account-form-card feed-verification-notice">
+          <h2>Подтвердите email</h2>
+          <p>
+            Мы отправили ссылку на <strong>{verificationPendingEmail}</strong>. Откройте письмо и нажмите ссылку,
+            чтобы активировать аккаунт.
+          </p>
+          <p className="muted">Если письма нет, проверьте папку «Спам».</p>
+          {devVerificationLink !== null ? (
+            <p className="muted">
+              Режим разработки (SMTP не настроен):{" "}
+              <a href={devVerificationLink}>открыть ссылку подтверждения</a>
+            </p>
+          ) : null}
+          <p className="account-forgot-link">
+            <Link to="/account/resend-verification">Отправить ссылку повторно</Link>
+          </p>
+          <p className="account-mode-toggle">
+            <button onClick={dismissVerificationNotice} type="button">
+              Скрыть
+            </button>
+          </p>
+        </div>
+      ) : null}
+
       <header className="page-header">
         <h1>Объясняем новости</h1>
         {canRunPipeline ? (

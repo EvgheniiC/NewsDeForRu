@@ -11,7 +11,6 @@ export function VerifyEmailPage(): JSX.Element {
 
   const [error, setError] = useState<string>("");
   const [busy, setBusy] = useState<boolean>(token !== "");
-  const [done, setDone] = useState<boolean>(false);
 
   useEffect(() => {
     if (token === "") {
@@ -24,7 +23,7 @@ export function VerifyEmailPage(): JSX.Element {
       try {
         const pair = await authVerifyEmail(token);
         await establishSession(pair);
-        setDone(true);
+        navigate("/", { replace: true });
       } catch (err: unknown) {
         if (err instanceof ApiError && err.status === 400) {
           setError("Ссылка недействительна или истекла. Запросите новую.");
@@ -39,7 +38,7 @@ export function VerifyEmailPage(): JSX.Element {
     };
 
     void verify();
-  }, [establishSession, token]);
+  }, [establishSession, navigate, token]);
 
   if (token === "") {
     return (
@@ -58,18 +57,6 @@ export function VerifyEmailPage(): JSX.Element {
       <section className="account-page">
         <h1>Подтверждение email</h1>
         <p className="loading-inline">Проверяем ссылку…</p>
-      </section>
-    );
-  }
-
-  if (done) {
-    return (
-      <section className="account-page">
-        <h1>Email подтверждён</h1>
-        <p>Аккаунт активирован. Можно пользоваться персональными функциями.</p>
-        <button onClick={() => navigate("/account", { replace: true })} type="button">
-          Перейти в аккаунт
-        </button>
       </section>
     );
   }
