@@ -23,3 +23,8 @@ export interface UserRegisterCredentials {
   email: string;
   password: string;
 }
+
+export interface RegisterResponse {
+  detail: string;
+  dev_verification_link?: string | null;
+}

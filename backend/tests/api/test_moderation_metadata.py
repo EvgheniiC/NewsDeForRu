@@ -155,12 +155,17 @@ def test_patch_metadata_requires_moderator(api_client: TestClient) -> None:
             db.delete(existing)
             db.commit()
 
-    reg = api_client.post("/auth/register", json={"email": email, "password": password}).json()
+    reg_body: dict[str, object] = api_client.post(
+        "/auth/register", json={"email": email, "password": password}
+    ).json()
+    dev_link: str = str(reg_body["dev_verification_link"])
+    token: str = dev_link.split("token=", 1)[1]
+    tokens: dict[str, object] = api_client.post("/auth/verify-email", json={"token": token}).json()
     news_id: int = _create_needs_review_item(guid="meta-reader-1")
 
     response = api_client.patch(
         f"/moderation/{news_id}/metadata",
-        headers={"Authorization": f"Bearer {reg['access_token']}"},
+        headers={"Authorization": f"Bearer {tokens['access_token']}"},
         json={"topic": "economy"},
     )
     assert response.status_code == 403

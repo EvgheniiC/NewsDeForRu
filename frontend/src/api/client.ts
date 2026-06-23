@@ -3,6 +3,7 @@ import type {
   UserMe,
   UserRegisterCredentials,
   UserTokenPair,
+  RegisterResponse,
 } from "../types/userAuth";
 import type { EngagementBatchRequestBody, EngagementBatchResponseBody } from "../types/engagement";
 import type { FullArticleResponse } from "../types/fullArticle";
@@ -163,11 +164,27 @@ async function fetchJsonAuthorized<T>(
   return fetchJson<T>(path, merged);
 }
 
-export async function authRegister(payload: UserRegisterCredentials): Promise<UserTokenPair> {
-  return fetchJson<UserTokenPair>("/auth/register", {
+export async function authRegister(payload: UserRegisterCredentials): Promise<RegisterResponse> {
+  return fetchJson<RegisterResponse>("/auth/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
+  });
+}
+
+export async function authVerifyEmail(token: string): Promise<UserTokenPair> {
+  return fetchJson<UserTokenPair>("/auth/verify-email", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+}
+
+export async function authResendVerification(email: string): Promise<RegisterResponse> {
+  return fetchJson<RegisterResponse>("/auth/resend-verification", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
   });
 }
 

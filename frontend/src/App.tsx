@@ -4,6 +4,8 @@ import { DeepLinkListener } from "./mobile/DeepLinkListener";
 import { AccountPage } from "./pages/AccountPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
+import { VerifyEmailPage } from "./pages/VerifyEmailPage";
+import { ResendVerificationPage } from "./pages/ResendVerificationPage";
 import { FeedPage } from "./pages/FeedPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ModerationPage } from "./pages/ModerationPage";
@@ -79,6 +81,8 @@ function App(): JSX.Element {
         <Route element={<AccountPage />} path="/account" />
         <Route element={<ForgotPasswordPage />} path="/account/forgot" />
         <Route element={<ResetPasswordPage />} path="/account/reset" />
+        <Route element={<VerifyEmailPage />} path="/account/verify" />
+        <Route element={<ResendVerificationPage />} path="/account/resend-verification" />
         <Route element={<PrivacyPage />} path="/privacy" />
         <Route element={<ImpressumPage />} path="/impressum" />
       </Routes>

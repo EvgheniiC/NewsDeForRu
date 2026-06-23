@@ -107,6 +107,13 @@ class Settings(BaseSettings):
     password_reset_frontend_base_url: str = ""
     # Development only: return reset link in API when SMTP is off (never enable in production).
     password_reset_dev_expose_link: bool = False
+
+    # Email verification after reader registration (requires SMTP in production).
+    email_verification_enabled: bool = True
+    email_verification_expire_minutes: int = Field(default=24 * 60, ge=15, le=7 * 24 * 60)
+    # Development only: return verification link in API when SMTP is off (never enable in production).
+    email_verification_dev_expose_link: bool = False
+
     support_contact_email: str = ""
     smtp_host: str = ""
     smtp_port: int = Field(default=587, ge=1, le=65535)

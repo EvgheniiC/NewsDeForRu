@@ -96,6 +96,7 @@ def test_alembic_upgrade_creates_expected_schema(postgres_test_db_url: str) -> N
             "app_users",
             "app_refresh_tokens",
             "password_reset_tokens",
+            "email_verification_tokens",
         } <= table_names
         assert "staff_users" not in table_names
         assert "reader_users" not in table_names

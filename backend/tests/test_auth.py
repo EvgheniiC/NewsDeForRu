@@ -4,23 +4,17 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from typing import Any, Generator
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from app.core.database import SessionLocal
-from app.main import app
 from app.models.app_user import AppRefreshToken
 from app.repositories.user_repository import UserRepository
 from app.services.passwords import hash_password
 from app.services.staff_tokens import refresh_token_hash_hex
-
-
-@pytest.fixture()
-def api_client() -> Generator[TestClient, None, None]:
-    with TestClient(app) as client:
-        yield client
 
 
 @pytest.fixture()
@@ -37,6 +31,7 @@ def ops_user_plain_password(api_client: TestClient) -> str:
                 can_run_pipeline=True,
             )
         else:
+            existing.email_verified_at = datetime.utcnow()
             repo.grant_staff_privileges(
                 existing,
                 can_moderate=True,
@@ -73,18 +68,34 @@ def _ensure_no_reader(email: str) -> None:
         db.close()
 
 
+def _token_from_dev_link(link: str) -> str:
+    parsed = urlparse(link)
+    query: dict[str, list[str]] = parse_qs(parsed.query)
+    token_values: list[str] = query.get("token", [])
+    assert token_values, f"token missing in dev link: {link}"
+    return token_values[0]
+
+
+def _verify_reader(api_client: TestClient, email: str, password: str) -> dict[str, Any]:
+    reg = api_client.post("/auth/register", json={"email": email, "password": password})
+    assert reg.status_code == 200
+    reg_body: dict[str, Any] = reg.json()
+    token: str = _token_from_dev_link(reg_body["dev_verification_link"])
+    verified = api_client.post("/auth/verify-email", json={"token": token})
+    assert verified.status_code == 200
+    return verified.json()
+
+
 def test_register_login_and_me(api_client: TestClient, reader_credentials: tuple[str, str]) -> None:
     email, password = reader_credentials
     _ensure_no_reader(email)
 
-    reg = api_client.post("/auth/register", json={"email": email, "password": password})
-    assert reg.status_code == 200
-    reg_body: dict[str, Any] = reg.json()
-    assert reg_body.get("token_type") == "bearer"
+    tokens: dict[str, Any] = _verify_reader(api_client, email, password)
+    assert tokens.get("token_type") == "bearer"
 
     me = api_client.get(
         "/auth/me",
-        headers={"Authorization": f"Bearer {reg_body['access_token']}"},
+        headers={"Authorization": f"Bearer {tokens['access_token']}"},
     )
     assert me.status_code == 200
     me_body: dict[str, Any] = me.json()
@@ -100,7 +111,7 @@ def test_register_login_and_me(api_client: TestClient, reader_credentials: tuple
 def test_register_duplicate_email(api_client: TestClient, reader_credentials: tuple[str, str]) -> None:
     email, password = reader_credentials
     _ensure_no_reader(email)
-    assert api_client.post("/auth/register", json={"email": email, "password": password}).status_code == 200
+    _verify_reader(api_client, email, password)
     dup = api_client.post("/auth/register", json={"email": email, "password": password})
     assert dup.status_code == 409
 
@@ -108,8 +119,8 @@ def test_register_duplicate_email(api_client: TestClient, reader_credentials: tu
 def test_reader_cannot_access_moderation(api_client: TestClient, reader_credentials: tuple[str, str]) -> None:
     email, password = reader_credentials
     _ensure_no_reader(email)
-    reg = api_client.post("/auth/register", json={"email": email, "password": password}).json()
-    r = api_client.get("/moderation/queue", headers={"Authorization": f"Bearer {reg['access_token']}"})
+    tokens = _verify_reader(api_client, email, password)
+    r = api_client.get("/moderation/queue", headers={"Authorization": f"Bearer {tokens['access_token']}"})
     assert r.status_code == 403
 
 

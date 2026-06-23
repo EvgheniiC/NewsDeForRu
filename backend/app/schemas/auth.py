@@ -68,3 +68,21 @@ class ResetPasswordRequest(BaseModel):
 
 class ResetPasswordResponse(BaseModel):
     detail: str
+
+
+class RegisterResponse(BaseModel):
+    detail: str
+    dev_verification_link: str | None = None
+
+
+class VerifyEmailRequest(BaseModel):
+    token: str = Field(min_length=10, max_length=2048)
+
+
+class ResendVerificationRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=254)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        return value.strip().lower()

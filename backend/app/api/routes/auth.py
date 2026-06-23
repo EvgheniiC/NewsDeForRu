@@ -21,9 +21,17 @@ from app.schemas.auth import (
     MeResponse,
     RefreshRequest,
     RegisterRequest,
+    RegisterResponse,
+    ResendVerificationRequest,
     ResetPasswordRequest,
     ResetPasswordResponse,
     TokenPairResponse,
+    VerifyEmailRequest,
+)
+from app.services.email_verification_service import (
+    resend_verification_email,
+    send_registration_verification,
+    verify_email_with_token,
 )
 from app.services.password_reset_service import request_password_reset, reset_password_with_token
 from app.services.passwords import hash_password, verify_password
@@ -49,19 +57,54 @@ def _issue_tokens_for_user(repo: UserRepository, user_id: int) -> TokenPairRespo
     return TokenPairResponse(access_token=access_token, refresh_token=refresh_plain)
 
 
-@router.post("/register", response_model=TokenPairResponse)
+@router.post("/register", response_model=RegisterResponse)
 def register(
     payload: RegisterRequest,
     db_session: Session = Depends(get_db_session),
-) -> TokenPairResponse:
+) -> RegisterResponse:
     repo = UserRepository(db_session)
-    if repo.get_by_email(str(payload.email)) is not None:
-        raise HTTPException(status_code=409, detail="Email is already registered")
+    existing: AppUser | None = repo.get_by_email(str(payload.email))
+    if existing is not None:
+        if existing.is_email_verified():
+            raise HTTPException(status_code=409, detail="Email is already registered")
+        result = send_registration_verification(db_session, existing)
+        _logger.info("user_register_resend_verification user_id=%s", existing.id)
+        return RegisterResponse(detail=result.message, dev_verification_link=result.dev_verification_link)
+
     pw_hash: str = hash_password(payload.password)
     user: AppUser = repo.create_reader(email=str(payload.email), password_hash=pw_hash)
-    tokens: TokenPairResponse = _issue_tokens_for_user(repo, user.id)
-    _logger.info("user_register_success user_id=%s", user.id)
-    return tokens
+    result = send_registration_verification(db_session, user)
+    _logger.info("user_register_pending_verification user_id=%s", user.id)
+    return RegisterResponse(detail=result.message, dev_verification_link=result.dev_verification_link)
+
+
+@router.post("/verify-email", response_model=TokenPairResponse)
+def verify_email(
+    payload: VerifyEmailRequest,
+    db_session: Session = Depends(get_db_session),
+) -> TokenPairResponse:
+    try:
+        user: AppUser = verify_email_with_token(db_session, payload.token)
+    except ValueError as exc:
+        code: str = str(exc)
+        if code == "expired_token":
+            raise HTTPException(
+                status_code=400,
+                detail="Verification link has expired. Request a new one.",
+            ) from exc
+        raise HTTPException(status_code=400, detail="Invalid or already used verification link.") from exc
+
+    repo = UserRepository(db_session)
+    return _issue_tokens_for_user(repo, user.id)
+
+
+@router.post("/resend-verification", response_model=RegisterResponse)
+def resend_verification(
+    payload: ResendVerificationRequest,
+    db_session: Session = Depends(get_db_session),
+) -> RegisterResponse:
+    result = resend_verification_email(db_session, str(payload.email))
+    return RegisterResponse(detail=result.message, dev_verification_link=result.dev_verification_link)
 
 
 @router.post("/login", response_model=TokenPairResponse)
@@ -70,6 +113,8 @@ def login(payload: LoginRequest, db_session: Session = Depends(get_db_session)) 
     user: AppUser | None = repo.get_by_email(payload.email)
     if user is None or not user.is_active or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
+    if settings.email_verification_enabled and not user.is_email_verified():
+        raise HTTPException(status_code=403, detail="Email address is not verified")
     response: TokenPairResponse = _issue_tokens_for_user(repo, user.id)
     _logger.info("user_login_success user_id=%s", user.id)
     return response
@@ -85,6 +130,8 @@ def refresh(payload: RefreshRequest, db_session: Session = Depends(get_db_sessio
     owner: AppUser | None = repo.get_by_id(row.user_id)
     if owner is None or not owner.is_active:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
+    if settings.email_verification_enabled and not owner.is_email_verified():
+        raise HTTPException(status_code=403, detail="Email address is not verified")
 
     repo.revoke_refresh(row.id)
     tokens: TokenPairResponse = _issue_tokens_for_user(repo, owner.id)

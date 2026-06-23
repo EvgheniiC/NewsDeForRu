@@ -23,7 +23,11 @@ class AppUser(Base):
     role: Mapped[str] = mapped_column(String(32), default=READER_ROLE, nullable=False)
     can_moderate: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     can_run_pipeline: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    email_verified_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    def is_email_verified(self) -> bool:
+        return self.email_verified_at is not None
 
     refresh_tokens: Mapped[list["AppRefreshToken"]] = relationship(
         back_populates="user",

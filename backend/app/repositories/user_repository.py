@@ -31,6 +31,7 @@ class UserRepository:
             role=READER_ROLE,
             can_moderate=False,
             can_run_pipeline=False,
+            email_verified_at=None,
         )
         self._db.add(user)
         self._db.commit()
@@ -45,6 +46,7 @@ class UserRepository:
         can_moderate: bool = True,
         can_run_pipeline: bool = True,
     ) -> AppUser:
+        now: datetime = datetime.utcnow()
         user = AppUser(
             email=email.strip().lower(),
             password_hash=password_hash,
@@ -52,6 +54,7 @@ class UserRepository:
             role=ADMIN_ROLE,
             can_moderate=can_moderate,
             can_run_pipeline=can_run_pipeline,
+            email_verified_at=now,
         )
         self._db.add(user)
         self._db.commit()

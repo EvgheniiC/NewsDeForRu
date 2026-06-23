@@ -16,6 +16,7 @@ import {
   authRegister,
 } from "../api/client";
 import type {
+  RegisterResponse,
   UserLoginCredentials,
   UserMe,
   UserRegisterCredentials,
@@ -29,7 +30,8 @@ interface AuthState {
   user: UserMe | null;
   initializing: boolean;
   login: (credentials: UserLoginCredentials) => Promise<UserMe>;
-  register: (credentials: UserRegisterCredentials) => Promise<UserMe>;
+  register: (credentials: UserRegisterCredentials) => Promise<RegisterResponse>;
+  establishSession: (pair: UserTokenPair) => Promise<UserMe>;
   logout: () => Promise<void>;
   withModerationAccess: <T>(run: (accessToken: string) => Promise<T>) => Promise<T>;
   withPipelineAccess: <T>(run: (accessToken: string) => Promise<T>) => Promise<T>;
@@ -97,9 +99,8 @@ export function AuthProvider(props: Readonly<{ children: React.ReactNode }>): JS
     return authMe(accessToken);
   }, []);
 
-  const login = useCallback(
-    async (credentials: UserLoginCredentials): Promise<UserMe> => {
-      const pair: UserTokenPair = await authLogin(credentials);
+  const establishSession = useCallback(
+    async (pair: UserTokenPair): Promise<UserMe> => {
       const me: UserMe = await requestMe(pair.access_token);
       applyPairState(pair, me);
       return me;
@@ -107,15 +108,17 @@ export function AuthProvider(props: Readonly<{ children: React.ReactNode }>): JS
     [applyPairState, requestMe],
   );
 
-  const register = useCallback(
-    async (credentials: UserRegisterCredentials): Promise<UserMe> => {
-      const pair: UserTokenPair = await authRegister(credentials);
-      const me: UserMe = await requestMe(pair.access_token);
-      applyPairState(pair, me);
-      return me;
+  const login = useCallback(
+    async (credentials: UserLoginCredentials): Promise<UserMe> => {
+      const pair: UserTokenPair = await authLogin(credentials);
+      return establishSession(pair);
     },
-    [applyPairState, requestMe],
+    [establishSession],
   );
+
+  const register = useCallback(async (credentials: UserRegisterCredentials): Promise<RegisterResponse> => {
+    return authRegister(credentials);
+  }, []);
 
   const logout = useCallback(async (): Promise<void> => {
     const refresh: string | null = tokensRef.current?.refresh_token ?? null;
@@ -205,11 +208,12 @@ export function AuthProvider(props: Readonly<{ children: React.ReactNode }>): JS
       initializing,
       login,
       register,
+      establishSession,
       logout,
       withModerationAccess,
       withPipelineAccess,
     }),
-    [initializing, login, logout, register, user, withModerationAccess, withPipelineAccess],
+    [establishSession, initializing, login, logout, register, user, withModerationAccess, withPipelineAccess],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

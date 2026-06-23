@@ -20,8 +20,9 @@ from app.services.staff_tokens import refresh_token_hash_hex
 
 @pytest.fixture()
 def api_client() -> Generator[TestClient, None, None]:
-    settings.password_reset_dev_expose_link = True
     settings.password_reset_frontend_base_url = "http://127.0.0.1:5173"
+    from app.main import app
+
     with TestClient(app) as client:
         yield client
 
@@ -34,7 +35,10 @@ def _ensure_user(email: str, password: str) -> None:
         if existing is not None:
             db.delete(existing)
             db.commit()
-        repo.create_reader(email=email, password_hash=hash_password(password))
+        user = repo.create_reader(email=email, password_hash=hash_password(password))
+        user.email_verified_at = datetime.utcnow()
+        db.add(user)
+        db.commit()
     finally:
         db.close()
 

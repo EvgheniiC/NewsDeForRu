@@ -85,9 +85,23 @@ export async function installApiMock(page: Page): Promise<void> {
 
     if (path === "/auth/register" && method === "POST") {
       await fulfillJson(route, {
+        detail: "Check your email to confirm your account.",
+      });
+      return;
+    }
+
+    if (path === "/auth/verify-email" && method === "POST") {
+      await fulfillJson(route, {
         access_token: "e2e-access-token-mock",
         refresh_token: "e2e-refresh-token-mock",
         token_type: "bearer",
+      });
+      return;
+    }
+
+    if (path === "/auth/resend-verification" && method === "POST") {
+      await fulfillJson(route, {
+        detail: "If this email is registered and not yet confirmed, you will receive a verification link shortly.",
       });
       return;
     }
