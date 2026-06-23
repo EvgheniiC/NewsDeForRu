@@ -358,6 +358,10 @@ export function FeedPage(): JSX.Element {
         </>
       )}
 
+      {feedFilter === "positive" ? (
+        <h2 className="feed-section-heading feed-section-heading--positive">☀️ Только Позитивные Новости (ТПН)</h2>
+      ) : null}
+
       {feedLoading && items.length === 0 && <p className="loading-inline">Загрузка ленты…</p>}
       {feedError && <p className="error">{feedError}</p>}
       {isSavedUsefulTab && !feedLoading && items.length === 0 && !feedError ? (

@@ -813,6 +813,16 @@ body {
   pointer-events: none;
 }
 
+.feed-section-heading {
+  margin: 0 0 12px;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.feed-section-heading--positive {
+  color: var(--positive-accent);
+}
+
 .feed-view-bar {
   margin: 0 0 16px;
 }
