@@ -44,10 +44,12 @@ export function VerifyEmailPage(): JSX.Element {
     return (
       <section className="account-page">
         <h1>Подтверждение email</h1>
-        <p className="error">Ссылка недействительна или устарела.</p>
-        <p>
-          <Link to="/account/resend-verification">Отправить письмо повторно</Link>
-        </p>
+        <div className="account-form-card account-form-single">
+          <p className="error">Ссылка недействительна или устарела.</p>
+          <p>
+            <Link to="/account/resend-verification">Отправить письмо повторно</Link>
+          </p>
+        </div>
       </section>
     );
   }
@@ -56,7 +58,9 @@ export function VerifyEmailPage(): JSX.Element {
     return (
       <section className="account-page">
         <h1>Подтверждение email</h1>
-        <p className="loading-inline">Проверяем ссылку…</p>
+        <div className="account-form-card account-form-single">
+          <p className="loading-inline">Проверяем ссылку…</p>
+        </div>
       </section>
     );
   }
@@ -64,10 +68,12 @@ export function VerifyEmailPage(): JSX.Element {
   return (
     <section className="account-page">
       <h1>Подтверждение email</h1>
-      <p className="error">{error}</p>
-      <p>
-        <Link to="/account/resend-verification">Отправить письмо повторно</Link>
-      </p>
+      <div className="account-form-card account-form-single">
+        <p className="error">{error}</p>
+        <p>
+          <Link to="/account/resend-verification">Отправить письмо повторно</Link>
+        </p>
+      </div>
       <p className="muted account-editorial-link">
         <Link to="/account">Назад ко входу</Link>
       </p>

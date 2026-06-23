@@ -17,10 +17,12 @@ export function ResetPasswordPage(): JSX.Element {
     return (
       <section className="account-page">
         <h1>Сброс пароля</h1>
-        <p className="error">Ссылка недействительна или устарела. Запросите сброс пароля снова.</p>
-        <p>
-          <Link to="/account/forgot">Забыли пароль?</Link>
-        </p>
+        <div className="account-form-card account-form-single">
+          <p className="error">Ссылка недействительна или устарела. Запросите сброс пароля снова.</p>
+          <p>
+            <Link to="/account/forgot">Забыли пароль?</Link>
+          </p>
+        </div>
       </section>
     );
   }
@@ -59,10 +61,12 @@ export function ResetPasswordPage(): JSX.Element {
     return (
       <section className="account-page">
         <h1>Пароль обновлён</h1>
-        <p>Теперь можно войти с новым паролем.</p>
-        <button onClick={() => navigate("/account", { replace: true })} type="button">
-          Перейти ко входу
-        </button>
+        <div className="account-form-card account-form-single">
+          <p>Теперь можно войти с новым паролем.</p>
+          <button onClick={() => navigate("/account", { replace: true })} type="button">
+            Перейти ко входу
+          </button>
+        </div>
       </section>
     );
   }
@@ -70,44 +74,46 @@ export function ResetPasswordPage(): JSX.Element {
   return (
     <section className="account-page">
       <h1>Новый пароль</h1>
-      <form autoComplete="on" className="operator-login-form" onSubmit={(e) => void handleSubmit(e)}>
-        <label className="field-label" htmlFor="reset-password">
-          Новый пароль (не менее 8 символов)
-        </label>
-        <input
-          aria-label="Новый пароль"
-          autoComplete="new-password"
-          className="operator-login-field"
-          id="reset-password"
-          maxLength={256}
-          minLength={8}
-          name="password"
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          type="password"
-          value={password}
-        />
-        <label className="field-label" htmlFor="reset-password-confirm">
-          Повторите пароль
-        </label>
-        <input
-          aria-label="Повтор пароля"
-          autoComplete="new-password"
-          className="operator-login-field"
-          id="reset-password-confirm"
-          maxLength={256}
-          minLength={8}
-          name="password_confirm"
-          onChange={(e) => setConfirm(e.target.value)}
-          required
-          type="password"
-          value={confirm}
-        />
-        {error !== "" ? <p className="error">{error}</p> : null}
-        <button disabled={busy} type="submit">
-          {busy ? "Сохранение…" : "Сохранить пароль"}
-        </button>
-      </form>
+      <div className="account-form-card account-form-single">
+        <form autoComplete="on" className="operator-login-form" onSubmit={(e) => void handleSubmit(e)}>
+          <label className="field-label" htmlFor="reset-password">
+            Новый пароль (не менее 8 символов)
+          </label>
+          <input
+            aria-label="Новый пароль"
+            autoComplete="new-password"
+            className="operator-login-field"
+            id="reset-password"
+            maxLength={256}
+            minLength={8}
+            name="password"
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            type="password"
+            value={password}
+          />
+          <label className="field-label" htmlFor="reset-password-confirm">
+            Повторите пароль
+          </label>
+          <input
+            aria-label="Повтор пароля"
+            autoComplete="new-password"
+            className="operator-login-field"
+            id="reset-password-confirm"
+            maxLength={256}
+            minLength={8}
+            name="password_confirm"
+            onChange={(e) => setConfirm(e.target.value)}
+            required
+            type="password"
+            value={confirm}
+          />
+          {error !== "" ? <p className="error">{error}</p> : null}
+          <button disabled={busy} type="submit">
+            {busy ? "Сохранение…" : "Сохранить пароль"}
+          </button>
+        </form>
+      </div>
       <p className="muted account-editorial-link">
         <Link to="/account/forgot">Запросить новую ссылку</Link>
       </p>

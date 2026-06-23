@@ -37,16 +37,18 @@ export function ResendVerificationPage(): JSX.Element {
     return (
       <section className="account-page">
         <h1>Подтверждение email</h1>
-        <p>
-          Если аккаунт с этим email зарегистрирован и ещё не подтверждён, мы отправили новую ссылку. Проверьте
-          почту (и папку «Спам»).
-        </p>
-        {devLink !== null ? (
-          <p className="muted">
-            Режим разработки (SMTP не настроен):{" "}
-            <a href={devLink}>открыть ссылку подтверждения</a>
+        <div className="account-form-card account-form-single">
+          <p>
+            Если аккаунт с этим email зарегистрирован и ещё не подтверждён, мы отправили новую ссылку. Проверьте
+            почту (и папку «Спам»).
           </p>
-        ) : null}
+          {devLink !== null ? (
+            <p className="muted">
+              Режим разработки (SMTP не настроен):{" "}
+              <a href={devLink}>открыть ссылку подтверждения</a>
+            </p>
+          ) : null}
+        </div>
         <p className="muted account-editorial-link">
           <Link to="/account">Вернуться ко входу</Link>
         </p>
@@ -57,32 +59,34 @@ export function ResendVerificationPage(): JSX.Element {
   return (
     <section className="account-page">
       <h1>Подтверждение email</h1>
-      <p className="muted">
-        Укажите email, с которым вы регистрировались. Мы пришлём новую ссылку для подтверждения аккаунта.
-      </p>
-      <form autoComplete="on" className="operator-login-form" onSubmit={(e) => void handleSubmit(e)}>
-        <label className="field-label" htmlFor="resend-verification-email">
-          Email
-        </label>
-        <input
-          aria-label="Email для повторной отправки подтверждения"
-          autoComplete="email"
-          className="operator-login-field"
-          id="resend-verification-email"
-          inputMode="email"
-          maxLength={254}
-          name="email"
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          spellCheck={false}
-          type="email"
-          value={email}
-        />
-        {error !== "" ? <p className="error">{error}</p> : null}
-        <button disabled={busy} type="submit">
-          {busy ? "Отправка…" : "Отправить ссылку"}
-        </button>
-      </form>
+      <div className="account-form-card account-form-single">
+        <p className="muted">
+          Укажите email, с которым вы регистрировались. Мы пришлём новую ссылку для подтверждения аккаунта.
+        </p>
+        <form autoComplete="on" className="operator-login-form" onSubmit={(e) => void handleSubmit(e)}>
+          <label className="field-label" htmlFor="resend-verification-email">
+            Email
+          </label>
+          <input
+            aria-label="Email для повторной отправки подтверждения"
+            autoComplete="email"
+            className="operator-login-field"
+            id="resend-verification-email"
+            inputMode="email"
+            maxLength={254}
+            name="email"
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            spellCheck={false}
+            type="email"
+            value={email}
+          />
+          {error !== "" ? <p className="error">{error}</p> : null}
+          <button disabled={busy} type="submit">
+            {busy ? "Отправка…" : "Отправить ссылку"}
+          </button>
+        </form>
+      </div>
       <p className="muted account-editorial-link">
         <Link to="/account">Назад ко входу</Link>
         {" · "}
