@@ -14,7 +14,7 @@ from app.core.config import settings
 from app.models.app_user import AppUser
 from app.models.password_reset_token import PasswordResetToken
 from app.repositories.user_repository import UserRepository
-from app.services.email_delivery import send_email, smtp_configured
+from app.services.email_delivery import try_send_transactional_email
 from app.services.passwords import hash_password
 from app.services.staff_tokens import refresh_token_hash_hex
 
@@ -88,24 +88,17 @@ def request_password_reset(db: Session, email: str) -> ForgotPasswordResult:
     )
 
     dev_link: str | None = None
-    if smtp_configured():
-        try:
-            send_email(
-                to_address=user.email,
-                subject="Сброс пароля — newsForGermanyRU",
-                body_text=body,
-            )
-        except Exception:
-            _logger.exception("password_reset_email_failed user_id=%s", user.id)
-    elif settings.app_env.strip().lower() == "development" and settings.password_reset_dev_expose_link:
+    sent: bool = try_send_transactional_email(
+        to_address=user.email,
+        subject="Сброс пароля — newsForGermanyRU",
+        body_text=body,
+        log_context=f"password_reset user_id={user.id}",
+    )
+    if sent:
+        return ForgotPasswordResult(message=GENERIC_ACK, dev_reset_link=dev_link)
+    if settings.app_env.strip().lower() == "development" and settings.password_reset_dev_expose_link:
         dev_link = link
         _logger.warning("password_reset_dev_link user_id=%s link=%s", user.id, link)
-    else:
-        _logger.warning(
-            "password_reset_email_skipped_smtp_not_configured user_id=%s",
-            user.id,
-        )
-
     return ForgotPasswordResult(message=GENERIC_ACK, dev_reset_link=dev_link)
 
 

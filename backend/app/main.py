@@ -12,12 +12,14 @@ from app.core.config import settings
 from app.core.database import init_database
 from app.core.http_tls import configure_huggingface_hub_http
 from app.core.logging_config import configure_logging
+from app.services.email_delivery import log_smtp_startup_status
 from app.workers.scheduler import create_scheduler
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     configure_logging()
+    log_smtp_startup_status()
     configure_huggingface_hub_http(settings)
     if settings.sentry_dsn.strip():
         import sentry_sdk
