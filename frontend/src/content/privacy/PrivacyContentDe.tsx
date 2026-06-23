@@ -4,7 +4,6 @@ import { getLegalConfig } from "../../config/legal";
 
 export function PrivacyContentDe(): JSX.Element {
   const legal = getLegalConfig();
-  const contact: string = legal.contactEmail || "siehe Impressum";
 
   return (
     <>
@@ -18,15 +17,8 @@ export function PrivacyContentDe(): JSX.Element {
       </p>
 
       <h2>1. Verantwortlicher</h2>
-      <LegalOperatorBlock locale="de" />
-      <p>
-        Datenschutzanfragen:{" "}
-        {legal.contactEmail ? (
-          <a href={`mailto:${legal.contactEmail}`}>{legal.contactEmail}</a>
-        ) : (
-          contact
-        )}
-      </p>
+      <LegalOperatorBlock detail="compact" locale="de" />
+      <p>Datenschutzanfragen richten Sie an die oben genannte E-Mail-Adresse.</p>
 
       <h2>2. Überblick</h2>
       <ul>

@@ -4,7 +4,6 @@ import { getLegalConfig } from "../../config/legal";
 
 export function PrivacyContentRu(): JSX.Element {
   const legal = getLegalConfig();
-  const contact: string = legal.contactEmail || "см. Impressum";
 
   return (
     <>
@@ -18,15 +17,8 @@ export function PrivacyContentRu(): JSX.Element {
       </p>
 
       <h2>1. Оператор персональных данных</h2>
-      <LegalOperatorBlock locale="ru" />
-      <p>
-        Запросы по данным:{" "}
-        {legal.contactEmail ? (
-          <a href={`mailto:${legal.contactEmail}`}>{legal.contactEmail}</a>
-        ) : (
-          contact
-        )}
-      </p>
+      <LegalOperatorBlock detail="compact" locale="ru" />
+      <p>Запросы по персональным данным направляйте на указанный выше e-mail.</p>
 
       <h2>2. Краткий обзор</h2>
       <ul>

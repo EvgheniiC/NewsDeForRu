@@ -1,4 +1,5 @@
 import { cleanup, render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, test } from "vitest";
 
 import { LegalLocaleProvider } from "../context/LegalLocaleContext";
@@ -6,9 +7,11 @@ import { PrivacyPage } from "./PrivacyPage";
 
 function renderPrivacy(): void {
   render(
-    <LegalLocaleProvider>
-      <PrivacyPage />
-    </LegalLocaleProvider>
+    <MemoryRouter>
+      <LegalLocaleProvider>
+        <PrivacyPage />
+      </LegalLocaleProvider>
+    </MemoryRouter>
   );
 }
 
