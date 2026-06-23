@@ -453,6 +453,28 @@ body {
   font-size: 0.85rem;
 }
 
+.moderation-period-bar {
+  margin-bottom: 20px;
+}
+
+.moderation-period-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.4rem;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.2);
+  color: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.feed-topic-pill.is-active .moderation-period-count {
+  background: rgba(255, 255, 255, 0.2);
+}
+
 .news-topic-chip {
   display: inline-block;
   font-size: 0.78rem;

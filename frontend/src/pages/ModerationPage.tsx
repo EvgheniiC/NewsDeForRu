@@ -8,8 +8,11 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { formatDateTimeRuBerlin } from "../lib/dateTimeBerlin";
 import {
-  groupModerationQueueByPeriod,
-  type ModerationQueueSection,
+  countModerationQueueByPeriod,
+  filterModerationQueueByPeriod,
+  MODERATION_PERIOD_OPTIONS,
+  type ModerationPeriodKey,
+  type ModerationPeriodOption,
 } from "../lib/moderationQueue";
 import type { ProcessedNews } from "../types/news";
 
@@ -69,19 +72,20 @@ export function ModerationPage(): JSX.Element {
   const navigate = useNavigate();
   const { user, withModerationAccess, logout } = useAuth();
   const [queue, setQueue] = useState<ProcessedNews[]>([]);
+  const [period, setPeriod] = useState<ModerationPeriodKey>("today");
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [actionError, setActionError] = useState<string>("");
   const [busyId, setBusyId] = useState<number | null>(null);
 
-  const sections: ModerationQueueSection[] = useMemo(
-    () => groupModerationQueueByPeriod(queue),
+  const periodCounts: Record<ModerationPeriodKey, number> = useMemo(
+    () => countModerationQueueByPeriod(queue),
     [queue],
   );
 
-  const totalCount: number = useMemo(
-    () => sections.reduce((sum: number, section: ModerationQueueSection) => sum + section.items.length, 0),
-    [sections],
+  const visibleItems: ProcessedNews[] = useMemo(
+    () => filterModerationQueueByPeriod(queue, period),
+    [queue, period],
   );
 
   const loadQueue = useCallback(
@@ -174,37 +178,49 @@ export function ModerationPage(): JSX.Element {
       <p className="moderation-queue-hint">
         Показаны новости за последние 7 дней. Старше недели в очереди не отображаются.
       </p>
+
+      <div className="feed-period-bar moderation-period-bar" role="tablist" aria-label="Период модерации">
+        {MODERATION_PERIOD_OPTIONS.map((opt: ModerationPeriodOption, index: number) => (
+          <span className="feed-topic-cell" key={opt.key}>
+            {index > 0 ? <span aria-hidden="true" className="feed-topic-sep" /> : null}
+            <button
+              aria-selected={period === opt.key}
+              className={period === opt.key ? "feed-topic-pill is-active" : "feed-topic-pill"}
+              onClick={() => {
+                setPeriod(opt.key);
+              }}
+              role="tab"
+              type="button"
+            >
+              {opt.label}
+              <span className="moderation-period-count">{periodCounts[opt.key]}</span>
+            </button>
+          </span>
+        ))}
+      </div>
+
       {loading && <p>Загрузка...</p>}
       {error !== "" && <p className="error">{error}</p>}
       {actionError !== "" && <p className="error">{actionError}</p>}
-      {!loading && error === "" && totalCount === 0 && <p>Очередь пуста.</p>}
-      {!loading &&
-        error === "" &&
-        sections.map((section: ModerationQueueSection) => (
-          <section className="moderation-queue-section" key={section.key}>
-            <h2 className="moderation-queue-section-title">
-              {section.label}
-              <span className="moderation-queue-section-count">{section.items.length}</span>
-            </h2>
-            {section.items.length === 0 ? (
-              <p className="moderation-queue-section-empty">Нет новостей за этот период.</p>
-            ) : (
-              <div className="news-grid">
-                {section.items.map((item: ProcessedNews) => (
-                  <ModerationNewsCard
-                    busyId={busyId}
-                    item={item}
-                    key={item.id}
-                    onAction={(newsId: number, action: "approve" | "reject") => {
-                      void handleAction(newsId, action);
-                    }}
-                    onSaveMetadata={handleSaveMetadata}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
-        ))}
+      {!loading && error === "" && queue.length === 0 && <p>Очередь пуста.</p>}
+      {!loading && error === "" && queue.length > 0 && visibleItems.length === 0 && (
+        <p>Нет новостей за выбранный период.</p>
+      )}
+      {!loading && error === "" && visibleItems.length > 0 && (
+        <div className="news-grid">
+          {visibleItems.map((item: ProcessedNews) => (
+            <ModerationNewsCard
+              busyId={busyId}
+              item={item}
+              key={item.id}
+              onAction={(newsId: number, action: "approve" | "reject") => {
+                void handleAction(newsId, action);
+              }}
+              onSaveMetadata={handleSaveMetadata}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
