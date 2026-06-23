@@ -994,10 +994,8 @@ body {
   margin-bottom: 10px;
 }
 
-.account-forms-grid {
-  display: grid;
-  gap: 20px;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+.account-form-single {
+  max-width: 400px;
   margin-bottom: 24px;
 }
 
@@ -1043,6 +1041,26 @@ body {
 .account-forgot-link {
   margin-top: 0.75rem;
   font-size: 0.9rem;
+}
+
+.account-mode-toggle {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.account-mode-toggle button {
+  font: inherit;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent-link);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.account-mode-toggle button:hover {
+  color: var(--accent-link-hover);
 }
 
 .account-editorial-link {

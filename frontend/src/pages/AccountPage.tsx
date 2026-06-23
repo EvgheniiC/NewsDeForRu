@@ -7,6 +7,8 @@ interface LocationState {
   from?: string;
 }
 
+type AuthFormMode = "login" | "register";
+
 export function AccountPage(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
@@ -21,6 +23,17 @@ export function AccountPage(): JSX.Element {
   const [loginError, setLoginError] = useState<string>("");
   const [registerBusy, setRegisterBusy] = useState<boolean>(false);
   const [loginBusy, setLoginBusy] = useState<boolean>(false);
+  const [formMode, setFormMode] = useState<AuthFormMode>("login");
+
+  const showLoginForm = (): void => {
+    setFormMode("login");
+    setRegisterError("");
+  };
+
+  const showRegisterForm = (): void => {
+    setFormMode("register");
+    setLoginError("");
+  };
 
   const handleRegister = async (evt: FormEvent<HTMLFormElement>): Promise<void> => {
     evt.preventDefault();
@@ -114,113 +127,128 @@ export function AccountPage(): JSX.Element {
         Ленту и новости можно читать без регистрации. Аккаунт понадобится для персонализации и дополнительных функций.
       </p>
 
-      <div className="account-benefits">
-        <h2>Зачем регистрироваться</h2>
-        <ul>
-          <li>
-            <strong>Умная лента</strong> — темы и приоритеты под ваши интересы (когда эта функция будет включена).
-          </li>
-          <li>
-            <strong>Один профиль на всех устройствах</strong> — настройки и история не привязаны только к одному телефону.
-          </li>
-          <li>
-            <strong>Голосовое прослушивание</strong> — сохранение прогресса и очереди прослушивания между сессиями
-            (в разработке).
-          </li>
-          <li>
-            <strong>Без жёсткой подписки на рассылку</strong> — вход только для функций приложения, спам не обещаем.
-          </li>
-        </ul>
-      </div>
-
-      <div className="account-forms-grid">
-        <div className="account-form-card">
-          <h2>Регистрация</h2>
-          <form autoComplete="on" className="operator-login-form" onSubmit={(e) => void handleRegister(e)}>
-            <label className="field-label" htmlFor="reader-register-email">
-              Email
-            </label>
-            <input
-              aria-label="Email для регистрации"
-              autoComplete="email"
-              className="operator-login-field"
-              id="reader-register-email"
-              inputMode="email"
-              maxLength={254}
-              name="email"
-              onChange={(e) => setRegisterEmail(e.target.value)}
-              required
-              spellCheck={false}
-              type="email"
-              value={registerEmail}
-            />
-            <label className="field-label" htmlFor="reader-register-password">
-              Пароль (не менее 8 символов)
-            </label>
-            <input
-              aria-label="Пароль для регистрации"
-              autoComplete="new-password"
-              className="operator-login-field"
-              id="reader-register-password"
-              maxLength={256}
-              minLength={8}
-              name="password"
-              onChange={(e) => setRegisterPassword(e.target.value)}
-              required
-              type="password"
-              value={registerPassword}
-            />
-            {registerError !== "" ? <p className="error">{registerError}</p> : null}
-            <button disabled={registerBusy} type="submit">
-              {registerBusy ? "Регистрация…" : "Создать аккаунт"}
-            </button>
-          </form>
+      {formMode === "register" ? (
+        <div className="account-benefits">
+          <h2>Зачем регистрироваться</h2>
+          <ul>
+            <li>
+              <strong>Умная лента</strong> — темы и приоритеты под ваши интересы (когда эта функция будет включена).
+            </li>
+            <li>
+              <strong>Один профиль на всех устройствах</strong> — настройки и история не привязаны только к одному
+              телефону.
+            </li>
+            <li>
+              <strong>Голосовое прослушивание</strong> — сохранение прогресса и очереди прослушивания между сессиями
+              (в разработке).
+            </li>
+            <li>
+              <strong>Без жёсткой подписки на рассылку</strong> — вход только для функций приложения, спам не обещаем.
+            </li>
+          </ul>
         </div>
+      ) : null}
 
-        <div className="account-form-card">
-          <h2>Вход</h2>
-          <form autoComplete="on" className="operator-login-form" onSubmit={(e) => void handleLogin(e)}>
-            <label className="field-label" htmlFor="reader-login-email">
-              Email
-            </label>
-            <input
-              aria-label="Email для входа"
-              autoComplete="username"
-              className="operator-login-field"
-              id="reader-login-email"
-              inputMode="email"
-              maxLength={254}
-              name="email"
-              onChange={(e) => setLoginEmail(e.target.value)}
-              required
-              spellCheck={false}
-              type="email"
-              value={loginEmail}
-            />
-            <label className="field-label" htmlFor="reader-login-password">
-              Пароль
-            </label>
-            <input
-              aria-label="Пароль для входа"
-              autoComplete="current-password"
-              className="operator-login-field"
-              id="reader-login-password"
-              maxLength={256}
-              name="password"
-              onChange={(e) => setLoginPassword(e.target.value)}
-              required
-              type="password"
-              value={loginPassword}
-            />
-            {loginError !== "" ? <p className="error">{loginError}</p> : null}
-            <button disabled={loginBusy} type="submit">
-              {loginBusy ? "Вход…" : "Войти"}
-            </button>
-            <p className="account-forgot-link">
-              <Link to="/account/forgot">Забыли пароль?</Link>
+      <div className="account-form-card account-form-single">
+        {formMode === "login" ? (
+          <>
+            <h2>Вход</h2>
+            <form autoComplete="on" className="operator-login-form" onSubmit={(e) => void handleLogin(e)}>
+              <label className="field-label" htmlFor="reader-login-email">
+                Email
+              </label>
+              <input
+                aria-label="Email для входа"
+                autoComplete="username"
+                className="operator-login-field"
+                id="reader-login-email"
+                inputMode="email"
+                maxLength={254}
+                name="email"
+                onChange={(e) => setLoginEmail(e.target.value)}
+                required
+                spellCheck={false}
+                type="email"
+                value={loginEmail}
+              />
+              <label className="field-label" htmlFor="reader-login-password">
+                Пароль
+              </label>
+              <input
+                aria-label="Пароль для входа"
+                autoComplete="current-password"
+                className="operator-login-field"
+                id="reader-login-password"
+                maxLength={256}
+                name="password"
+                onChange={(e) => setLoginPassword(e.target.value)}
+                required
+                type="password"
+                value={loginPassword}
+              />
+              {loginError !== "" ? <p className="error">{loginError}</p> : null}
+              <button disabled={loginBusy} type="submit">
+                {loginBusy ? "Вход…" : "Войти"}
+              </button>
+              <p className="account-forgot-link">
+                <Link to="/account/forgot">Забыли пароль?</Link>
+              </p>
+            </form>
+            <p className="account-mode-toggle">
+              <button onClick={showRegisterForm} type="button">
+                Ещё не зарегистрировались?
+              </button>
             </p>
-          </form>
-        </div>
+          </>
+        ) : (
+          <>
+            <h2>Регистрация</h2>
+            <form autoComplete="on" className="operator-login-form" onSubmit={(e) => void handleRegister(e)}>
+              <label className="field-label" htmlFor="reader-register-email">
+                Email
+              </label>
+              <input
+                aria-label="Email для регистрации"
+                autoComplete="email"
+                className="operator-login-field"
+                id="reader-register-email"
+                inputMode="email"
+                maxLength={254}
+                name="email"
+                onChange={(e) => setRegisterEmail(e.target.value)}
+                required
+                spellCheck={false}
+                type="email"
+                value={registerEmail}
+              />
+              <label className="field-label" htmlFor="reader-register-password">
+                Пароль (не менее 8 символов)
+              </label>
+              <input
+                aria-label="Пароль для регистрации"
+                autoComplete="new-password"
+                className="operator-login-field"
+                id="reader-register-password"
+                maxLength={256}
+                minLength={8}
+                name="password"
+                onChange={(e) => setRegisterPassword(e.target.value)}
+                required
+                type="password"
+                value={registerPassword}
+              />
+              {registerError !== "" ? <p className="error">{registerError}</p> : null}
+              <button disabled={registerBusy} type="submit">
+                {registerBusy ? "Регистрация…" : "Создать аккаунт"}
+              </button>
+            </form>
+            <p className="account-mode-toggle">
+              <button onClick={showLoginForm} type="button">
+                Уже есть аккаунт? Войти
+              </button>
+            </p>
+          </>
+        )}
       </div>
 
       <p className="muted account-editorial-link">
