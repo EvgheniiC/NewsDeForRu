@@ -1,20 +1,91 @@
 import { useEffect, useRef } from "react";
 import { enqueueOne } from "../analytics/engagementQueue";
 import { NewsCard } from "./NewsCard";
+import { SwipeToReadSnap } from "./SwipeToReadSnap";
 import type { NewsFeedItem } from "../types/news";
 
 const QUICK_NAV_MS: number = 2200;
+const SNAP_IDLE_MS: number = 140;
+const SNAP_MIN_OFFSET_PX: number = 12;
+
+function snapFeedToNearestCard(root: HTMLDivElement): void {
+  const snaps: NodeListOf<HTMLElement> = root.querySelectorAll(".tiktok-feed-snap[data-news-id]");
+  if (snaps.length === 0) {
+    return;
+  }
+
+  const rootRect: DOMRect = root.getBoundingClientRect();
+  const rootCenterY: number = rootRect.top + rootRect.height / 2;
+
+  let bestElement: HTMLElement | null = null;
+  let bestDistance: number = Number.POSITIVE_INFINITY;
+
+  snaps.forEach((element: HTMLElement) => {
+    const rect: DOMRect = element.getBoundingClientRect();
+    const centerY: number = rect.top + rect.height / 2;
+    const distance: number = Math.abs(centerY - rootCenterY);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestElement = element;
+    }
+  });
+
+  if (bestElement !== null && bestDistance > SNAP_MIN_OFFSET_PX) {
+    bestElement.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+}
 
 interface TikTokFeedProps {
   items: NewsFeedItem[];
   hasMore: boolean;
   loadingMore: boolean;
   onLoadMore: () => void;
+  swipeToRead?: boolean;
 }
 
-export function TikTokFeed({ items, hasMore, loadingMore, onLoadMore }: TikTokFeedProps): JSX.Element {
+export function TikTokFeed({
+  items,
+  hasMore,
+  loadingMore,
+  onLoadMore,
+  swipeToRead = false
+}: TikTokFeedProps): JSX.Element {
   const scrollRootRef = useRef<HTMLDivElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const snapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const root: HTMLDivElement | null = scrollRootRef.current;
+    if (root === null) {
+      return;
+    }
+
+    const scheduleSnap = (): void => {
+      if (snapTimerRef.current !== null) {
+        window.clearTimeout(snapTimerRef.current);
+      }
+      snapTimerRef.current = window.setTimeout(() => {
+        snapTimerRef.current = null;
+        snapFeedToNearestCard(root);
+      }, SNAP_IDLE_MS);
+    };
+
+    const onScrollEnd = (): void => {
+      snapFeedToNearestCard(root);
+    };
+
+    root.addEventListener("scroll", scheduleSnap, { passive: true });
+    root.addEventListener("scrollend", onScrollEnd);
+
+    return (): void => {
+      root.removeEventListener("scroll", scheduleSnap);
+      root.removeEventListener("scrollend", onScrollEnd);
+      if (snapTimerRef.current !== null) {
+        window.clearTimeout(snapTimerRef.current);
+        snapTimerRef.current = null;
+      }
+    };
+  }, [items.length]);
 
   useEffect(() => {
     const root: HTMLDivElement | null = scrollRootRef.current;
@@ -110,11 +181,21 @@ export function TikTokFeed({ items, hasMore, loadingMore, onLoadMore }: TikTokFe
   return (
     <div className="tiktok-feed" aria-label="Вертикальная лента">
       <div className="tiktok-feed-scroll" ref={scrollRootRef}>
-        {items.map((item: NewsFeedItem) => (
-          <div className="tiktok-feed-snap" data-news-id={String(item.id)} key={item.id}>
-            <NewsCard feedMode="tiktok" item={item} variant="immersive" />
-          </div>
-        ))}
+        {items.map((item: NewsFeedItem) => {
+          const snap: JSX.Element = (
+            <div className="tiktok-feed-snap" data-news-id={String(item.id)} key={item.id}>
+              <NewsCard feedMode="tiktok" item={item} variant="immersive" />
+            </div>
+          );
+          if (!swipeToRead) {
+            return snap;
+          }
+          return (
+            <SwipeToReadSnap className="tiktok-feed-snap" dataNewsId={String(item.id)} item={item} key={item.id}>
+              <NewsCard feedMode="tiktok" item={item} variant="immersive" />
+            </SwipeToReadSnap>
+          );
+        })}
         {hasMore ? (
           <div className="tiktok-feed-snap tiktok-feed-sentinel" ref={sentinelRef} aria-hidden="true">
             {loadingMore ? <p className="muted tiktok-feed-loading">Загрузка…</p> : null}

@@ -14,7 +14,8 @@ const FEED_FILTER_ACCENT_CLASS: Partial<Record<FeedFilterKey, string>> = {
   life: "is-accent-life",
   urgent: "is-accent-urgent",
   positive: "is-accent-positive",
-  saved_useful: "is-accent-saved"
+  saved_useful: "is-accent-saved",
+  read_saved: "is-accent-read"
 };
 
 /** Active feed topic tab with semantic accent color. */

@@ -19,7 +19,7 @@ export function newsTopicLabelRu(topic: NewsTopic): string {
 /** How the impact block is shown: three angles, one paragraph, or hidden. */
 export type ImpactPresentation = "multi" | "single" | "none";
 
-export type FeedFilterKey = NewsTopic | "urgent" | "positive" | "top_today" | "saved_useful";
+export type FeedFilterKey = NewsTopic | "urgent" | "positive" | "top_today" | "saved_useful" | "read_saved";
 
 /** Labels for multi-perspective impact blocks on the detail page. */
 export const IMPACT_PERSPECTIVE_LABELS: readonly string[] = [

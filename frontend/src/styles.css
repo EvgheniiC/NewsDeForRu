@@ -350,6 +350,37 @@ body {
   border-bottom-color: var(--saved-fg);
 }
 
+.feed-topic-pill.is-active.is-accent-read {
+  color: var(--text-secondary);
+  border-bottom-color: var(--text-secondary);
+}
+
+.feed-swipe-hint {
+  margin: 0 0 10px;
+  font-size: 0.86rem;
+  text-align: center;
+}
+
+.feed-empty-state-link {
+  font: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent-link);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.swipe-to-read-snap {
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.swipe-to-read-snap.is-dismissing {
+  transform: translateX(120%);
+  opacity: 0;
+  pointer-events: none;
+}
+
 .news-top-rank-line {
   margin: 0 0 8px;
   font-size: 0.82rem;
@@ -993,16 +1024,19 @@ body {
 .tiktok-feed-scroll {
   overflow-y: auto;
   overflow-x: hidden;
-  scroll-snap-type: y mandatory;
+  scroll-snap-type: y proximity;
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
   height: min(760px, calc(100dvh - 260px));
   padding: 0 16px;
 }
 
 .tiktok-feed-snap {
-  scroll-snap-align: start;
-  scroll-snap-stop: normal;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
   min-height: min(520px, calc(100dvh - 300px));
-  padding-bottom: 12px;
+  padding-bottom: 20px;
 }
 
 .tiktok-feed-sentinel {
@@ -1014,67 +1048,6 @@ body {
 
 .tiktok-feed-loading {
   margin: 0;
-}
-
-.fast-swipe-feed {
-  margin-bottom: 16px;
-}
-
-.fast-swipe-viewport {
-  overflow: hidden;
-  touch-action: manipulation;
-  outline: none;
-}
-
-.fast-swipe-track {
-  display: flex;
-  flex-direction: row;
-  transition: transform 0.2s ease-out;
-}
-
-.fast-swipe-track.is-dragging {
-  transition: none;
-}
-
-.fast-swipe-slide {
-  box-sizing: border-box;
-  padding-right: 12px;
-}
-
-.fast-swipe-slide:last-child {
-  padding-right: 0;
-}
-
-.fast-swipe-hint {
-  margin: 10px 0 6px;
-  font-size: 0.9rem;
-}
-
-.fast-swipe-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.fast-swipe-toolbar button {
-  font: inherit;
-  padding: 8px 14px;
-  border-radius: 8px;
-  border: 1px solid #cbd5e1;
-  background: #ffffff;
-  cursor: pointer;
-}
-
-.fast-swipe-toolbar button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.fast-swipe-empty {
-  padding: 24px;
-  text-align: center;
 }
 
 .field-label {

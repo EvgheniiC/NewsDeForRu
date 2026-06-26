@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { enqueueOne } from "../analytics/engagementQueue";
 import { ApiError, getNews } from "../api/client";
+import { markNewsAsRead } from "../lib/readStateStorage";
 import { FullArticleMobileSection } from "../components/FullArticleMobileSection";
 import { NewsAttributionBlock } from "../components/NewsAttributionBlock";
 import { ShareNewsMobileSection } from "../components/ShareNewsMobileSection";
@@ -155,6 +156,7 @@ export function NewsDetailsPage(): JSX.Element {
       const ratio: number = el.scrollTop / scrollRoom;
       if (ratio >= READ_ARTICLE_RATIO) {
         readArticleSentRef.current = true;
+        markNewsAsRead(newsId);
         enqueueOne(newsId, "read_complete_article", { max_ratio: Math.min(1, ratio) }, true);
       }
     };
@@ -173,6 +175,7 @@ export function NewsDetailsPage(): JSX.Element {
       shortPageTimerId = window.setTimeout(() => {
         if (!readArticleSentRef.current && document.visibilityState === "visible") {
           readArticleSentRef.current = true;
+          markNewsAsRead(newsId);
           enqueueOne(newsId, "read_complete_article", { max_ratio: 1 }, true);
         }
       }, 3200);

@@ -1,19 +1,19 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { FastSwipeFeed } from "../components/FastSwipeFeed";
 import { CompactSelect } from "../components/CompactSelect";
-import { GridFeed } from "../components/GridFeed";
 import { TikTokFeed } from "../components/TikTokFeed";
 import { ApiError, getHealth, NetworkError, runPipeline } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { useInfiniteFeed } from "../hooks/useInfiniteFeed";
+import { useReadSavedFeed } from "../hooks/useReadSavedFeed";
 import { useUsefulSavedFeed } from "../hooks/useUsefulSavedFeed";
+import { filterActiveFeedItems, isAllReadInFetchedBatch } from "../lib/feedVisibility";
 import { feedFilterPillClass } from "../lib/newsUi";
 import { describePipelinePartialFailure, formatHealthTime } from "../lib/pipelineUi";
+import { READ_STATE_CHANGED_EVENT } from "../lib/readStateStorage";
+import { USEFUL_STORAGE_CHANGED_EVENT } from "../lib/usefulStorage";
 import type { FeedFilterKey, FeedPeriodKey } from "../types/news";
 import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
-
-type FeedViewMode = "grid" | "tiktok" | "fast";
 
 const FEED_TOPIC_ROWS: readonly (readonly { key: FeedFilterKey; label: string }[])[] = [
   [
@@ -26,7 +26,7 @@ const FEED_TOPIC_ROWS: readonly (readonly { key: FeedFilterKey; label: string }[
     { key: "life", label: "Жизнь" },
     { key: "politics", label: "Политика" }
   ],
-  [{ key: "saved_useful", label: "❤️ Полезные" }]
+  [{ key: "saved_useful", label: "❤️ Полезные" }, { key: "read_saved", label: "📖 Прочитанные" }]
 ];
 
 const FEED_PERIOD_OPTIONS: readonly { key: FeedPeriodKey; label: string }[] = [
@@ -35,12 +35,6 @@ const FEED_PERIOD_OPTIONS: readonly { key: FeedPeriodKey; label: string }[] = [
   { key: "last_3_days", label: "3 дня" },
   { key: "this_week", label: "Неделя" },
   { key: "this_month", label: "Месяц" }
-];
-
-const FEED_VIEW_OPTIONS: readonly { key: FeedViewMode; label: string }[] = [
-  { key: "grid", label: "Сетка" },
-  { key: "tiktok", label: "Лента (вертикально)" },
-  { key: "fast", label: "Быстрый свайп" }
 ];
 
 interface FeedLocationState {
@@ -60,15 +54,17 @@ export function FeedPage(): JSX.Element {
   const { initializing: sessionLoading, user, withPipelineAccess } = useAuth();
   const [feedFilter, setFeedFilter] = useState<FeedFilterKey>("life");
   const [feedPeriod, setFeedPeriod] = useState<FeedPeriodKey>("all");
-  const [feedViewMode, setFeedViewMode] = useState<FeedViewMode>("grid");
+  const [feedVisibilityRevision, setFeedVisibilityRevision] = useState<number>(0);
 
   const isSavedUsefulTab: boolean = feedFilter === "saved_useful";
-  /** Placeholder topic when saved tab disables infinite scrolling; no requests are sent (`enabled: false`). */
-  const infiniteFeedFilter: Exclude<FeedFilterKey, "saved_useful"> =
-    feedFilter === "saved_useful" ? "life" : feedFilter;
+  const isReadSavedTab: boolean = feedFilter === "read_saved";
+  const isArchiveTab: boolean = isSavedUsefulTab || isReadSavedTab;
+  /** Placeholder topic when archive tabs disable infinite scrolling; no requests are sent (`enabled: false`). */
+  const infiniteFeedFilter: Exclude<FeedFilterKey, "saved_useful" | "read_saved"> =
+    isArchiveTab ? "life" : feedFilter;
 
   const { items: infiniteItems, loading: infiniteLoading, loadingMore, feedError: infiniteFeedError, nextCursor, reload, loadMore } =
-    useInfiniteFeed(infiniteFeedFilter, feedPeriod, { enabled: !isSavedUsefulTab });
+    useInfiniteFeed(infiniteFeedFilter, feedPeriod, { enabled: !isArchiveTab });
 
   const {
     items: savedItems,
@@ -77,13 +73,41 @@ export function FeedPage(): JSX.Element {
     refresh: refreshSavedUseful
   } = useUsefulSavedFeed(isSavedUsefulTab);
 
-  const items = isSavedUsefulTab ? savedItems : infiniteItems;
-  const feedLoading = isSavedUsefulTab ? savedLoading : infiniteLoading;
-  const feedError = isSavedUsefulTab ? savedFeedError : infiniteFeedError;
+  const {
+    items: readItems,
+    loading: readLoading,
+    feedError: readFeedError,
+    refresh: refreshReadSaved
+  } = useReadSavedFeed(isReadSavedTab);
 
-  const hasMore: boolean = !isSavedUsefulTab && nextCursor !== null;
+  const rawItems = isSavedUsefulTab ? savedItems : isReadSavedTab ? readItems : infiniteItems;
+  const visibleItems = isArchiveTab ? rawItems : filterActiveFeedItems(rawItems, feedFilter);
+  const feedLoading = isSavedUsefulTab ? savedLoading : isReadSavedTab ? readLoading : infiniteLoading;
+  const feedError = isSavedUsefulTab ? savedFeedError : isReadSavedTab ? readFeedError : infiniteFeedError;
+
+  useEffect(() => {
+    const bumpRevision = (): void => {
+      setFeedVisibilityRevision((value: number) => value + 1);
+    };
+    window.addEventListener(READ_STATE_CHANGED_EVENT, bumpRevision);
+    window.addEventListener(USEFUL_STORAGE_CHANGED_EVENT, bumpRevision);
+    return (): void => {
+      window.removeEventListener(READ_STATE_CHANGED_EVENT, bumpRevision);
+      window.removeEventListener(USEFUL_STORAGE_CHANGED_EVENT, bumpRevision);
+    };
+  }, []);
+
+  const hasMore: boolean = !isArchiveTab && nextCursor !== null;
   /** Hide feed until first page for current topic; keep grid during refresh when data exists. */
-  const feedBlocking: boolean = feedLoading && items.length === 0;
+  const feedBlocking: boolean = feedLoading && visibleItems.length === 0;
+  const allReadInCategory: boolean =
+    !isArchiveTab &&
+    !feedLoading &&
+    !feedError &&
+    infiniteItems.length > 0 &&
+    visibleItems.length === 0 &&
+    isAllReadInFetchedBatch(infiniteItems);
+  const showSwipeHint: boolean = !isArchiveTab;
 
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [healthError, setHealthError] = useState<string>("");
@@ -133,6 +157,9 @@ export function FeedPage(): JSX.Element {
       if (feedFilter === "saved_useful") {
         await refreshSavedUseful();
       }
+      if (feedFilter === "read_saved") {
+        await refreshReadSaved();
+      }
       await loadHealth();
     } catch (e: unknown) {
       if (e instanceof NetworkError) {
@@ -150,7 +177,7 @@ export function FeedPage(): JSX.Element {
   const pipelineOkMessage: string | null =
     lastManualRun !== null ? describePipelinePartialFailure(lastManualRun) : null;
 
-  const showDevPanels: boolean = feedViewMode === "grid" && !isSavedUsefulTab && canRunPipeline;
+  const showDevPanels: boolean = !isArchiveTab && canRunPipeline;
 
   const dismissVerificationNotice = (): void => {
     navigate(location.pathname, { replace: true, state: null });
@@ -215,8 +242,8 @@ export function FeedPage(): JSX.Element {
         ))}
       </div>
 
-      <div className="feed-controls-bar">
-        {feedFilter !== "top_today" && feedFilter !== "saved_useful" ? (
+      {feedFilter !== "top_today" && !isArchiveTab ? (
+        <div className="feed-controls-bar">
           <CompactSelect
             ariaLabel="Период"
             onChange={(value: FeedPeriodKey) => {
@@ -225,16 +252,8 @@ export function FeedPage(): JSX.Element {
             options={FEED_PERIOD_OPTIONS}
             value={feedPeriod}
           />
-        ) : null}
-        <CompactSelect
-          ariaLabel="Вид ленты"
-          onChange={(value: FeedViewMode) => {
-            setFeedViewMode(value);
-          }}
-          options={FEED_VIEW_OPTIONS}
-          value={feedViewMode}
-        />
-      </div>
+        </div>
+      ) : null}
 
       {showDevPanels && (
         <>
@@ -348,13 +367,34 @@ export function FeedPage(): JSX.Element {
         </>
       )}
 
+      {showSwipeHint ? (
+        <p className="feed-swipe-hint muted">Свайп вправо, если прочли новость, не открывая её.</p>
+      ) : null}
+
       {feedFilter === "positive" ? (
         <h2 className="feed-section-heading feed-section-heading--positive">☀️ Только Позитивные Новости (ТПН)</h2>
       ) : null}
 
-      {feedLoading && items.length === 0 && <p className="loading-inline">Загрузка ленты…</p>}
+      {feedLoading && visibleItems.length === 0 && <p className="loading-inline">Загрузка ленты…</p>}
       {feedError && <p className="error">{feedError}</p>}
-      {!feedLoading && !feedError && !isSavedUsefulTab && items.length === 0 ? (
+      {allReadInCategory ? (
+        <div className="feed-empty-state">
+          <p>В этой категории всё прочитано.</p>
+          <p className="muted">
+            Открытые статьи тоже попадают в «Прочитанные».{" "}
+            <button
+              className="feed-empty-state-link"
+              onClick={() => {
+                setFeedFilter("read_saved");
+              }}
+              type="button"
+            >
+              Перейти в «Прочитанные»
+            </button>
+          </p>
+        </div>
+      ) : null}
+      {!feedLoading && !feedError && !isArchiveTab && !allReadInCategory && visibleItems.length === 0 ? (
         <div className="feed-empty-state">
           <p>Сейчас в этой подборке нет новостей. Лента обновляется автоматически — попробуйте позже или обновите вручную.</p>
           <button disabled={feedLoading} onClick={() => void reload()} type="button">
@@ -362,42 +402,29 @@ export function FeedPage(): JSX.Element {
           </button>
         </div>
       ) : null}
-      {isSavedUsefulTab && !feedLoading && items.length === 0 && !feedError ? (
+      {isSavedUsefulTab && !feedLoading && visibleItems.length === 0 && !feedError ? (
         <p className="muted">
           Здесь появятся новости, отмеченные «Полезно». Список хранится в этом браузере (в Телеграме — в WebView),
           на сервер не синхронизируется.
         </p>
       ) : null}
+      {isReadSavedTab && !feedLoading && visibleItems.length === 0 && !feedError ? (
+        <p className="muted">
+          Здесь появятся прочитанные новости — после свайпа вправо или дочитывания статьи. Хранятся 30 дней на этом
+          устройстве.
+        </p>
+      ) : null}
 
-      {!feedBlocking && feedViewMode === "grid" && (
-        <GridFeed
-          feedLoading={feedLoading}
-          hasMore={hasMore}
-          items={items}
-          loadingMore={loadingMore}
-          onLoadMore={loadMore}
-        />
-      )}
-
-      {!feedBlocking && feedViewMode === "tiktok" && (
+      {!feedBlocking ? (
         <TikTokFeed
           hasMore={hasMore}
-          items={items}
-          key={`${feedFilter}-${feedPeriod}`}
+          items={visibleItems}
+          key={`${feedFilter}-${feedPeriod}-${feedVisibilityRevision}`}
           loadingMore={loadingMore}
           onLoadMore={loadMore}
+          swipeToRead={!isArchiveTab}
         />
-      )}
-
-      {!feedBlocking && feedViewMode === "fast" && (
-        <FastSwipeFeed
-          hasMore={hasMore}
-          items={items}
-          key={`${feedFilter}-${feedPeriod}`}
-          loadingMore={loadingMore}
-          onLoadMore={loadMore}
-        />
-      )}
+      ) : null}
     </section>
   );
 }

@@ -21,7 +21,7 @@ function buildFeedRequestOptions(
 }
 
 async function loadFeedFirstPage(
-  feedFilter: Exclude<FeedFilterKey, "saved_useful">,
+  feedFilter: Exclude<FeedFilterKey, "saved_useful" | "read_saved">,
   period: FeedPeriodKey
 ): Promise<{ items: NewsFeedItem[]; next_cursor: number | null }> {
   if (feedFilter === "top_today") {
@@ -80,7 +80,7 @@ export interface UseInfiniteFeedResult {
   loadMore: () => Promise<void>;
 }
 
-type StandardFeedFilter = Exclude<FeedFilterKey, "saved_useful">;
+type StandardFeedFilter = Exclude<FeedFilterKey, "saved_useful" | "read_saved">;
 
 export function useInfiniteFeed(
   feedFilter: StandardFeedFilter,
