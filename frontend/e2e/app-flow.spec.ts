@@ -6,7 +6,7 @@ test.describe("end-to-end", () => {
     await installApiMock(page);
     await page.goto("/");
 
-    await expect(page.getByRole("heading", { name: "Объясняем новости" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Новости простыми словами" })).toBeVisible();
     await expect(page.getByText("E2E Test News").first()).toBeVisible();
     await expect(page.getByText("Загрузка ленты…")).not.toBeVisible({ timeout: 15_000 });
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FastSwipeFeed } from "../components/FastSwipeFeed";
+import { CompactSelect } from "../components/CompactSelect";
 import { GridFeed } from "../components/GridFeed";
 import { TikTokFeed } from "../components/TikTokFeed";
 import { ApiError, getHealth, NetworkError, runPipeline } from "../api/client";
@@ -13,6 +14,34 @@ import type { FeedFilterKey, FeedPeriodKey } from "../types/news";
 import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
 
 type FeedViewMode = "grid" | "tiktok" | "fast";
+
+const FEED_TOPIC_ROWS: readonly (readonly { key: FeedFilterKey; label: string }[])[] = [
+  [
+    { key: "top_today", label: "🔥 Топ-5 сегодня" },
+    { key: "urgent", label: "⚡ Срочно" },
+    { key: "positive", label: "☀️ ТПН" }
+  ],
+  [
+    { key: "economy", label: "Экономика" },
+    { key: "life", label: "Жизнь" },
+    { key: "politics", label: "Политика" }
+  ],
+  [{ key: "saved_useful", label: "❤️ Полезные" }]
+];
+
+const FEED_PERIOD_OPTIONS: readonly { key: FeedPeriodKey; label: string }[] = [
+  { key: "all", label: "Всё время" },
+  { key: "today", label: "Сегодня" },
+  { key: "last_3_days", label: "3 дня" },
+  { key: "this_week", label: "Неделя" },
+  { key: "this_month", label: "Месяц" }
+];
+
+const FEED_VIEW_OPTIONS: readonly { key: FeedViewMode; label: string }[] = [
+  { key: "grid", label: "Сетка" },
+  { key: "tiktok", label: "Лента (вертикально)" },
+  { key: "fast", label: "Быстрый свайп" }
+];
 
 interface FeedLocationState {
   verificationPendingEmail?: string;
@@ -155,7 +184,7 @@ export function FeedPage(): JSX.Element {
       ) : null}
 
       <header className="page-header">
-        <h1>Объясняем новости</h1>
+        <h1>Новости простыми словами</h1>
         {canRunPipeline ? (
           <button disabled={pipelineRunning} onClick={() => void handleRefresh()} type="button">
             {pipelineRunning ? "Выполняется pipeline…" : "Обновить через pipeline"}
@@ -164,86 +193,47 @@ export function FeedPage(): JSX.Element {
       </header>
 
       <div className="feed-topic-bar" role="tablist" aria-label="Темы ленты">
-        {(
-          [
-            { key: "top_today" as const, label: "🔥 Топ-5 сегодня" },
-            { key: "politics" as const, label: "Политика" },
-            { key: "economy" as const, label: "Экономика" },
-            { key: "life" as const, label: "Жизнь" },
-            { key: "urgent" as const, label: "⚡ Срочно" },
-            { key: "positive" as const, label: "☀️ ТПН" },
-            { key: "saved_useful" as const, label: "❤️ Полезные" }
-          ] as const
-        ).map((opt, index) => (
-          <span key={opt.key} className="feed-topic-cell">
-            {index > 0 ? <span className="feed-topic-sep" aria-hidden="true" /> : null}
-            <button
-              type="button"
-              className={feedFilterPillClass(opt.key, feedFilter === opt.key)}
-              role="tab"
-              aria-selected={feedFilter === opt.key}
-              onClick={() => {
-                setFeedFilter(opt.key);
-              }}
-            >
-              {opt.label}
-            </button>
-          </span>
+        {FEED_TOPIC_ROWS.map((row, rowIndex: number) => (
+          <div key={rowIndex} className="feed-topic-row">
+            {row.map((opt, index: number) => (
+              <span key={opt.key} className="feed-topic-cell">
+                {index > 0 ? <span className="feed-topic-sep" aria-hidden="true" /> : null}
+                <button
+                  type="button"
+                  className={feedFilterPillClass(opt.key, feedFilter === opt.key)}
+                  role="tab"
+                  aria-selected={feedFilter === opt.key}
+                  onClick={() => {
+                    setFeedFilter(opt.key);
+                  }}
+                >
+                  {opt.label}
+                </button>
+              </span>
+            ))}
+          </div>
         ))}
       </div>
 
-      {feedFilter !== "top_today" && feedFilter !== "saved_useful" ? (
-        <div className="feed-period-bar" role="tablist" aria-label="Период">
-        {(
-          [
-            { key: "all" as const, label: "Всё время" },
-            { key: "today" as const, label: "Сегодня" },
-            { key: "last_3_days" as const, label: "3 дня" },
-            { key: "this_week" as const, label: "Неделя" },
-            { key: "this_month" as const, label: "Месяц" }
-          ] as const
-        ).map((opt, index) => (
-          <span key={opt.key} className="feed-topic-cell">
-            {index > 0 ? <span className="feed-topic-sep" aria-hidden="true" /> : null}
-            <button
-              type="button"
-              className={feedPeriod === opt.key ? "feed-topic-pill is-active" : "feed-topic-pill"}
-              role="tab"
-              aria-selected={feedPeriod === opt.key}
-              onClick={() => {
-                setFeedPeriod(opt.key);
-              }}
-            >
-              {opt.label}
-            </button>
-          </span>
-        ))}
-      </div>
-      ) : null}
-
-      <div className="feed-view-bar" role="tablist" aria-label="Вид ленты">
-        {(
-          [
-            { key: "grid" as const, label: "Сетка" },
-            { key: "tiktok" as const, label: "Лента (вертикально)" },
-            { key: "fast" as const, label: "Быстрый свайп" }
-          ] as const
-        ).map((opt, index) => (
-          <span key={opt.key} className="feed-topic-cell">
-            {index > 0 ? <span className="feed-topic-sep" aria-hidden="true" /> : null}
-            <button
-              type="button"
-              className={feedViewMode === opt.key ? "feed-topic-pill is-active" : "feed-topic-pill"}
-              role="tab"
-              aria-selected={feedViewMode === opt.key}
-              onClick={() => {
-                setFeedViewMode(opt.key);
-              }}
-            >
-              {opt.label}
-            </button>
-          </span>
-        ))}
+      <div className="feed-controls-bar">
+        {feedFilter !== "top_today" && feedFilter !== "saved_useful" ? (
+          <CompactSelect
+            ariaLabel="Период"
+            onChange={(value: FeedPeriodKey) => {
+              setFeedPeriod(value);
+            }}
+            options={FEED_PERIOD_OPTIONS}
+            value={feedPeriod}
+          />
+        ) : null}
+        <CompactSelect
+          ariaLabel="Вид ленты"
+          onChange={(value: FeedViewMode) => {
+            setFeedViewMode(value);
+          }}
+          options={FEED_VIEW_OPTIONS}
+          value={feedViewMode}
+        />
       </div>
 
       {showDevPanels && (

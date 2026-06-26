@@ -11,6 +11,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { ModerationPage } from "./pages/ModerationPage";
 import { NewsDetailsPage } from "./pages/NewsDetailsPage";
 import { AnalyticsConsentBanner } from "./components/AnalyticsConsentBanner";
+import { MainNavMore } from "./components/MainNavMore";
 import { ImpressumPage } from "./pages/ImpressumPage";
 import { ContactPage } from "./pages/ContactPage";
 import { PrivacyPage } from "./pages/PrivacyPage";
@@ -64,9 +65,7 @@ function App(): JSX.Element {
       <nav className="main-nav">
         <div className="main-nav-start">
           <Link to="/">Лента</Link>
-          <Link to="/contact">Контакты</Link>
-          <Link to="/privacy">Конфиденциальность</Link>
-          <Link to="/impressum">Impressum</Link>
+          <MainNavMore />
         </div>
         <div className="main-nav-end">
           <NavAuthActions />
