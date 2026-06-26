@@ -50,6 +50,8 @@ export interface NewsFeedItem {
   topic: NewsTopic;
   is_urgent: boolean;
   is_positive: boolean;
+  published_at: string;
+  source_name: string;
   created_at: string;
   rank?: TopNewsRankMeta;
 }
@@ -76,6 +78,8 @@ export interface ProcessedNews {
   topic: NewsTopic;
   is_urgent: boolean;
   is_positive: boolean;
+  published_at: string;
+  source_name: string;
   created_at: string;
 }
 
@@ -89,6 +93,8 @@ export function processedNewsToFeedItem(p: ProcessedNews): NewsFeedItem {
     topic: p.topic,
     is_urgent: p.is_urgent,
     is_positive: p.is_positive,
+    published_at: p.published_at,
+    source_name: p.source_name,
     created_at: p.created_at
   };
 }

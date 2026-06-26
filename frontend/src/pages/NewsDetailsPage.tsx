@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { enqueueOne } from "../analytics/engagementQueue";
 import { ApiError, getNews } from "../api/client";
 import { FullArticleMobileSection } from "../components/FullArticleMobileSection";
+import { NewsAttributionBlock } from "../components/NewsAttributionBlock";
 import { ShareNewsMobileSection } from "../components/ShareNewsMobileSection";
 import { newsTopicChipClass } from "../lib/newsUi";
 import {
@@ -231,6 +232,13 @@ export function NewsDetailsPage(): JSX.Element {
             {news.is_positive ? <span className="news-badge news-badge--positive">Хорошая новость</span> : null}
           </div>
         ) : null}
+        <NewsAttributionBlock
+          onSourceClick={handleOpenSourceClick}
+          publishedAt={news.published_at}
+          sourceName={news.source_name}
+          sourceUrl={news.source_url}
+          variant="detail"
+        />
         <h1>{news.title}</h1>
         {news.image_url ? (
           <img
@@ -268,9 +276,6 @@ export function NewsDetailsPage(): JSX.Element {
       <p className="news-detail-category">
         Категория: <span className={newsTopicChipClass(news.topic)}>{newsTopicLabelRu(news.topic)}</span>
       </p>
-      <a href={news.source_url} onClick={handleOpenSourceClick} rel="noreferrer" target="_blank">
-        Оригинальный источник
-      </a>
     </section>
   );
 }

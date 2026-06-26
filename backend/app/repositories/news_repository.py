@@ -233,16 +233,19 @@ class NewsRepository:
         urgent_only: bool = False,
         positive_only: bool = False,
         cursor_id: int | None = None,
-        created_at_since: datetime | None = None,
+        published_at_since: datetime | None = None,
     ) -> tuple[list[ProcessedNews], bool]:
-        """Return published items (newest first) and whether another page exists.
+        """Return published items (newest RSS publication first) and whether another page exists.
 
         Optional ``cursor_id`` is the ``id`` of the last item from the previous page;
-        this page continues with strictly older rows in (created_at desc, id desc) order.
+        this page continues with strictly older rows in (published_at desc, id desc) order.
         """
         fetch_limit: int = limit + 1
-        base: Select[tuple[ProcessedNews]] = select(ProcessedNews).where(
-            ProcessedNews.publication_status == PipelineStatus.PUBLISHED
+        base: Select[tuple[ProcessedNews]] = (
+            select(ProcessedNews)
+            .join(RawNewsItem, ProcessedNews.raw_item_id == RawNewsItem.id)
+            .where(ProcessedNews.publication_status == PipelineStatus.PUBLISHED)
+            .options(selectinload(ProcessedNews.raw_item).selectinload(RawNewsItem.source))
         )
         if urgent_only:
             base = base.where(ProcessedNews.is_urgent.is_(True))
@@ -250,11 +253,11 @@ class NewsRepository:
             base = base.where(ProcessedNews.is_positive.is_(True))
         elif topic is not None:
             base = base.where(ProcessedNews.topic == topic)
-        if created_at_since is not None:
-            base = base.where(ProcessedNews.created_at >= created_at_since)
+        if published_at_since is not None:
+            base = base.where(RawNewsItem.published_at >= published_at_since)
 
         if cursor_id is not None:
-            anchor: ProcessedNews | None = self.get_processed_by_id(cursor_id)
+            anchor: ProcessedNews | None = self.get_processed_by_id_with_raw(cursor_id)
             if anchor is None or anchor.publication_status != PipelineStatus.PUBLISHED:
                 return [], False
             if urgent_only and not anchor.is_urgent:
@@ -263,19 +266,22 @@ class NewsRepository:
                 return [], False
             if topic is not None and anchor.topic != topic:
                 return [], False
-            if created_at_since is not None and anchor.created_at < created_at_since:
+            raw_anchor: RawNewsItem | None = anchor.raw_item
+            if raw_anchor is None:
+                return [], False
+            if published_at_since is not None and raw_anchor.published_at < published_at_since:
                 return [], False
 
-            ct: datetime = anchor.created_at
+            pub_at: datetime = raw_anchor.published_at
             aid: int = anchor.id
             base = base.where(
                 or_(
-                    ProcessedNews.created_at < ct,
-                    and_(ProcessedNews.created_at == ct, ProcessedNews.id < aid),
+                    RawNewsItem.published_at < pub_at,
+                    and_(RawNewsItem.published_at == pub_at, ProcessedNews.id < aid),
                 )
             )
 
-        query = base.order_by(ProcessedNews.created_at.desc(), ProcessedNews.id.desc()).limit(fetch_limit)
+        query = base.order_by(RawNewsItem.published_at.desc(), ProcessedNews.id.desc()).limit(fetch_limit)
         rows: list[ProcessedNews] = list(self.db_session.execute(query).scalars().all())
         has_more: bool = len(rows) > limit
         if has_more:
@@ -295,19 +301,20 @@ class NewsRepository:
     def list_published_since_with_raw(
         self,
         *,
-        created_at_since: datetime,
+        published_at_since: datetime,
         limit: int = 500,
     ) -> list[ProcessedNews]:
         query: Select[tuple[ProcessedNews]] = (
             select(ProcessedNews)
+            .join(RawNewsItem, ProcessedNews.raw_item_id == RawNewsItem.id)
             .where(
                 and_(
                     ProcessedNews.publication_status == PipelineStatus.PUBLISHED,
-                    ProcessedNews.created_at >= created_at_since,
+                    RawNewsItem.published_at >= published_at_since,
                 ),
             )
-            .options(selectinload(ProcessedNews.raw_item))
-            .order_by(ProcessedNews.created_at.desc())
+            .options(selectinload(ProcessedNews.raw_item).selectinload(RawNewsItem.source))
+            .order_by(RawNewsItem.published_at.desc())
             .limit(limit)
         )
         return list(self.db_session.execute(query).scalars().all())
@@ -324,6 +331,7 @@ class NewsRepository:
                     ProcessedNews.created_at >= since,
                 ),
             )
+            .options(selectinload(ProcessedNews.raw_item).selectinload(RawNewsItem.source))
             .order_by(ProcessedNews.created_at.desc())
         )
         return list(self.db_session.execute(query).scalars().all())
@@ -336,7 +344,7 @@ class NewsRepository:
         query: Select[tuple[ProcessedNews]] = (
             select(ProcessedNews)
             .where(ProcessedNews.id == news_id)
-            .options(selectinload(ProcessedNews.raw_item))
+            .options(selectinload(ProcessedNews.raw_item).selectinload(RawNewsItem.source))
         )
         return self.db_session.execute(query).scalar_one_or_none()
 

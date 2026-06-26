@@ -19,6 +19,7 @@ from app.schemas.news import (
     normalize_one_sentence_for_api,
 )
 from app.services.full_article_service import FullArticleService, FullArticleUnavailableError
+from app.services.news_attribution import build_processed_news_response, published_at_and_source_name
 from app.services.top_news_scoring import total_top_score
 
 router: APIRouter = APIRouter()
@@ -45,7 +46,7 @@ def list_news(
     ),
     period: FeedPeriod | None = Query(
         default=None,
-        description="Lower bound on created_at: today, last 3 calendar days, this ISO week, or this month (Europe/Berlin).",
+        description="Lower bound on RSS publication time: today, last 3 calendar days, this ISO week, or this month (Europe/Berlin).",
     ),
     db_session: Session = Depends(get_db_session),
 ) -> NewsFeedPageResponse:
@@ -58,22 +59,26 @@ def list_news(
         urgent_only=urgent,
         positive_only=positive_only,
         cursor_id=cursor,
-        created_at_since=since,
+        published_at_since=since,
     )
-    items_list: list[NewsFeedItem] = [
-        NewsFeedItem(
-            id=item.id,
-            title=item.title,
-            subtitle=normalize_one_sentence_for_api(item.one_sentence_summary),
-            image_url=item.image_url,
-            read_time_minutes=item.read_time_minutes,
-            topic=item.topic,
-            is_urgent=item.is_urgent,
-            is_positive=item.is_positive,
-            created_at=item.created_at,
+    items_list: list[NewsFeedItem] = []
+    for item in news_rows:
+        pub_at, source_name = published_at_and_source_name(item)
+        items_list.append(
+            NewsFeedItem(
+                id=item.id,
+                title=item.title,
+                subtitle=normalize_one_sentence_for_api(item.one_sentence_summary),
+                image_url=item.image_url,
+                read_time_minutes=item.read_time_minutes,
+                topic=item.topic,
+                is_urgent=item.is_urgent,
+                is_positive=item.is_positive,
+                published_at=pub_at,
+                source_name=source_name,
+                created_at=item.created_at,
+            )
         )
-        for item in news_rows
-    ]
     next_cursor: int | None = items_list[-1].id if has_more and items_list else None
     return NewsFeedPageResponse(items=items_list, next_cursor=next_cursor)
 
@@ -87,7 +92,10 @@ def list_top_news_today(
     repository: NewsRepository = NewsRepository(db_session)
     since: datetime | None = period_start_utc_naive(FeedPeriod.TODAY)
     start: datetime = since if since is not None else datetime(1970, 1, 1)
-    candidates: list[ProcessedNews] = repository.list_published_since_with_raw(created_at_since=start, limit=500)
+    candidates: list[ProcessedNews] = repository.list_published_since_with_raw(
+        published_at_since=start,
+        limit=500,
+    )
     now_utc: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
     scored: list[tuple[int, int, ProcessedNews, TopNewsRankMeta]] = []
     for item in candidates:
@@ -116,31 +124,37 @@ def list_top_news_today(
         scored.append((total, item.id, item, meta))
     scored.sort(key=lambda row: (-row[0], -row[1]))
     top: list[tuple[int, int, ProcessedNews, TopNewsRankMeta]] = scored[:limit]
-    items_out: list[TopNewsFeedItem] = [
-        TopNewsFeedItem(
-            id=row.id,
-            title=row.title,
-            subtitle=normalize_one_sentence_for_api(row.one_sentence_summary),
-            image_url=row.image_url,
-            read_time_minutes=row.read_time_minutes,
-            topic=row.topic,
-            is_urgent=row.is_urgent,
-            is_positive=row.is_positive,
-            created_at=row.created_at,
-            rank=meta,
+    items_out: list[TopNewsFeedItem] = []
+    for _, _, row, meta in top:
+        pub_at, source_name = published_at_and_source_name(row)
+        items_out.append(
+            TopNewsFeedItem(
+                id=row.id,
+                title=row.title,
+                subtitle=normalize_one_sentence_for_api(row.one_sentence_summary),
+                image_url=row.image_url,
+                read_time_minutes=row.read_time_minutes,
+                topic=row.topic,
+                is_urgent=row.is_urgent,
+                is_positive=row.is_positive,
+                published_at=pub_at,
+                source_name=source_name,
+                created_at=row.created_at,
+                rank=meta,
+            )
         )
-        for _, _, row, meta in top
-    ]
     return TopNewsTodayResponse(items=items_out)
 
 
 @router.get("/{news_id}", response_model=ProcessedNewsResponse)
 def get_news(news_id: int, db_session: Session = Depends(get_db_session)) -> ProcessedNewsResponse:
     repository = NewsRepository(db_session)
-    item = repository.get_processed_by_id(news_id)
+    item = repository.get_processed_by_id_with_raw(news_id)
     if item is None:
         raise HTTPException(status_code=404, detail="News item not found.")
-    return ProcessedNewsResponse.model_validate(item)
+    if item is None:
+        raise HTTPException(status_code=404, detail="News item not found.")
+    return build_processed_news_response(item)
 
 
 @router.get("/{news_id}/full-article", response_model=FullArticleResponse)

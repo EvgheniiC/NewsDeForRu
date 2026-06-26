@@ -24,6 +24,8 @@ function makeItem(id: number, createdAt: string): ProcessedNews {
     topic: "life",
     is_urgent: false,
     is_positive: false,
+    published_at: createdAt,
+    source_name: "Example News",
     created_at: createdAt,
   };
 }

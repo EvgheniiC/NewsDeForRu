@@ -7,6 +7,7 @@ from app.models.app_user import AppUser
 from app.models.news import PipelineStatus, ProcessedNews
 from app.repositories.news_repository import NewsRepository
 from app.schemas.news import ModerationActionRequest, NewsMetadataPatchRequest, ProcessedNewsResponse
+from app.services.news_attribution import build_processed_news_response
 from app.services.telegram_notifier import send_moderation_approved_notice
 
 router: APIRouter = APIRouter()
@@ -18,7 +19,7 @@ def list_queue(
     _user: AppUser = Depends(require_moderator),
 ) -> list[ProcessedNewsResponse]:
     repository = NewsRepository(db_session)
-    return [ProcessedNewsResponse.model_validate(item) for item in repository.list_needs_review()]
+    return [build_processed_news_response(item) for item in repository.list_needs_review()]
 
 
 @router.patch("/{news_id}/metadata", response_model=ProcessedNewsResponse)
@@ -47,7 +48,10 @@ def patch_news_metadata(
     )
     if item is None:
         raise HTTPException(status_code=404, detail="News item not found.")
-    return ProcessedNewsResponse.model_validate(item)
+    loaded: ProcessedNews | None = repository.get_processed_by_id_with_raw(news_id)
+    if loaded is None:
+        raise HTTPException(status_code=404, detail="News item not found.")
+    return build_processed_news_response(loaded)
 
 
 @router.post("/{news_id}/action", response_model=ProcessedNewsResponse)
@@ -87,4 +91,7 @@ def moderate_news(
         if sent_mod:
             repository.mark_telegram_notified(item.id)
 
-    return ProcessedNewsResponse.model_validate(item)
+    loaded: ProcessedNews | None = repository.get_processed_by_id_with_raw(news_id)
+    if loaded is None:
+        raise HTTPException(status_code=404, detail="News item not found.")
+    return build_processed_news_response(loaded)

@@ -364,6 +364,14 @@ export function FeedPage(): JSX.Element {
 
       {feedLoading && items.length === 0 && <p className="loading-inline">Загрузка ленты…</p>}
       {feedError && <p className="error">{feedError}</p>}
+      {!feedLoading && !feedError && !isSavedUsefulTab && items.length === 0 ? (
+        <div className="feed-empty-state">
+          <p>Сейчас в этой подборке нет новостей. Лента обновляется автоматически — попробуйте позже или обновите вручную.</p>
+          <button disabled={feedLoading} onClick={() => void reload()} type="button">
+            Обновить ленту
+          </button>
+        </div>
+      ) : null}
       {isSavedUsefulTab && !feedLoading && items.length === 0 && !feedError ? (
         <p className="muted">
           Здесь появятся новости, отмеченные «Полезно». Список хранится в этом браузере (в Телеграме — в WebView),

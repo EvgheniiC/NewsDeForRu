@@ -12,6 +12,7 @@ import { ModerationPage } from "./pages/ModerationPage";
 import { NewsDetailsPage } from "./pages/NewsDetailsPage";
 import { AnalyticsConsentBanner } from "./components/AnalyticsConsentBanner";
 import { ImpressumPage } from "./pages/ImpressumPage";
+import { ContactPage } from "./pages/ContactPage";
 import { PrivacyPage } from "./pages/PrivacyPage";
 
 function NavAuthActions(): JSX.Element {
@@ -63,6 +64,7 @@ function App(): JSX.Element {
       <nav className="main-nav">
         <div className="main-nav-start">
           <Link to="/">Лента</Link>
+          <Link to="/contact">Контакты</Link>
           <Link to="/privacy">Конфиденциальность</Link>
           <Link to="/impressum">Impressum</Link>
         </div>
@@ -84,6 +86,7 @@ function App(): JSX.Element {
         <Route element={<VerifyEmailPage />} path="/account/verify" />
         <Route element={<ResendVerificationPage />} path="/account/resend-verification" />
         <Route element={<PrivacyPage />} path="/privacy" />
+        <Route element={<ContactPage />} path="/contact" />
         <Route element={<ImpressumPage />} path="/impressum" />
       </Routes>
     </main>

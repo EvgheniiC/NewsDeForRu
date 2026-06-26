@@ -45,6 +45,8 @@ export async function installApiMock(page: Page): Promise<void> {
     topic: "life",
     is_urgent: false,
     is_positive: false,
+    published_at: "2024-01-15T10:00:00",
+    source_name: "Example News",
     created_at: "2024-01-15T10:00:00",
   };
 
@@ -68,6 +70,8 @@ export async function installApiMock(page: Page): Promise<void> {
     topic: "life",
     is_urgent: false,
     is_positive: false,
+    published_at: "2024-01-15T10:00:00",
+    source_name: "Example News",
     created_at: "2024-01-15T10:00:00",
   };
 

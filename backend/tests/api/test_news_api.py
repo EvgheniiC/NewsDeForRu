@@ -15,6 +15,24 @@ def test_news_endpoint_returns_paginated_shape() -> None:
     assert "next_cursor" in data
     assert isinstance(data["items"], list)
     assert data["next_cursor"] is None or isinstance(data["next_cursor"], int)
+    for item in data["items"]:
+        assert "published_at" in item
+        assert "source_name" in item
+
+
+def test_news_detail_includes_attribution_fields() -> None:
+    init_database()
+    list_response = client.get("/news")
+    assert list_response.status_code == 200
+    items: list[dict] = list_response.json()["items"]
+    if not items:
+        return
+    news_id: int = int(items[0]["id"])
+    detail_response = client.get(f"/news/{news_id}")
+    assert detail_response.status_code == 200
+    detail: dict = detail_response.json()
+    assert detail["published_at"]
+    assert detail["source_name"]
 
 
 def test_news_endpoint_accepts_period_filter() -> None:

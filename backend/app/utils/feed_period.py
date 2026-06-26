@@ -12,7 +12,7 @@ MODERATION_QUEUE_MAX_AGE_DAYS: int = 7
 
 
 def period_start_utc_naive(period: FeedPeriod | None) -> datetime | None:
-    """Return inclusive lower bound for ``created_at`` (DB stores naive UTC)."""
+    """Return inclusive lower bound for ``raw_news_items.published_at`` (DB stores naive UTC)."""
     if period is None:
         return None
 

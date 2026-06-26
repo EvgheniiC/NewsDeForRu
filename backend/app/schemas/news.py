@@ -62,12 +62,14 @@ class ProcessedNewsResponse(BaseModel):
     is_urgent: bool
     is_positive: bool
     importance_ai_score: int
+    published_at: datetime
+    source_name: str
     created_at: datetime
 
     model_config = {"from_attributes": True}
 
-    @field_serializer("created_at")
-    def _serialize_created_at(self, value: datetime) -> str:
+    @field_serializer("published_at", "created_at")
+    def _serialize_datetimes(self, value: datetime) -> str:
         return to_berlin_iso(value)
 
     @model_validator(mode="after")
@@ -94,12 +96,14 @@ class NewsFeedItem(BaseModel):
     topic: NewsTopic
     is_urgent: bool
     is_positive: bool
+    published_at: datetime
+    source_name: str
     created_at: datetime
 
     model_config = {"from_attributes": True}
 
-    @field_serializer("created_at")
-    def _serialize_created_at(self, value: datetime) -> str:
+    @field_serializer("published_at", "created_at")
+    def _serialize_datetimes(self, value: datetime) -> str:
         return to_berlin_iso(value)
 
 

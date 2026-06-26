@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { enqueueOne } from "../analytics/engagementQueue";
 import { feedFilterPillClass, newsCardClassName, newsTopicChipClass } from "../lib/newsUi";
+import { formatDateRuBerlin } from "../lib/dateTimeBerlin";
 import type { FeedAnalyticsMode } from "../types/engagement";
 import { newsTopicLabelRu, type NewsFeedItem } from "../types/news";
 import { notifyUsefulStorageChanged, readStoredUseful, USEFUL_STORAGE_PREFIX } from "../lib/usefulStorage";
@@ -90,6 +91,11 @@ export function NewsCard({ item, variant = "compact", feedMode = "grid" }: NewsC
           {item.is_positive ? <span className="news-badge news-badge--positive">Хорошая новость</span> : null}
         </div>
       ) : null}
+      <p className="news-card-meta">
+        <span>{formatDateRuBerlin(item.published_at)}</span>
+        <span aria-hidden="true"> · </span>
+        <span>{item.source_name}</span>
+      </p>
       <h3>{item.title}</h3>
       {item.rank ? (
         <p className="news-top-rank-line">
