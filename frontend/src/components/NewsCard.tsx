@@ -5,7 +5,7 @@ import { feedFilterPillClass, newsCardClassName, newsTopicChipClass } from "../l
 import { formatDateRuBerlin } from "../lib/dateTimeBerlin";
 import type { FeedAnalyticsMode } from "../types/engagement";
 import { newsTopicLabelRu, type NewsFeedItem } from "../types/news";
-import { notifyUsefulStorageChanged, readStoredUseful, USEFUL_STORAGE_PREFIX } from "../lib/usefulStorage";
+import { readStoredUseful, setStoredUseful } from "../lib/usefulStorage";
 
 export type NewsCardVariant = "compact" | "immersive";
 
@@ -70,12 +70,7 @@ export function NewsCard({ item, variant = "compact", feedMode = "grid" }: NewsC
   const handleUsefulClick = (): void => {
     const next: boolean = !useful;
     setUseful(next);
-    try {
-      window.localStorage.setItem(`${USEFUL_STORAGE_PREFIX}${item.id}`, next ? "1" : "0");
-    } catch {
-      /* storage full or disabled */
-    }
-    notifyUsefulStorageChanged();
+    setStoredUseful(item.id, next);
     enqueueOne(item.id, "useful", { value: next }, true);
   };
 

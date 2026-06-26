@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, getNews, NetworkError } from "../api/client";
 import {
+  USEFUL_STATE_STORAGE_KEY,
   USEFUL_STORAGE_CHANGED_EVENT,
-  listUsefulMarkedNewsIds,
-  USEFUL_STORAGE_PREFIX
+  USEFUL_STORAGE_PREFIX,
+  listUsefulMarkedNewsIds
 } from "../lib/usefulStorage";
 import { processedNewsToFeedItem, type NewsFeedItem } from "../types/news";
 
@@ -78,7 +79,7 @@ export function useUsefulSavedFeed(enabled: boolean): UseUsefulSavedFeedResult {
       return;
     }
     const onStorage = (e: StorageEvent): void => {
-      if (e.key !== null && e.key.startsWith(USEFUL_STORAGE_PREFIX)) {
+      if (e.key === USEFUL_STATE_STORAGE_KEY || (e.key !== null && e.key.startsWith(USEFUL_STORAGE_PREFIX))) {
         void load();
       }
     };

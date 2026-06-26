@@ -404,8 +404,8 @@ export function FeedPage(): JSX.Element {
       ) : null}
       {isSavedUsefulTab && !feedLoading && visibleItems.length === 0 && !feedError ? (
         <p className="muted">
-          Здесь появятся новости, отмеченные «Полезно». Список хранится в этом браузере (в Телеграме — в WebView),
-          на сервер не синхронизируется.
+          Здесь появятся новости, отмеченные «Полезно». Хранятся 60 дней на этом устройстве, на сервер не
+          синхронизируются.
         </p>
       ) : null}
       {isReadSavedTab && !feedLoading && visibleItems.length === 0 && !feedError ? (
