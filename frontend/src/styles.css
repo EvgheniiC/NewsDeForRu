@@ -483,6 +483,10 @@ body {
   padding: 8px 10px;
 }
 
+.news-attribution--detail {
+  margin-top: 20px;
+}
+
 .news-attribution__meta {
   margin: 0 0 8px;
   font-size: 0.9rem;

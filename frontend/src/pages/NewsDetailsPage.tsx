@@ -235,13 +235,6 @@ export function NewsDetailsPage(): JSX.Element {
             {news.is_positive ? <span className="news-badge news-badge--positive">Хорошая новость</span> : null}
           </div>
         ) : null}
-        <NewsAttributionBlock
-          onSourceClick={handleOpenSourceClick}
-          publishedAt={news.published_at}
-          sourceName={news.source_name}
-          sourceUrl={news.source_url}
-          variant="detail"
-        />
         <h1>{news.title}</h1>
         {news.image_url ? (
           <img
@@ -269,6 +262,13 @@ export function NewsDetailsPage(): JSX.Element {
             <strong>Дополнительно:</strong> {additionalText}
           </p>
         ) : null}
+        <NewsAttributionBlock
+          onSourceClick={handleOpenSourceClick}
+          publishedAt={news.published_at}
+          sourceName={news.source_name}
+          sourceUrl={news.source_url}
+          variant="detail"
+        />
       </article>
       <ShareNewsMobileSection
         newsId={newsId}
