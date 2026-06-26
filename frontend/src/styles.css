@@ -381,17 +381,6 @@ body {
   pointer-events: none;
 }
 
-.news-top-rank-line {
-  margin: 0 0 8px;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--top-fg);
-  background: var(--top-bg);
-  border: 1px solid var(--top-border);
-  border-radius: 6px;
-  padding: 4px 8px;
-}
-
 .news-card {
   position: relative;
   background-color: var(--bg-card);

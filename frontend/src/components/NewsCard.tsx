@@ -92,12 +92,6 @@ export function NewsCard({ item, variant = "compact", feedMode = "grid" }: NewsC
         <span>{item.source_name}</span>
       </p>
       <h3>{item.title}</h3>
-      {item.rank ? (
-        <p className="news-top-rank-line">
-          Балл {item.rank.total_score}: {item.rank.source_count} источн. по теме · свежесть +{item.rank.freshness_points} · ИИ{" "}
-          {item.rank.ai_importance}/10
-        </p>
-      ) : null}
       {item.image_url ? (
         <img
           alt={item.title}
