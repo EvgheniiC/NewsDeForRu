@@ -149,6 +149,15 @@ class Settings(BaseSettings):
     # SQLite / generic DB: TTL for digest mutex row; release() clears it when the job finishes.
     telegram_digest_lock_ttl_seconds: int = Field(default=600, ge=30, le=3600)
 
+    # FCM push (Android): urgent / breaking news only. Requires Firebase service account JSON on the server.
+    push_notifications_enabled: bool = False
+    fcm_service_account_path: str = ""
+    fcm_urgent_topic: str = "urgent-news"
+    push_urgent_send_max_attempts: int = Field(default=3, ge=1, le=10)
+    push_urgent_send_retry_base_seconds: float = Field(default=5.0, ge=0.0, le=600.0)
+    # When True, urgent push runs in a daemon thread so the RSS pipeline loop is not blocked by retries/sleep.
+    push_urgent_background_enabled: bool = False
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

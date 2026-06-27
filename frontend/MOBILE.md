@@ -33,6 +33,27 @@
   - `/.well-known/assetlinks.json` — подставьте **SHA-256 отпечаток** ключа подписи приложения (релиз или отладка). Шаблон лежит в `frontend/public/.well-known/assetlinks.json` и попадает в `dist` при сборке.
   - `/.well-known/apple-app-site-association` — для iOS; замените `APPLE_TEAM_ID` на свой Team ID. Без расширения `.json`; желательно отдавать как `application/json`.
 
+## Push: срочные новости (Android)
+
+Дополнительный канал к Telegram: пользователь включает **«⚡ Срочные push»** в меню «Ещё» (только native Android). На сервер уходит FCM token; бэкенд подписывает его на topic `urgent-news` и шлёт push при автопубликации срочной новости.
+
+### Firebase (клиент)
+
+1. [Firebase Console](https://console.firebase.google.com) → проект → **Add app** → Android, package `de.simplenewsapp.app`.
+2. Скачайте **`google-services.json`** → `frontend/android/app/google-services.json` (файл локальный, в git обычно не коммитится).
+3. `npm run build:mobile` — плагин `@capacitor/push-notifications` подтянется в Gradle (нужен `google-services` classpath — уже в `android/build.gradle`).
+
+### Firebase (сервер)
+
+1. Firebase → Project settings → **Service accounts** → **Generate new private key** (JSON).
+2. Положите JSON на VPS (вне git), укажите путь в `backend/.env`:
+   - `PUSH_NOTIFICATIONS_ENABLED=true`
+   - `FCM_SERVICE_ACCOUNT_PATH=/path/to/service-account.json`
+   - опционально `FCM_URGENT_TOPIC=urgent-news`
+3. `pip install -r requirements.txt` (пакет `firebase-admin`), миграция `alembic upgrade head`.
+
+Push **не заменяет** Telegram: это отдельный opt-in для тех, у кого нет Telegram или кто хочет уведомления в приложении.
+
 **Отпечаток для Android (пример):**
 
 ```bash

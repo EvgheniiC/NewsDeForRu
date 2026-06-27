@@ -17,6 +17,7 @@ from app.services.llm_provider import LLMProvider, create_llm_provider
 from app.services.preview_image_service import resolve_preview_image_url
 from app.services.publication_service import PublicationDecisionInput, PublicationService
 from app.services.telegram_notifier import send_auto_published_notice
+from app.services.push_notifier import send_urgent_push_notice
 from app.services.relevance_filter_service import RelevanceFilterService
 from app.services.rss_ingestion_service import RSSIngestionService
 from app.services.urgent_news import ev_is_urgent_news
@@ -250,6 +251,43 @@ class PipelineService:
                             )
                             if sent_breaking:
                                 self.repository.mark_telegram_notified(saved.id)
+                        if app_settings.push_urgent_background_enabled:
+                            push_id: int = saved.id
+                            push_title: str = saved.title
+                            push_summary: str = saved.one_sentence_summary
+
+                            def _urgent_push_worker() -> None:
+                                try:
+                                    sent_push_bg: bool = send_urgent_push_notice(
+                                        title_ru=push_title,
+                                        one_sentence_summary=push_summary,
+                                        processed_id=push_id,
+                                        use_urgent_retries=True,
+                                    )
+                                    if not sent_push_bg:
+                                        return
+                                    with SessionLocal() as bg_session:
+                                        NewsRepository(bg_session).mark_push_notified(push_id)
+                                except Exception:
+                                    logger.exception(
+                                        "Background urgent push failed processed_news_id=%s",
+                                        push_id,
+                                    )
+
+                            threading.Thread(
+                                target=_urgent_push_worker,
+                                daemon=True,
+                                name=f"push-urgent-{push_id}",
+                            ).start()
+                        else:
+                            sent_push: bool = send_urgent_push_notice(
+                                title_ru=saved.title,
+                                one_sentence_summary=saved.one_sentence_summary,
+                                processed_id=saved.id,
+                                use_urgent_retries=True,
+                            )
+                            if sent_push:
+                                self.repository.mark_push_notified(saved.id)
                 self.repository.update_raw_status(
                     raw_item=raw_item,
                     status=PipelineStatus.PROCESSED,

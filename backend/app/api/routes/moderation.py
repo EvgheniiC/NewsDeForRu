@@ -9,6 +9,7 @@ from app.repositories.news_repository import NewsRepository
 from app.schemas.news import ModerationActionRequest, NewsMetadataPatchRequest, ProcessedNewsResponse
 from app.services.news_attribution import build_processed_news_response
 from app.services.telegram_notifier import send_moderation_approved_notice
+from app.services.push_notifier import send_urgent_push_notice
 
 router: APIRouter = APIRouter()
 
@@ -90,6 +91,15 @@ def moderate_news(
         )
         if sent_mod:
             repository.mark_telegram_notified(item.id)
+        if item.is_urgent:
+            sent_push_mod: bool = send_urgent_push_notice(
+                title_ru=item.title,
+                one_sentence_summary=item.one_sentence_summary,
+                processed_id=item.id,
+                use_urgent_retries=True,
+            )
+            if sent_push_mod:
+                repository.mark_push_notified(item.id)
 
     loaded: ProcessedNews | None = repository.get_processed_by_id_with_raw(news_id)
     if loaded is None:

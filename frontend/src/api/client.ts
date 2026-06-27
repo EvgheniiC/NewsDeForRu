@@ -271,6 +271,27 @@ export async function patchNewsMetadata(
   });
 }
 
+export interface PushSubscriptionResponseBody {
+  subscribed: boolean;
+  topic: string;
+}
+
+export async function subscribePush(deviceToken: string): Promise<PushSubscriptionResponseBody> {
+  return fetchJson<PushSubscriptionResponseBody>("/push/subscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ device_token: deviceToken, platform: "android" }),
+  });
+}
+
+export async function unsubscribePush(deviceToken: string): Promise<PushSubscriptionResponseBody> {
+  return fetchJson<PushSubscriptionResponseBody>("/push/unsubscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ device_token: deviceToken }),
+  });
+}
+
 /**
  * Manual `POST /pipeline/run`. On HTTP 2xx returns typed body (may include `ok: false`
  * when the backend swallows errors; manual run usually raises on failure → 5xx).

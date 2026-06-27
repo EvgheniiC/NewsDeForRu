@@ -414,6 +414,14 @@ class NewsRepository:
         self.db_session.add(row)
         self.db_session.commit()
 
+    def mark_push_notified(self, news_id: int) -> None:
+        row: ProcessedNews | None = self.get_processed_by_id(news_id)
+        if row is None:
+            return
+        row.push_notified_at = datetime.utcnow()
+        self.db_session.add(row)
+        self.db_session.commit()
+
     def get_raw_item_by_id(self, raw_id: int) -> RawNewsItem | None:
         query: Select[tuple[RawNewsItem]] = (
             select(RawNewsItem).where(RawNewsItem.id == raw_id).options(selectinload(RawNewsItem.source))

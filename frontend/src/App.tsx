@@ -1,6 +1,7 @@
 import { Link, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import { DeepLinkListener } from "./mobile/DeepLinkListener";
+import { PushNotificationListener } from "./mobile/PushNotificationListener";
 import { AccountPage } from "./pages/AccountPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
@@ -62,6 +63,7 @@ function App(): JSX.Element {
   return (
     <main className="container">
       <DeepLinkListener />
+      <PushNotificationListener />
       <nav className="main-nav">
         <div className="main-nav-start">
           <Link to="/">Лента</Link>

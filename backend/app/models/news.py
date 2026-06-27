@@ -142,6 +142,7 @@ class ProcessedNews(Base):
     is_positive: Mapped[bool] = mapped_column(default=False, nullable=False)
     importance_ai_score: Mapped[int] = mapped_column(Integer, default=5, nullable=False)
     telegram_notified_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=None)
+    push_notified_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     raw_item: Mapped[RawNewsItem] = relationship()

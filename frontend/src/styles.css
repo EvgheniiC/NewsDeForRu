@@ -181,6 +181,33 @@ body {
   display: none;
 }
 
+.urgent-push-toggle {
+  padding: 0.35rem 0.5rem 0.65rem;
+  border-bottom: 1px solid var(--border-card);
+  margin-bottom: 0.35rem;
+}
+
+.urgent-push-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.urgent-push-toggle-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--text-muted, #666);
+}
+
+.urgent-push-toggle-error {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  color: #b00020;
+}
+
 .main-nav-muted {
   opacity: 0.6;
   align-self: center;
