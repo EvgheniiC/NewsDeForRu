@@ -7,6 +7,7 @@ import type { NewsFeedItem } from "../types/news";
 const QUICK_NAV_MS: number = 2200;
 const SNAP_IDLE_MS: number = 280;
 const SNAP_MIN_OFFSET_PX: number = 8;
+const MOBILE_SNAP_MQ: string = "(max-width: 640px)";
 
 function snapFeedToNearestCard(root: HTMLDivElement): void {
   const snaps: NodeListOf<HTMLElement> = root.querySelectorAll(".tiktok-feed-snap[data-news-id]");
@@ -59,6 +60,8 @@ export function TikTokFeed({
       return;
     }
 
+    const mediaQuery: MediaQueryList = window.matchMedia(MOBILE_SNAP_MQ);
+
     const scheduleSnap = (): void => {
       if (snapTimerRef.current !== null) {
         window.clearTimeout(snapTimerRef.current);
@@ -73,16 +76,33 @@ export function TikTokFeed({
       snapFeedToNearestCard(root);
     };
 
-    root.addEventListener("scroll", scheduleSnap, { passive: true });
-    root.addEventListener("scrollend", onScrollEnd);
+    const bindSnapListeners = (): void => {
+      root.addEventListener("scroll", scheduleSnap, { passive: true });
+      root.addEventListener("scrollend", onScrollEnd);
+    };
 
-    return (): void => {
+    const unbindSnapListeners = (): void => {
       root.removeEventListener("scroll", scheduleSnap);
       root.removeEventListener("scrollend", onScrollEnd);
       if (snapTimerRef.current !== null) {
         window.clearTimeout(snapTimerRef.current);
         snapTimerRef.current = null;
       }
+    };
+
+    const syncSnapMode = (): void => {
+      unbindSnapListeners();
+      if (mediaQuery.matches) {
+        bindSnapListeners();
+      }
+    };
+
+    syncSnapMode();
+    mediaQuery.addEventListener("change", syncSnapMode);
+
+    return (): void => {
+      mediaQuery.removeEventListener("change", syncSnapMode);
+      unbindSnapListeners();
     };
   }, [items.length]);
 
