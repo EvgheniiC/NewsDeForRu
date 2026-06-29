@@ -30,40 +30,49 @@ export function NewsCard({ item, variant = "compact", feedMode = "grid" }: NewsC
     readCompleteSentRef.current = false;
   }, [item.id]);
 
+  const isTikTokImmersive: boolean = feedMode === "tiktok" && variant === "immersive";
+
   useEffect(() => {
-    const root: HTMLDivElement | null = scrollRootRef.current;
     const sentinel: HTMLDivElement | null = sentinelRef.current;
-    if (root === null || sentinel === null) {
+    if (sentinel === null) {
       return;
     }
+    const root: Element | null = isTikTokImmersive ? null : scrollRootRef.current;
+    if (!isTikTokImmersive && root === null) {
+      return;
+    }
+    const minRatio: number = isTikTokImmersive ? 0.55 : 0.99;
     const observer: IntersectionObserver = new IntersectionObserver(
       (entries: IntersectionObserverEntry[]) => {
         for (const entry of entries) {
           if (entry.target !== sentinel) {
             continue;
           }
-          if (!(entry.isIntersecting && entry.intersectionRatio >= 0.99)) {
+          if (!(entry.isIntersecting && entry.intersectionRatio >= minRatio)) {
             continue;
           }
           if (readCompleteSentRef.current) {
             continue;
           }
           readCompleteSentRef.current = true;
-          enqueueOne(item.id, "read_complete_preview", { max_ratio: 1 }, true);
+          enqueueOne(item.id, "read_complete_preview", { max_ratio: entry.intersectionRatio }, true);
           break;
         }
       },
-      { root, rootMargin: "0px", threshold: [0.99] }
+      { root, rootMargin: "0px", threshold: isTikTokImmersive ? [0, 0.25, 0.55, 0.75, 1] : [0.99] }
     );
     observer.observe(sentinel);
     return (): void => {
       observer.disconnect();
     };
-  }, [item.id, variant]);
+  }, [item.id, variant, feedMode, isTikTokImmersive]);
 
   const rootClass: string = newsCardClassName(item, variant);
-  const scrollClass: string =
-    variant === "immersive" ? "news-card-scroll news-card-scroll-immersive" : "news-card-scroll";
+  const scrollClass: string = isTikTokImmersive
+    ? "news-card-body-immersive"
+    : variant === "immersive"
+      ? "news-card-scroll news-card-scroll-immersive"
+      : "news-card-scroll";
 
   const hasBadges: boolean = item.is_urgent || item.is_positive;
 

@@ -5,8 +5,8 @@ import { SwipeToReadSnap } from "./SwipeToReadSnap";
 import type { NewsFeedItem } from "../types/news";
 
 const QUICK_NAV_MS: number = 2200;
-const SNAP_IDLE_MS: number = 140;
-const SNAP_MIN_OFFSET_PX: number = 12;
+const SNAP_IDLE_MS: number = 280;
+const SNAP_MIN_OFFSET_PX: number = 8;
 
 function snapFeedToNearestCard(root: HTMLDivElement): void {
   const snaps: NodeListOf<HTMLElement> = root.querySelectorAll(".tiktok-feed-snap[data-news-id]");
@@ -15,15 +15,14 @@ function snapFeedToNearestCard(root: HTMLDivElement): void {
   }
 
   const rootRect: DOMRect = root.getBoundingClientRect();
-  const rootCenterY: number = rootRect.top + rootRect.height / 2;
+  const snapAnchorY: number = rootRect.top;
 
   let bestElement: HTMLElement | null = null;
   let bestDistance: number = Number.POSITIVE_INFINITY;
 
   snaps.forEach((element: HTMLElement) => {
     const rect: DOMRect = element.getBoundingClientRect();
-    const centerY: number = rect.top + rect.height / 2;
-    const distance: number = Math.abs(centerY - rootCenterY);
+    const distance: number = Math.abs(rect.top - snapAnchorY);
     if (distance < bestDistance) {
       bestDistance = distance;
       bestElement = element;
@@ -31,7 +30,7 @@ function snapFeedToNearestCard(root: HTMLDivElement): void {
   });
 
   if (bestElement !== null && bestDistance > SNAP_MIN_OFFSET_PX) {
-    bestElement.scrollIntoView({ behavior: "smooth", block: "center" });
+    bestElement.scrollIntoView({ behavior: "instant", block: "start" });
   }
 }
 

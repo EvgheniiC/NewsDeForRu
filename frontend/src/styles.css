@@ -113,6 +113,10 @@ body {
   margin: 0 auto;
   max-width: 980px;
   padding: 16px;
+  padding-top: max(16px, env(safe-area-inset-top, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
 }
 
 .main-nav {
@@ -122,6 +126,7 @@ body {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 16px;
+  min-height: 2rem;
 }
 
 .main-nav-start,
@@ -138,10 +143,45 @@ body {
 }
 
 @media (max-width: 640px) {
+  .container {
+    padding-top: max(20px, env(safe-area-inset-top, 0px));
+  }
+
+  .main-nav {
+    margin-bottom: 12px;
+  }
+
   .main-nav-end {
     margin-left: auto;
     width: auto;
     justify-content: flex-end;
+  }
+
+  .page-header {
+    margin-bottom: 8px;
+    gap: 4px;
+  }
+
+  .page-header h1 {
+    font-size: clamp(0.95rem, 4.2vw, 1.35rem);
+  }
+
+  .feed-topic-bar {
+    padding: 4px 0;
+    margin-bottom: 6px;
+  }
+
+  .feed-topic-pill {
+    font-size: 0.84rem;
+    padding: 5px 8px;
+  }
+
+  .feed-swipe-hint {
+    margin-bottom: 6px;
+  }
+
+  .tiktok-feed-scroll {
+    height: min(920px, calc(100dvh - 175px));
   }
 }
 
@@ -262,9 +302,19 @@ body {
 }
 
 .feed-topic-row {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: nowrap;
   align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 2px 0;
+}
+
+.feed-topic-row::-webkit-scrollbar {
+  display: none;
 }
 
 .feed-period-bar {
@@ -299,36 +349,19 @@ body {
   background-position: right 8px center;
 }
 
-.feed-topic-cell {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-}
-
-.feed-topic-sep {
-  color: #94a3b8;
-  margin: 0 3px;
-  user-select: none;
-  flex-shrink: 0;
-}
-
-.feed-topic-sep::before {
-  content: "|";
-}
-
 .feed-topic-pill {
   font: inherit;
   font-size: 0.88rem;
   border: none;
   background: transparent;
   color: var(--text-muted);
-  padding: 4px 2px;
+  padding: 6px 10px;
   border-radius: 6px;
   cursor: pointer;
   text-decoration: none;
   border-bottom: 2px solid transparent;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .feed-topic-pill:hover {
@@ -647,7 +680,20 @@ body {
 }
 
 .moderation-period-bar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
   margin-bottom: 20px;
+  padding: 2px 0;
+}
+
+.moderation-period-bar::-webkit-scrollbar {
+  display: none;
 }
 
 .moderation-period-count {
@@ -822,6 +868,21 @@ body {
   flex: 1;
   min-height: 0;
   max-height: min(360px, 42vh);
+}
+
+.news-card-body-immersive {
+  flex: 1;
+  min-height: 0;
+  overflow: visible;
+  margin: 0 0 10px;
+  touch-action: pan-y;
+}
+
+.news-card-body-immersive .news-card-subtitle-immersive {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  overflow: hidden;
 }
 
 .news-card-scroll p {
@@ -1032,6 +1093,11 @@ body {
   min-height: min(460px, calc(100dvh - 320px));
 }
 
+.tiktok-feed-snap .news-card-immersive {
+  min-height: 100%;
+  height: 100%;
+}
+
 .news-card-subtitle-immersive {
   line-height: 1.45;
   margin: 0;
@@ -1044,19 +1110,21 @@ body {
 .tiktok-feed-scroll {
   overflow-y: auto;
   overflow-x: hidden;
-  scroll-snap-type: y proximity;
-  scroll-behavior: smooth;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: auto;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
-  height: min(760px, calc(100dvh - 260px));
+  height: min(920px, calc(100dvh - 190px));
   padding: 0 16px;
+  touch-action: pan-y;
 }
 
 .tiktok-feed-snap {
-  scroll-snap-align: center;
+  scroll-snap-align: start;
   scroll-snap-stop: always;
-  min-height: min(520px, calc(100dvh - 300px));
-  padding-bottom: 20px;
+  min-height: 100%;
+  box-sizing: border-box;
+  padding-bottom: 12px;
 }
 
 .tiktok-feed-sentinel {

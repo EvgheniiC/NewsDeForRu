@@ -222,21 +222,19 @@ export function FeedPage(): JSX.Element {
       <div className="feed-topic-bar" role="tablist" aria-label="Темы ленты">
         {FEED_TOPIC_ROWS.map((row, rowIndex: number) => (
           <div key={rowIndex} className="feed-topic-row">
-            {row.map((opt, index: number) => (
-              <span key={opt.key} className="feed-topic-cell">
-                {index > 0 ? <span className="feed-topic-sep" aria-hidden="true" /> : null}
-                <button
-                  type="button"
-                  className={feedFilterPillClass(opt.key, feedFilter === opt.key)}
-                  role="tab"
-                  aria-selected={feedFilter === opt.key}
-                  onClick={() => {
-                    setFeedFilter(opt.key);
-                  }}
-                >
-                  {opt.label}
-                </button>
-              </span>
+            {row.map((opt) => (
+              <button
+                key={opt.key}
+                type="button"
+                className={feedFilterPillClass(opt.key, feedFilter === opt.key)}
+                role="tab"
+                aria-selected={feedFilter === opt.key}
+                onClick={() => {
+                  setFeedFilter(opt.key);
+                }}
+              >
+                {opt.label}
+              </button>
             ))}
           </div>
         ))}

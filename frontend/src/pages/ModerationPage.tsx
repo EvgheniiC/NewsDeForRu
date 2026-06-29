@@ -180,22 +180,20 @@ export function ModerationPage(): JSX.Element {
       </p>
 
       <div className="feed-period-bar moderation-period-bar" role="tablist" aria-label="Период модерации">
-        {MODERATION_PERIOD_OPTIONS.map((opt: ModerationPeriodOption, index: number) => (
-          <span className="feed-topic-cell" key={opt.key}>
-            {index > 0 ? <span aria-hidden="true" className="feed-topic-sep" /> : null}
-            <button
-              aria-selected={period === opt.key}
-              className={period === opt.key ? "feed-topic-pill is-active" : "feed-topic-pill"}
-              onClick={() => {
-                setPeriod(opt.key);
-              }}
-              role="tab"
-              type="button"
-            >
-              {opt.label}
-              <span className="moderation-period-count">{periodCounts[opt.key]}</span>
-            </button>
-          </span>
+        {MODERATION_PERIOD_OPTIONS.map((opt: ModerationPeriodOption) => (
+          <button
+            key={opt.key}
+            aria-selected={period === opt.key}
+            className={period === opt.key ? "feed-topic-pill is-active" : "feed-topic-pill"}
+            onClick={() => {
+              setPeriod(opt.key);
+            }}
+            role="tab"
+            type="button"
+          >
+            {opt.label}
+            <span className="moderation-period-count">{periodCounts[opt.key]}</span>
+          </button>
         ))}
       </div>
 
