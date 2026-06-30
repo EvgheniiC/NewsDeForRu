@@ -238,6 +238,9 @@ export function FeedPage(): JSX.Element {
             ))}
           </div>
         ))}
+        {showSwipeHint ? (
+          <p className="feed-swipe-hint muted">Свайп вправо, если прочли новость, не открывая её.</p>
+        ) : null}
       </div>
 
       {feedFilter !== "top_today" && !isArchiveTab ? (
@@ -364,10 +367,6 @@ export function FeedPage(): JSX.Element {
           </div>
         </>
       )}
-
-      {showSwipeHint ? (
-        <p className="feed-swipe-hint muted">Свайп вправо, если прочли новость, не открывая её.</p>
-      ) : null}
 
       {feedFilter === "positive" ? (
         <h2 className="feed-section-heading feed-section-heading--positive">☀️ Только Позитивные Новости (ТПН)</h2>
