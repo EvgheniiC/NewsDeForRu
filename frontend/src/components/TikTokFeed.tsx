@@ -5,35 +5,6 @@ import { SwipeToReadSnap } from "./SwipeToReadSnap";
 import type { NewsFeedItem } from "../types/news";
 
 const QUICK_NAV_MS: number = 2200;
-const SNAP_IDLE_MS: number = 280;
-const SNAP_MIN_OFFSET_PX: number = 8;
-const MOBILE_SNAP_MQ: string = "(max-width: 640px)";
-
-function snapFeedToNearestCard(root: HTMLDivElement): void {
-  const snaps: NodeListOf<HTMLElement> = root.querySelectorAll(".tiktok-feed-snap[data-news-id]");
-  if (snaps.length === 0) {
-    return;
-  }
-
-  const rootRect: DOMRect = root.getBoundingClientRect();
-  const snapAnchorY: number = rootRect.top;
-
-  let bestElement: HTMLElement | null = null;
-  let bestDistance: number = Number.POSITIVE_INFINITY;
-
-  snaps.forEach((element: HTMLElement) => {
-    const rect: DOMRect = element.getBoundingClientRect();
-    const distance: number = Math.abs(rect.top - snapAnchorY);
-    if (distance < bestDistance) {
-      bestDistance = distance;
-      bestElement = element;
-    }
-  });
-
-  if (bestElement !== null && bestDistance > SNAP_MIN_OFFSET_PX) {
-    bestElement.scrollIntoView({ behavior: "instant", block: "start" });
-  }
-}
 
 interface TikTokFeedProps {
   items: NewsFeedItem[];
@@ -52,59 +23,6 @@ export function TikTokFeed({
 }: TikTokFeedProps): JSX.Element {
   const scrollRootRef = useRef<HTMLDivElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const snapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    const root: HTMLDivElement | null = scrollRootRef.current;
-    if (root === null) {
-      return;
-    }
-
-    const mediaQuery: MediaQueryList = window.matchMedia(MOBILE_SNAP_MQ);
-
-    const scheduleSnap = (): void => {
-      if (snapTimerRef.current !== null) {
-        window.clearTimeout(snapTimerRef.current);
-      }
-      snapTimerRef.current = window.setTimeout(() => {
-        snapTimerRef.current = null;
-        snapFeedToNearestCard(root);
-      }, SNAP_IDLE_MS);
-    };
-
-    const onScrollEnd = (): void => {
-      snapFeedToNearestCard(root);
-    };
-
-    const bindSnapListeners = (): void => {
-      root.addEventListener("scroll", scheduleSnap, { passive: true });
-      root.addEventListener("scrollend", onScrollEnd);
-    };
-
-    const unbindSnapListeners = (): void => {
-      root.removeEventListener("scroll", scheduleSnap);
-      root.removeEventListener("scrollend", onScrollEnd);
-      if (snapTimerRef.current !== null) {
-        window.clearTimeout(snapTimerRef.current);
-        snapTimerRef.current = null;
-      }
-    };
-
-    const syncSnapMode = (): void => {
-      unbindSnapListeners();
-      if (mediaQuery.matches) {
-        bindSnapListeners();
-      }
-    };
-
-    syncSnapMode();
-    mediaQuery.addEventListener("change", syncSnapMode);
-
-    return (): void => {
-      mediaQuery.removeEventListener("change", syncSnapMode);
-      unbindSnapListeners();
-    };
-  }, [items.length]);
 
   useEffect(() => {
     const root: HTMLDivElement | null = scrollRootRef.current;

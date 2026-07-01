@@ -180,7 +180,7 @@ body {
     padding-top: 4px;
   }
 
-  /* Phone-sized viewports: one card per swipe, TikTok-style snap. */
+  /* Phone-sized viewports: one fixed-height page per swipe, TikTok-style snap. */
   .tiktok-feed-scroll {
     scroll-snap-type: y mandatory;
     scroll-behavior: auto;
@@ -189,15 +189,65 @@ body {
   }
 
   .tiktok-feed-snap {
+    box-sizing: border-box;
     scroll-snap-align: start;
     scroll-snap-stop: always;
-    min-height: 100%;
-    padding-bottom: 12px;
+    height: 100%;
+    min-height: 0;
+    flex-shrink: 0;
+  }
+
+  .tiktok-feed-snap.tiktok-feed-sentinel {
+    height: auto;
+    min-height: 80px;
+  }
+
+  .tiktok-feed-snap.swipe-to-read-snap {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
   }
 
   .tiktok-feed-snap .news-card-immersive {
-    min-height: 100%;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
+    height: auto;
+    overflow: hidden;
+  }
+
+  .tiktok-feed-snap .news-card-immersive h3 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .tiktok-feed-snap .news-card-image {
+    flex-shrink: 0;
+    max-height: min(28vh, 160px);
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+  }
+
+  .tiktok-feed-snap .news-card-body-immersive {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tiktok-feed-snap .news-card-body-immersive .news-card-subtitle-immersive {
+    -webkit-line-clamp: unset;
+    display: block;
+    overflow: visible;
+  }
+
+  .tiktok-feed-snap .news-card-meta,
+  .tiktok-feed-snap .news-card-badges,
+  .tiktok-feed-snap .news-card-footer,
+  .tiktok-feed-snap .news-card-topic-row {
+    flex-shrink: 0;
   }
 }
 
