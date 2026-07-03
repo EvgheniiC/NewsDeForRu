@@ -1,10 +1,11 @@
 from fastapi import APIRouter
 
-from app.api.routes import auth, engagement, health, moderation, news, pipeline, provenance, push
+from app.api.routes import auth, engagement, feedback, health, moderation, news, pipeline, provenance, push
 
 api_router: APIRouter = APIRouter()
 api_router.include_router(health.router, tags=["health"])
 api_router.include_router(auth.router)
+api_router.include_router(feedback.router)
 api_router.include_router(engagement.router, prefix="/engagement", tags=["engagement"])
 api_router.include_router(push.router, prefix="/push", tags=["push"])
 api_router.include_router(news.router, prefix="/news", tags=["news"])

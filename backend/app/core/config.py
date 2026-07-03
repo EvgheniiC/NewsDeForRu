@@ -115,6 +115,7 @@ class Settings(BaseSettings):
     email_verification_dev_expose_link: bool = False
 
     support_contact_email: str = ""
+    feedback_rate_limit_max_per_hour: int = Field(default=5, ge=1, le=100)
     smtp_host: str = ""
     smtp_port: int = Field(default=587, ge=1, le=65535)
     smtp_user: str = ""

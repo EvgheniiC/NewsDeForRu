@@ -6,6 +6,7 @@ import type {
   RegisterResponse,
 } from "../types/userAuth";
 import type { EngagementBatchRequestBody, EngagementBatchResponseBody } from "../types/engagement";
+import type { FeedbackSubmitRequestBody, FeedbackSubmitResponseBody } from "../types/feedback";
 import type { FullArticleResponse } from "../types/fullArticle";
 import type { FeedPeriodKey, NewsFeedItem, NewsTopic, ProcessedNews } from "../types/news";
 import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
@@ -130,6 +131,14 @@ export async function getFeed(options?: GetFeedOptions): Promise<NewsFeedPageRes
 export async function getTopNewsToday(limit: number = 5): Promise<TopNewsTodayResponse> {
   const params: URLSearchParams = new URLSearchParams({ limit: String(limit) });
   return fetchJson<TopNewsTodayResponse>(`/news/top-today?${params.toString()}`);
+}
+
+export async function postFeedback(body: FeedbackSubmitRequestBody): Promise<FeedbackSubmitResponseBody> {
+  return fetchJson<FeedbackSubmitResponseBody>("/feedback", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 }
 
 export async function postEngagementBatch(body: EngagementBatchRequestBody): Promise<EngagementBatchResponseBody> {

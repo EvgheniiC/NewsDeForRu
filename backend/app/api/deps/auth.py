@@ -19,6 +19,28 @@ _bearer_optional = HTTPBearer(auto_error=False)
 JWT_AUDIENCE_USER: str = "user"
 
 
+def _resolve_user_from_credentials(
+    credentials: HTTPAuthorizationCredentials | None,
+    db_session: Session,
+) -> AppUser | None:
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        return None
+    try:
+        user_id: int = decode_access_token(
+            credentials.credentials,
+            secret=settings.jwt_secret_key,
+            algorithm=settings.jwt_algorithm,
+            expected_audience=JWT_AUDIENCE_USER,
+        )
+    except HTTPException:
+        return None
+    repo = UserRepository(db_session)
+    user: AppUser | None = repo.get_by_id(user_id)
+    if user is None or not user.is_active:
+        return None
+    return user
+
+
 def get_current_user(
     credentials: Annotated[
         HTTPAuthorizationCredentials | None,
@@ -41,6 +63,16 @@ def get_current_user(
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account inactive")
     return user
+
+
+def get_optional_current_user(
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None,
+        Depends(_bearer_optional),
+    ],
+    db_session: Annotated[Session, Depends(get_db_session)],
+) -> AppUser | None:
+    return _resolve_user_from_credentials(credentials, db_session)
 
 
 def require_moderator(

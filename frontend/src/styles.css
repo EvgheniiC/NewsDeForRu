@@ -1481,6 +1481,77 @@ body {
   font-size: 1.15rem;
 }
 
+.feedback-form-card {
+  margin: 12px 0 0;
+  max-width: min(28rem, 100%);
+  padding: 16px 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.feedback-form-field {
+  font: inherit;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  margin-top: 6px;
+}
+
+.feedback-form-textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.feedback-form-submit {
+  font: inherit;
+  margin-top: 16px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid #475569;
+  background: #334155;
+  color: #ffffff;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.feedback-form-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.feedback-form-secondary {
+  font: inherit;
+  margin-top: 12px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.feedback-form-note {
+  margin: 12px 0 0;
+  font-size: 0.9rem;
+}
+
+.feedback-form-honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.feedback-form-success p {
+  margin: 0;
+}
+
 .legal-page ul {
   padding-left: 1.25rem;
 }
