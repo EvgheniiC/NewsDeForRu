@@ -1,4 +1,4 @@
-import { Link, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
+import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import { DeepLinkListener } from "./mobile/DeepLinkListener";
 import { PushNotificationListener } from "./mobile/PushNotificationListener";
@@ -12,32 +12,10 @@ import { LoginPage } from "./pages/LoginPage";
 import { ModerationPage } from "./pages/ModerationPage";
 import { NewsDetailsPage } from "./pages/NewsDetailsPage";
 import { AnalyticsConsentBanner } from "./components/AnalyticsConsentBanner";
-import { MainNavMore } from "./components/MainNavMore";
+import { AppHeader } from "./components/AppHeader";
 import { ImpressumPage } from "./pages/ImpressumPage";
 import { ContactPage } from "./pages/ContactPage";
 import { PrivacyPage } from "./pages/PrivacyPage";
-
-function NavAuthActions(): JSX.Element {
-  const { initializing, logout, user } = useAuth();
-
-  if (initializing) {
-    return <span className="main-nav-muted"> … </span>;
-  }
-
-  if (user) {
-    return (
-      <>
-        <Link to="/account">Аккаунт</Link>
-        {user.can_moderate ? <Link to="/moderation">Модерация</Link> : null}
-        <button className="main-nav-button" onClick={() => void logout()} type="button">
-          Выйти ({user.email})
-        </button>
-      </>
-    );
-  }
-
-  return <Link to="/account">Войти</Link>;
-}
 
 /** Renders child routes only when the user can moderate (after session is hydrated). */
 function ModeratorRoute(): JSX.Element {
@@ -64,15 +42,7 @@ function App(): JSX.Element {
     <main className="container">
       <DeepLinkListener />
       <PushNotificationListener />
-      <nav className="main-nav">
-        <div className="main-nav-start">
-          <Link to="/">Лента</Link>
-          <MainNavMore />
-        </div>
-        <div className="main-nav-end">
-          <NavAuthActions />
-        </div>
-      </nav>
+      <AppHeader />
       <AnalyticsConsentBanner />
       <Routes>
         <Route element={<FeedPage />} path="/" />

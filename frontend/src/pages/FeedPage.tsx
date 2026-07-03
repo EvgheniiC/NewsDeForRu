@@ -233,15 +233,6 @@ export function FeedPage(): JSX.Element {
         </div>
       ) : null}
 
-      <header className="page-header">
-        <h1>Новости простыми словами</h1>
-        {canRunPipeline ? (
-          <button disabled={pipelineRunning} onClick={() => void handleRefresh()} type="button">
-            {pipelineRunning ? "Выполняется pipeline…" : "Обновить через pipeline"}
-          </button>
-        ) : null}
-      </header>
-
       <div className="feed-topic-bar" role="tablist" aria-label="Темы ленты">
         {FEED_TOPIC_ROWS.map((row, rowIndex: number) => (
           <div key={rowIndex} className="feed-topic-row">
@@ -320,6 +311,9 @@ export function FeedPage(): JSX.Element {
 
           <div className="panel pipeline-panel">
             <h2 className="panel-title">Последний ручной запуск pipeline</h2>
+            <button disabled={pipelineRunning} onClick={() => void handleRefresh()} type="button">
+              {pipelineRunning ? "Выполняется pipeline…" : "Обновить через pipeline"}
+            </button>
             {pipelineNetworkError && <p className="error">Ошибка сети: {pipelineNetworkError}</p>}
             {pipelineHttpError && <p className="error">Ошибка HTTP: {pipelineHttpError}</p>}
             {lastManualRun === null && !pipelineNetworkError && !pipelineHttpError && !pipelineRunning && (

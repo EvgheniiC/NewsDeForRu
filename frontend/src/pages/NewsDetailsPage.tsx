@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { enqueueOne } from "../analytics/engagementQueue";
 import { ApiError, getNews } from "../api/client";
 import { markNewsAsRead } from "../lib/readStateStorage";
@@ -199,7 +199,6 @@ export function NewsDetailsPage(): JSX.Element {
   if (loadError) {
     return (
       <section>
-        <Link to="/">← Назад</Link>
         <p className="error">{loadError}</p>
       </section>
     );
@@ -208,7 +207,6 @@ export function NewsDetailsPage(): JSX.Element {
   if (notFound || news === null) {
     return (
       <section>
-        <Link to="/">← Назад</Link>
         <p>Новость не найдена.</p>
       </section>
     );
@@ -227,7 +225,6 @@ export function NewsDetailsPage(): JSX.Element {
 
   return (
     <section>
-      <Link to="/">← Назад</Link>
       <article className="news-detail-article">
         {news.is_urgent || news.is_positive ? (
           <div className="news-card-badges">
