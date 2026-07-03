@@ -56,11 +56,27 @@ export function notifyReadStateChanged(): void {
 }
 
 export function markNewsAsRead(newsId: number): void {
-  if (!Number.isFinite(newsId)) {
+  markNewsAsReadBatch([newsId]);
+}
+
+export function markNewsAsReadBatch(newsIds: readonly number[]): void {
+  const uniqueIds: number[] = [];
+  for (const newsId of newsIds) {
+    if (!Number.isFinite(newsId)) {
+      continue;
+    }
+    if (!uniqueIds.includes(newsId)) {
+      uniqueIds.push(newsId);
+    }
+  }
+  if (uniqueIds.length === 0) {
     return;
   }
+  const now: number = Date.now();
   const map: ReadStateMap = purgeExpiredEntries(readStateMap());
-  map[String(newsId)] = { readAt: Date.now() };
+  for (const newsId of uniqueIds) {
+    map[String(newsId)] = { readAt: now };
+  }
   writeStateMap(map);
   notifyReadStateChanged();
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 import { CompactSelect } from "../components/CompactSelect";
 import { TikTokFeed } from "../components/TikTokFeed";
 import { ApiError, getHealth, NetworkError, runPipeline } from "../api/client";
@@ -11,6 +12,7 @@ import { filterActiveFeedItems, isAllReadInFetchedBatch } from "../lib/feedVisib
 import { feedFilterPillClass } from "../lib/newsUi";
 import { describePipelinePartialFailure, formatHealthTime } from "../lib/pipelineUi";
 import { READ_STATE_CHANGED_EVENT } from "../lib/readStateStorage";
+import { flushPendingScrollRead, isWebScrollToReadEnabled } from "../lib/scrollToRead";
 import { USEFUL_STORAGE_CHANGED_EVENT } from "../lib/usefulStorage";
 import type { FeedFilterKey, FeedPeriodKey } from "../types/news";
 import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
@@ -107,7 +109,28 @@ export function FeedPage(): JSX.Element {
     infiniteItems.length > 0 &&
     visibleItems.length === 0 &&
     isAllReadInFetchedBatch(infiniteItems);
-  const showSwipeHint: boolean = !isArchiveTab;
+  const isNativeApp: boolean = Capacitor.isNativePlatform();
+  const scrollToRead: boolean = !isArchiveTab && isWebScrollToReadEnabled();
+  const swipeToRead: boolean = !isArchiveTab && isNativeApp;
+  const showFeedReadHint: boolean = !isArchiveTab;
+  const feedReadHint: string = isNativeApp
+    ? "Свайп вправо, если прочли новость, не открывая её."
+    : "Пролистанные новости попадают в «Прочитанные» — открывать их не обязательно.";
+
+  useEffect(() => {
+    if (!scrollToRead) {
+      return;
+    }
+    const onPageHide = (): void => {
+      flushPendingScrollRead();
+    };
+    window.addEventListener("pagehide", onPageHide);
+    flushPendingScrollRead();
+    return (): void => {
+      window.removeEventListener("pagehide", onPageHide);
+      flushPendingScrollRead();
+    };
+  }, [scrollToRead, feedFilter, feedPeriod]);
 
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [healthError, setHealthError] = useState<string>("");
@@ -238,8 +261,8 @@ export function FeedPage(): JSX.Element {
             ))}
           </div>
         ))}
-        {showSwipeHint ? (
-          <p className="feed-swipe-hint muted">Свайп вправо, если прочли новость, не открывая её.</p>
+        {showFeedReadHint ? (
+          <p className="feed-swipe-hint muted">{feedReadHint}</p>
         ) : null}
       </div>
 
@@ -407,7 +430,7 @@ export function FeedPage(): JSX.Element {
       ) : null}
       {isReadSavedTab && !feedLoading && visibleItems.length === 0 && !feedError ? (
         <p className="muted">
-          Здесь появятся прочитанные новости — после свайпа вправо или дочитывания статьи. Хранятся 30 дней на этом
+          Здесь появятся прочитанные новости — после пролистывания ленты, свайпа вправо или дочитывания статьи. Хранятся 30 дней на этом
           устройстве.
         </p>
       ) : null}
@@ -419,7 +442,8 @@ export function FeedPage(): JSX.Element {
           key={`${feedFilter}-${feedPeriod}-${feedVisibilityRevision}`}
           loadingMore={loadingMore}
           onLoadMore={loadMore}
-          swipeToRead={!isArchiveTab}
+          swipeToRead={swipeToRead}
+          scrollToRead={scrollToRead}
         />
       ) : null}
     </section>

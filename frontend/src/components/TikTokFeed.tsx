@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { enqueueOne } from "../analytics/engagementQueue";
+import { queueScrollPastNews } from "../lib/scrollToRead";
 import { NewsCard } from "./NewsCard";
 import { SwipeToReadSnap } from "./SwipeToReadSnap";
 import type { NewsFeedItem } from "../types/news";
@@ -12,6 +13,7 @@ interface TikTokFeedProps {
   loadingMore: boolean;
   onLoadMore: () => void;
   swipeToRead?: boolean;
+  scrollToRead?: boolean;
 }
 
 export function TikTokFeed({
@@ -19,7 +21,8 @@ export function TikTokFeed({
   hasMore,
   loadingMore,
   onLoadMore,
-  swipeToRead = false
+  swipeToRead = false,
+  scrollToRead = false
 }: TikTokFeedProps): JSX.Element {
   const scrollRootRef = useRef<HTMLDivElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -76,6 +79,9 @@ export function TikTokFeed({
           const dwellMs: number = Math.max(0, Date.now() - activeSinceMs);
           const quick: boolean = dwellMs < QUICK_NAV_MS;
           enqueueOne(activeId, "navigate_next", { dwell_ms: dwellMs, quick, feed_mode: "tiktok" }, true);
+          if (scrollToRead) {
+            queueScrollPastNews(activeId);
+          }
           activeId = bestId;
           activeSinceMs = Date.now();
         }
@@ -94,7 +100,7 @@ export function TikTokFeed({
       });
       observer.disconnect();
     };
-  }, [items]);
+  }, [items, scrollToRead]);
 
   useEffect(() => {
     const el: HTMLDivElement | null = sentinelRef.current;
