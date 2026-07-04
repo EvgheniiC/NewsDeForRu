@@ -19,7 +19,7 @@ import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
 
 const FEED_TOPIC_ROWS: readonly (readonly { key: FeedFilterKey; label: string }[])[] = [
   [
-    { key: "top_today", label: "🔥 Топ-5 сегодня" },
+    { key: "top_today", label: "🔥 Топ-5" },
     { key: "urgent", label: "⚡ Срочно" },
     { key: "positive", label: "☀️ ТПН" }
   ],
