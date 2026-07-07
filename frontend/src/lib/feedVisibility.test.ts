@@ -1,5 +1,10 @@
 import { describe, expect, test } from "vitest";
-import { activeFeedMaxAgeDays, filterActiveFeedItems, isAllReadInFetchedBatch } from "./feedVisibility";
+import {
+  activeFeedMaxAgeDays,
+  filterActiveFeedItems,
+  isAllReadInFetchedBatch,
+  isFeedCaughtUp
+} from "./feedVisibility";
 import { markNewsAsRead, READ_RETENTION_MS } from "./readStateStorage";
 import type { NewsFeedItem } from "../types/news";
 
@@ -40,6 +45,25 @@ describe("feedVisibility", () => {
     markNewsAsRead(2);
     expect(isAllReadInFetchedBatch([sampleItem({ id: 1 }), sampleItem({ id: 2 })])).toBe(true);
     expect(isAllReadInFetchedBatch([sampleItem({ id: 1 }), sampleItem({ id: 3 })])).toBe(false);
+  });
+
+  test("isFeedCaughtUp when all items are read or past TTL", () => {
+    localStorage.clear();
+    markNewsAsRead(1);
+    const readBatch: NewsFeedItem[] = [sampleItem({ id: 1 }), sampleItem({ id: 2, published_at: new Date().toISOString() })];
+    markNewsAsRead(2);
+    expect(isFeedCaughtUp(readBatch, "urgent")).toBe(true);
+
+    const expiredUnread: NewsFeedItem[] = [
+      sampleItem({
+        id: 5,
+        published_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+      })
+    ];
+    expect(isFeedCaughtUp(expiredUnread, "urgent")).toBe(true);
+    expect(isFeedCaughtUp(expiredUnread, "life")).toBe(false);
+
+    expect(isFeedCaughtUp([], "urgent")).toBe(false);
   });
 });
 

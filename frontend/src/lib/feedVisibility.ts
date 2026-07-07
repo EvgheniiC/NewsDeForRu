@@ -47,3 +47,11 @@ export function isAllReadInFetchedBatch(items: NewsFeedItem[]): boolean {
   }
   return items.every((item: NewsFeedItem) => isNewsRead(item.id) || readStoredUseful(item.id));
 }
+
+/** True when the server returned items but none are visible (read, saved, or past TTL). */
+export function isFeedCaughtUp(items: NewsFeedItem[], filter: FeedFilterKey): boolean {
+  if (items.length === 0) {
+    return false;
+  }
+  return filterActiveFeedItems(items, filter).length === 0;
+}

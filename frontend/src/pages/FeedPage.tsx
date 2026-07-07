@@ -8,7 +8,7 @@ import { useAuth } from "../context/AuthContext";
 import { useInfiniteFeed } from "../hooks/useInfiniteFeed";
 import { useReadSavedFeed } from "../hooks/useReadSavedFeed";
 import { useUsefulSavedFeed } from "../hooks/useUsefulSavedFeed";
-import { filterActiveFeedItems, isAllReadInFetchedBatch } from "../lib/feedVisibility";
+import { filterActiveFeedItems, isFeedCaughtUp } from "../lib/feedVisibility";
 import { feedFilterPillClass } from "../lib/newsUi";
 import { describePipelinePartialFailure, formatHealthTime } from "../lib/pipelineUi";
 import { READ_STATE_CHANGED_EVENT } from "../lib/readStateStorage";
@@ -102,13 +102,8 @@ export function FeedPage(): JSX.Element {
   const hasMore: boolean = !isArchiveTab && nextCursor !== null;
   /** Hide feed until first page for current topic; keep grid during refresh when data exists. */
   const feedBlocking: boolean = feedLoading && visibleItems.length === 0;
-  const allReadInCategory: boolean =
-    !isArchiveTab &&
-    !feedLoading &&
-    !feedError &&
-    infiniteItems.length > 0 &&
-    visibleItems.length === 0 &&
-    isAllReadInFetchedBatch(infiniteItems);
+  const feedCaughtUp: boolean =
+    !isArchiveTab && !feedLoading && !feedError && isFeedCaughtUp(infiniteItems, feedFilter);
   const isNativeApp: boolean = Capacitor.isNativePlatform();
   const scrollToRead: boolean = !isArchiveTab && isWebScrollToReadEnabled();
   const swipeToRead: boolean = !isArchiveTab && isNativeApp;
@@ -389,13 +384,15 @@ export function FeedPage(): JSX.Element {
         <h2 className="feed-section-heading feed-section-heading--positive">☀️ Только Позитивные Новости (ТПН)</h2>
       ) : null}
 
-      {feedLoading && visibleItems.length === 0 && <p className="loading-inline">Загрузка ленты…</p>}
+      {feedLoading && visibleItems.length === 0 && infiniteItems.length === 0 && (
+        <p className="loading-inline">Загрузка ленты…</p>
+      )}
       {feedError && <p className="error">{feedError}</p>}
-      {allReadInCategory ? (
+      {feedCaughtUp ? (
         <div className="feed-empty-state">
-          <p>В этой категории всё прочитано.</p>
+          <p>Всё прочитано. Ждите новых новостей.</p>
           <p className="muted">
-            Открытые статьи тоже попадают в «Прочитанные».{" "}
+            Лента обновляется автоматически. Открытые статьи тоже попадают в «Прочитанные».{" "}
             <button
               className="feed-empty-state-link"
               onClick={() => {
@@ -408,12 +405,10 @@ export function FeedPage(): JSX.Element {
           </p>
         </div>
       ) : null}
-      {!feedLoading && !feedError && !isArchiveTab && !allReadInCategory && visibleItems.length === 0 ? (
+      {!feedLoading && !feedError && !isArchiveTab && !feedCaughtUp && visibleItems.length === 0 ? (
         <div className="feed-empty-state">
-          <p>Сейчас в этой подборке нет новостей. Лента обновляется автоматически — попробуйте позже или обновите вручную.</p>
-          <button disabled={feedLoading} onClick={() => void reload()} type="button">
-            Обновить ленту
-          </button>
+          <p>Пока нет новостей в этой подборке.</p>
+          <p className="muted">Лента обновляется автоматически.</p>
         </div>
       ) : null}
       {isSavedUsefulTab && !feedLoading && visibleItems.length === 0 && !feedError ? (
