@@ -14,6 +14,8 @@ interface TikTokFeedProps {
   onLoadMore: () => void;
   swipeToRead?: boolean;
   scrollToRead?: boolean;
+  /** Archive tabs (saved/read): stacked cards instead of fixed-height snap pages. */
+  stackedLayout?: boolean;
 }
 
 export function TikTokFeed({
@@ -22,7 +24,8 @@ export function TikTokFeed({
   loadingMore,
   onLoadMore,
   swipeToRead = false,
-  scrollToRead = false
+  scrollToRead = false,
+  stackedLayout = false
 }: TikTokFeedProps): JSX.Element {
   const scrollRootRef = useRef<HTMLDivElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -121,8 +124,10 @@ export function TikTokFeed({
     };
   }, [hasMore, loadingMore, onLoadMore, items.length]);
 
+  const feedClassName: string = stackedLayout ? "tiktok-feed tiktok-feed--stacked" : "tiktok-feed";
+
   return (
-    <div className="tiktok-feed" aria-label="Вертикальная лента">
+    <div className={feedClassName} aria-label="Вертикальная лента">
       <div className="tiktok-feed-scroll" ref={scrollRootRef}>
         {items.map((item: NewsFeedItem) => {
           const snap: JSX.Element = (

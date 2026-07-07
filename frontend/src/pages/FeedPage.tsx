@@ -431,6 +431,7 @@ export function FeedPage(): JSX.Element {
           key={`${feedFilter}-${feedPeriod}-${feedVisibilityRevision}`}
           loadingMore={loadingMore}
           onLoadMore={loadMore}
+          stackedLayout={isArchiveTab}
           swipeToRead={swipeToRead}
           scrollToRead={scrollToRead}
         />
