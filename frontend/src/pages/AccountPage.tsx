@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
+import { PasswordField } from "../components/PasswordField";
 import { useAuth } from "../context/AuthContext";
 
 interface LocationState {
@@ -22,6 +23,7 @@ export function AccountPage(): JSX.Element {
 
   const [registerEmail, setRegisterEmail] = useState<string>("");
   const [registerPassword, setRegisterPassword] = useState<string>("");
+  const [registerPasswordConfirm, setRegisterPasswordConfirm] = useState<string>("");
   const [loginEmail, setLoginEmail] = useState<string>("");
   const [loginPassword, setLoginPassword] = useState<string>("");
   const [registerError, setRegisterError] = useState<string>("");
@@ -42,6 +44,14 @@ export function AccountPage(): JSX.Element {
   const handleRegister = async (evt: FormEvent<HTMLFormElement>): Promise<void> => {
     evt.preventDefault();
     setRegisterError("");
+    if (registerPassword.length < 8) {
+      setRegisterError("Пароль должен быть не короче 8 символов.");
+      return;
+    }
+    if (registerPassword !== registerPasswordConfirm) {
+      setRegisterError("Пароли не совпадают.");
+      return;
+    }
     setRegisterBusy(true);
     try {
       const registeredEmail: string = registerEmail.trim().toLowerCase();
@@ -238,21 +248,25 @@ export function AccountPage(): JSX.Element {
                 type="email"
                 value={registerEmail}
               />
-              <label className="field-label" htmlFor="reader-register-password">
-                Пароль (не менее 8 символов)
-              </label>
-              <input
-                aria-label="Пароль для регистрации"
+              <PasswordField
                 autoComplete="new-password"
-                className="operator-login-field"
                 id="reader-register-password"
-                maxLength={256}
+                label="Пароль (не менее 8 символов)"
                 minLength={8}
                 name="password"
-                onChange={(e) => setRegisterPassword(e.target.value)}
+                onChange={setRegisterPassword}
                 required
-                type="password"
                 value={registerPassword}
+              />
+              <PasswordField
+                autoComplete="new-password"
+                id="reader-register-password-confirm"
+                label="Подтвердите пароль"
+                minLength={8}
+                name="password_confirm"
+                onChange={setRegisterPasswordConfirm}
+                required
+                value={registerPasswordConfirm}
               />
               {registerError !== "" ? <p className="error">{registerError}</p> : null}
               <button disabled={registerBusy} type="submit">

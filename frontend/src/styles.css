@@ -1281,8 +1281,48 @@ body {
   color: var(--text-primary);
 }
 
-.operator-login-form button,
-.account-form-card form button,
+.password-field-wrap {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.password-field-input {
+  width: 100%;
+  padding-right: 44px;
+}
+
+.password-field-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 40px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0 8px 8px 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.password-field-toggle:hover {
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.password-field-toggle:focus-visible {
+  outline: 2px solid #64748b;
+  outline-offset: -2px;
+}
+
+.operator-login-form button:not(.password-field-toggle),
+.account-form-card form button:not(.password-field-toggle),
 .account-form-card > button {
   font: inherit;
   margin-top: 16px;
@@ -1295,8 +1335,8 @@ body {
   align-self: flex-start;
 }
 
-.operator-login-form button:disabled,
-.account-form-card form button:disabled,
+.operator-login-form button:not(.password-field-toggle):disabled,
+.account-form-card form button:not(.password-field-toggle):disabled,
 .account-form-card > button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
