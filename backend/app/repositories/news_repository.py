@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Literal
 
 from sqlalchemy import Select, and_, exists, func, or_, select
@@ -17,6 +17,7 @@ from app.models.news import (
     RawNewsItem,
     Source,
 )
+from app.services.urgent_news import is_breaking_news
 
 
 class NewsRepository:
@@ -201,6 +202,30 @@ class NewsRepository:
             .order_by(RawNewsItem.published_at.desc())
         )
         return list(self.db_session.execute(query).scalars().all())
+
+    def requeue_filtered_breaking_news(self, *, lookback: timedelta) -> int:
+        """Return recently filtered raw items that match breaking-news rules back to ingested."""
+        since: datetime = datetime.now(timezone.utc) - lookback
+        query: Select[tuple[RawNewsItem]] = (
+            select(RawNewsItem)
+            .where(
+                RawNewsItem.pipeline_status == PipelineStatus.FILTERED_OUT,
+                RawNewsItem.created_at >= since,
+            )
+            .options(selectinload(RawNewsItem.source))
+        )
+        requeued: int = 0
+        for raw_item in self.db_session.execute(query).scalars().all():
+            if not is_breaking_news(raw_item.title, raw_item.summary):
+                continue
+            raw_item.pipeline_status = PipelineStatus.INGESTED
+            raw_item.relevance_score = 0.0
+            raw_item.relevance_reason = ""
+            self.db_session.add(raw_item)
+            requeued += 1
+        if requeued:
+            self.db_session.commit()
+        return requeued
 
     def update_raw_status(
         self,

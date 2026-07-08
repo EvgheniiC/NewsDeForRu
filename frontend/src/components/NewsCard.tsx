@@ -125,7 +125,7 @@ export function NewsCard({ item, variant = "compact", feedMode = "grid" }: NewsC
           >
             ❤️ Полезно
           </button>
-          <Link onClick={handleOpenPreviewClick} to={`/news/${item.id}`}>
+          <Link className="news-open-link" onClick={handleOpenPreviewClick} to={`/news/${item.id}`}>
             Открыть
           </Link>
         </div>

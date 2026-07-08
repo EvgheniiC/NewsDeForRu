@@ -1,10 +1,10 @@
 """Breaking / urgent news detection (pipeline hook).
 
-Uses a fast keyword layer on raw German RSS title/summary:
-- Strong cues (Eilmeldung, Breaking, Explosion, Evakuierung) → urgent unless negated.
-- Weak cues (Unfall, Polizei, Streik) → urgent only with a second signal (body echo,
-  high LLM importance, or fresh item).
-- Noisy cues (Live, Jetzt) → urgent only in the headline plus high importance or another cue.
+Shared keyword layer on raw German RSS title/summary:
+- ``is_breaking_news`` — major incidents that bypass the life-impact relevance filter
+  and are always marked urgent (Eilmeldung, Amok, school attacks, etc.).
+- ``ev_is_urgent_news`` — also weak/noisy cues (Polizei, Streik, Live, Jetzt) with
+  confirmation signals (body echo, high LLM importance, or freshness).
 """
 
 from __future__ import annotations
@@ -20,6 +20,42 @@ _STRONG_KEYWORDS: frozenset[str] = frozenset(
         "breaking",
         "explosion",
         "evakuierung",
+    }
+)
+
+# Major public-safety incidents — bypass relevance filter and mark urgent.
+_BREAKING_INCIDENT_KEYWORDS: frozenset[str] = frozenset(
+    {
+        "amok",
+        "amoklauf",
+        "amoktat",
+        "amoklage",
+        "schiesserei",
+        "schieserei",
+    }
+)
+
+_SCHOOL_VENUE_KEYWORDS: frozenset[str] = frozenset(
+    {
+        "gymnasium",
+        "schule",
+        "grundschule",
+        "realschule",
+        "berufsschule",
+    }
+)
+
+_SCHOOL_INCIDENT_SIGNALS: frozenset[str] = frozenset(
+    {
+        "verletzt",
+        "festgenommen",
+        "polizeieinsatz",
+        "polizei",
+        "angriff",
+        "tatverdachtig",
+        "tatverdaechtig",
+        "schuss",
+        "messer",
     }
 )
 
@@ -116,6 +152,29 @@ def _is_fresh(published_at: datetime | None) -> bool:
     return (_utc_now() - pub) <= _FRESH_MAX_AGE
 
 
+def is_breaking_news(raw_title: str, raw_summary: str) -> bool:
+    """
+    Return True for major breaking incidents that should bypass the life-impact
+    relevance filter and always appear under the urgent feed.
+    """
+    title_n: str = _normalize_for_match(raw_title)
+    summary_n: str = _normalize_for_match(raw_summary)
+    combined: str = f"{title_n} {summary_n}"
+
+    has_strong: bool = any(
+        _strong_match_respects_negation(title_n, summary_n, kw) for kw in _STRONG_KEYWORDS
+    )
+    if has_strong:
+        return True
+
+    if _any_keyword(combined, _BREAKING_INCIDENT_KEYWORDS):
+        return True
+
+    has_venue: bool = _any_keyword(combined, _SCHOOL_VENUE_KEYWORDS)
+    has_incident: bool = _any_keyword(combined, _SCHOOL_INCIDENT_SIGNALS)
+    return has_venue and has_incident
+
+
 def ev_is_urgent_news(
     raw_title: str,
     raw_summary: str,
@@ -126,20 +185,17 @@ def ev_is_urgent_news(
     """
     Return True if this item should appear under the "⚡ Срочно" feed filter.
 
-    Combines German keyword tiers on raw RSS fields with lightweight LLM/recency signals.
+    Combines breaking-news detection with weaker keyword tiers and LLM/recency signals.
     """
+    if is_breaking_news(raw_title, raw_summary):
+        return True
+
     title_n: str = _normalize_for_match(raw_title)
     summary_n: str = _normalize_for_match(raw_summary)
     combined: str = f"{title_n} {summary_n}"
 
     importance: int = llm.importance_score
     fresh: bool = _is_fresh(published_at)
-
-    has_strong: bool = any(
-        _strong_match_respects_negation(title_n, summary_n, kw) for kw in _STRONG_KEYWORDS
-    )
-    if has_strong:
-        return True
 
     weak_title: frozenset[str] = _keyword_hits(title_n, _WEAK_KEYWORDS)
     weak_summary: frozenset[str] = _keyword_hits(summary_n, _WEAK_KEYWORDS)
@@ -165,4 +221,4 @@ def ev_is_urgent_news(
     return False
 
 
-__all__ = ["ev_is_urgent_news"]
+__all__ = ["ev_is_urgent_news", "is_breaking_news"]

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from app.core.config import settings
 from app.services.embedding_service import EmbeddingEncoder, create_embedding_encoder, cosine_similarity
+from app.services.urgent_news import is_breaking_news
 
 DENY_KEYWORDS: tuple[str, ...] = ("sport", "bundesliga", "transfer", "promi", "unfall")
 
@@ -44,6 +45,13 @@ class RelevanceFilterService:
         return self._positive_embeddings, self._negative_embeddings
 
     def evaluate(self, title: str, summary: str) -> RelevanceResult:
+        if is_breaking_news(title, summary):
+            return RelevanceResult(
+                is_relevant=True,
+                score=0.9,
+                reason="Breaking news bypass.",
+            )
+
         text_lower: str = f"{title} {summary}".lower()
         if any(keyword in text_lower for keyword in DENY_KEYWORDS):
             return RelevanceResult(is_relevant=False, score=0.1, reason="Denied by topic keyword.")

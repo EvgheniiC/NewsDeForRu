@@ -1,6 +1,7 @@
 import logging
 import threading
 from dataclasses import dataclass
+from datetime import timedelta
 
 import httpx
 
@@ -51,6 +52,15 @@ class PipelineService:
 
     def run(self, run_id: str) -> PipelineRunResponse:
         ingestion_stats = self.context.ingestion.run()
+        requeued_breaking: int = self.repository.requeue_filtered_breaking_news(
+            lookback=timedelta(hours=48),
+        )
+        if requeued_breaking:
+            logger.info(
+                "requeued filtered breaking news count=%s run_id=%s",
+                requeued_breaking,
+                run_id,
+            )
         filtered_out: int = 0
         clustered: int = 0
         processed_count: int = 0

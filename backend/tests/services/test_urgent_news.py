@@ -6,7 +6,7 @@ import pytest
 
 from app.schemas.llm_output import LLMNewsOutput
 from app.services import urgent_news
-from app.services.urgent_news import ev_is_urgent_news
+from app.services.urgent_news import ev_is_urgent_news, is_breaking_news
 
 
 def _llm(*, importance: int = 5) -> LLMNewsOutput:
@@ -131,4 +131,39 @@ def test_stale_weak_polizei_importance_seven_false(monkeypatch: pytest.MonkeyPat
             published_at=pub,
         )
         is False
+    )
+
+
+def test_is_breaking_news_school_attack_schongau() -> None:
+    assert is_breaking_news(
+        "Schongau (Bayern): Mehrere Verletzte am Welfen-Gymnasium – der Überblick",
+        "Am Welfen-Gymnasium sind mehrere Menschen verletzt worden, die Polizei hat einen 16-Jährigen festgenommen.",
+    )
+
+
+def test_is_breaking_news_amok_keyword() -> None:
+    assert is_breaking_news(
+        "Update aus Bayern",
+        "Nach dem Vorfall deutet vieles auf eine Amoklage hin.",
+    )
+
+
+def test_is_breaking_news_routine_education_false() -> None:
+    assert (
+        is_breaking_news(
+            "Bildung: Jeder dritte Lehrer in Deutschland ist über 50",
+            "Statistik zu Lehrkräften an Schulen in Deutschland.",
+        )
+        is False
+    )
+
+
+def test_ev_is_urgent_news_school_attack_without_high_importance() -> None:
+    assert (
+        ev_is_urgent_news(
+            "Schongau: Mehrere Verletzte am Welfen-Gymnasium",
+            "Polizei hat einen 16-Jährigen festgenommen.",
+            _llm(importance=4),
+        )
+        is True
     )

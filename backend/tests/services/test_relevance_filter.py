@@ -18,3 +18,14 @@ def test_relevance_filter_rejects_sports() -> None:
         summary="Sportnachrichten ohne direkten Alltagsnutzen.",
     )
     assert result.is_relevant is False
+
+
+def test_relevance_filter_accepts_breaking_school_attack() -> None:
+    service = RelevanceFilterService()
+    result = service.evaluate(
+        title="Schongau (Bayern): Mehrere Verletzte am Welfen-Gymnasium – der Überblick",
+        summary="Am Welfen-Gymnasium sind mehrere Menschen verletzt worden, die Polizei hat einen 16-Jährigen festgenommen.",
+    )
+    assert result.is_relevant is True
+    assert result.score >= 0.85
+    assert result.reason == "Breaking news bypass."
