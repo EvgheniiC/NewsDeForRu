@@ -2,6 +2,18 @@ import { expect, test } from "@playwright/test";
 import { installApiMock } from "./fixtures/apiMock";
 
 test.describe("end-to-end", () => {
+  test("прямая ссылка на новость → назад в ленту", async ({ page }) => {
+    await installApiMock(page);
+    await page.goto("/news/1");
+
+    await expect(page.getByRole("heading", { name: "E2E Test News" })).toBeVisible();
+    await page.getByRole("button", { name: "← Лента" }).click();
+
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole("heading", { name: "Новости простыми словами" })).toBeVisible();
+    await expect(page.getByText("E2E Test News").first()).toBeVisible();
+  });
+
   test("лента → детали → вход → модерация (Publish)", async ({ page }) => {
     await installApiMock(page);
     await page.goto("/");

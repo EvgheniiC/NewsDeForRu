@@ -1,11 +1,17 @@
-import { Link, useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ProfileMenu } from "./ProfileMenu";
 
 const FEED_TITLE: string = "Новости простыми словами";
 
 export function AppHeader(): JSX.Element {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const isFeed: boolean = pathname === "/";
+
+  const handleBackToFeed = (): void => {
+    navigate("/", { replace: true });
+    window.scrollTo({ top: 0, behavior: "instant" });
+  };
 
   return (
     <header className="app-header">
@@ -13,9 +19,9 @@ export function AppHeader(): JSX.Element {
         {isFeed ? (
           <h1 className="app-header-title">{FEED_TITLE}</h1>
         ) : (
-          <Link className="app-header-back" to="/">
+          <button className="app-header-back" onClick={handleBackToFeed} type="button">
             ← Лента
-          </Link>
+          </button>
         )}
       </div>
       <ProfileMenu />
