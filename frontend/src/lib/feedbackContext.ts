@@ -11,7 +11,7 @@ export function collectFeedbackClientContext(pageUrl: string): FeedbackClientCon
   const appVersion: string =
     typeof import.meta.env.VITE_APP_VERSION === "string" && import.meta.env.VITE_APP_VERSION.trim().length > 0
       ? import.meta.env.VITE_APP_VERSION.trim()
-      : "1.1.5";
+      : "1.1.6";
   return {
     pageUrl,
     platform,
