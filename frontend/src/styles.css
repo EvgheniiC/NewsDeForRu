@@ -472,11 +472,11 @@ a:visited {
     flex-shrink: 0;
   }
 
-  /* Saved/read archive tabs: natural card heights, no snap overlap. */
+  /* Saved/read archive tabs: natural card heights inside a scrollable viewport. */
   .tiktok-feed--stacked .tiktok-feed-scroll {
     scroll-snap-type: none;
-    height: auto;
-    overflow-y: visible;
+    height: min(920px, calc(100dvh - 175px));
+    overflow-y: auto;
   }
 
   .tiktok-feed--stacked .tiktok-feed-snap {
@@ -1402,6 +1402,11 @@ a:visited {
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
   padding: 0 16px;
+}
+
+.tiktok-feed--stacked .tiktok-feed-scroll {
+  scroll-snap-type: none;
+  max-height: min(920px, calc(100dvh - 175px));
 }
 
 .tiktok-feed-snap {
