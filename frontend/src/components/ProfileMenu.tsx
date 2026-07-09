@@ -1,6 +1,7 @@
 import { useEffect, useState, type MouseEvent } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { registerAndroidBackPressHandler } from "../mobile/androidBackPress";
 import { UrgentPushToggle } from "./UrgentPushToggle";
 
 function profileInitials(email: string): string {
@@ -41,8 +42,14 @@ export function ProfileMenu(): JSX.Element {
     };
 
     document.addEventListener("keydown", onKeyDown);
+    const removeBackHandler: () => void = registerAndroidBackPressHandler((): boolean => {
+      setOpen(false);
+      return true;
+    });
+
     return (): void => {
       document.removeEventListener("keydown", onKeyDown);
+      removeBackHandler();
     };
   }, [open]);
 

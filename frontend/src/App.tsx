@@ -1,5 +1,6 @@
 import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
+import { AndroidBackButtonListener } from "./mobile/AndroidBackButtonListener";
 import { DeepLinkListener } from "./mobile/DeepLinkListener";
 import { PushNotificationListener } from "./mobile/PushNotificationListener";
 import { AccountPage } from "./pages/AccountPage";
@@ -41,6 +42,7 @@ function App(): JSX.Element {
   return (
     <main className="container">
       <DeepLinkListener />
+      <AndroidBackButtonListener />
       <PushNotificationListener />
       <AppHeader />
       <AnalyticsConsentBanner />
