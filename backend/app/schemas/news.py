@@ -3,7 +3,7 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, Field, field_serializer, model_validator
 
-from app.models.news import ImpactPresentation, NewsTopic, PipelineStatus, UserRole
+from app.models.news import ImpactPresentation, NewsTopic, PipelineStatus, SourceUrlStatus, UserRole
 from app.utils.berlin_time import to_berlin_iso
 
 # Existing rows can contain a literal "None" from bad model JSON; never expose to clients as text.
@@ -54,6 +54,7 @@ class ProcessedNewsResponse(BaseModel):
     bonus_block: str
     spoiler: str
     source_url: str
+    source_url_status: SourceUrlStatus = SourceUrlStatus.UNKNOWN
     image_url: str | None = None
     confidence_score: float
     publication_status: PipelineStatus

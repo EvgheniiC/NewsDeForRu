@@ -80,6 +80,15 @@ class Settings(BaseSettings):
     # When the scheduled pipeline raises, the task can return a failure envelope instead of propagating.
     pipeline_task_swallow_errors: bool = True
 
+    # Daily check: publisher article URLs for published news in the last N Berlin calendar days.
+    source_url_check_scheduler_enabled: bool = False
+    source_url_check_hour: int = Field(default=4, ge=0, le=23)
+    source_url_check_timezone: str = "Europe/Berlin"
+    source_url_check_lookback_days: int = Field(default=3, ge=1, le=14)
+    source_url_check_timeout_seconds: float = Field(default=8.0, ge=2.0, le=60.0)
+    source_url_check_max_items: int = Field(default=500, ge=10, le=5000)
+    source_url_check_lock_ttl_seconds: int = Field(default=1800, ge=60, le=7200)
+
     # One JSON object per log line on the root logger (production-friendly).
     log_json: bool = False
     # Text logs include run_id prefix when pipeline context is active (ignored when log_json=true).

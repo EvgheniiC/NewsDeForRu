@@ -22,8 +22,7 @@ def period_start_utc_naive(period: FeedPeriod | None) -> datetime | None:
     if period is FeedPeriod.TODAY:
         start_berlin = datetime.combine(now_berlin.date(), time.min, tzinfo=BERLIN_TZ)
     elif period is FeedPeriod.LAST_3_DAYS:
-        day: date = now_berlin.date() - timedelta(days=2)
-        start_berlin = datetime.combine(day, time.min, tzinfo=BERLIN_TZ)
+        return period_start_for_lookback_days(3)
     elif period is FeedPeriod.THIS_WEEK:
         d: date = now_berlin.date()
         monday: date = d - timedelta(days=d.weekday())
@@ -38,5 +37,17 @@ def moderation_queue_since_utc_naive() -> datetime:
     """Inclusive lower bound for moderation queue items (not older than 7 calendar days in Berlin)."""
     now_berlin: datetime = datetime.now(BERLIN_TZ)
     start_day: date = now_berlin.date() - timedelta(days=MODERATION_QUEUE_MAX_AGE_DAYS)
+    start_berlin: datetime = datetime.combine(start_day, time.min, tzinfo=BERLIN_TZ)
+    return start_berlin.astimezone(UTC_TZ).replace(tzinfo=None)
+
+
+def period_start_for_lookback_days(lookback_days: int) -> datetime:
+    """Inclusive UTC-naive lower bound for the last ``lookback_days`` Berlin calendar days.
+
+    ``lookback_days=3`` matches ``FeedPeriod.LAST_3_DAYS`` (today + previous 2 days).
+    """
+    days: int = max(1, lookback_days)
+    now_berlin: datetime = datetime.now(BERLIN_TZ)
+    start_day: date = now_berlin.date() - timedelta(days=days - 1)
     start_berlin: datetime = datetime.combine(start_day, time.min, tzinfo=BERLIN_TZ)
     return start_berlin.astimezone(UTC_TZ).replace(tzinfo=None)

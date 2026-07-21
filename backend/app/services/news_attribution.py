@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from app.models.news import ProcessedNews, RawNewsItem, Source
+from app.models.news import ProcessedNews, RawNewsItem, Source, SourceUrlStatus
 from app.schemas.news import ProcessedNewsResponse
 
 UNKNOWN_SOURCE_NAME: str = "Неизвестный источник"
@@ -35,6 +35,7 @@ def build_processed_news_response(processed: ProcessedNews) -> ProcessedNewsResp
         bonus_block=processed.bonus_block,
         spoiler=processed.spoiler,
         source_url=processed.source_url,
+        source_url_status=processed.source_url_status or SourceUrlStatus.UNKNOWN,
         image_url=processed.image_url,
         confidence_score=processed.confidence_score,
         publication_status=processed.publication_status,

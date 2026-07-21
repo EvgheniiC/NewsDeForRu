@@ -64,6 +64,7 @@ export async function installApiMock(page: Page): Promise<void> {
     bonus_block: "Бонус.",
     spoiler: "Спойлер.",
     source_url: "https://example.com/e2e",
+    source_url_status: "alive",
     confidence_score: 0.9,
     publication_status: "needs_review",
     read_time_minutes: 2,

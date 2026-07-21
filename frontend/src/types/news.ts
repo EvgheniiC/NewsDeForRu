@@ -56,6 +56,9 @@ export interface NewsFeedItem {
   rank?: TopNewsRankMeta;
 }
 
+/** Health of the publisher article URL. */
+export type SourceUrlStatus = "alive" | "unavailable" | "unknown";
+
 export interface ProcessedNews {
   id: number;
   title: string;
@@ -71,6 +74,8 @@ export interface ProcessedNews {
   bonus_block: string;
   spoiler: string;
   source_url: string;
+  /** Link health from daily check; omitted in older API responses. */
+  source_url_status?: SourceUrlStatus;
   image_url?: string | null;
   confidence_score: number;
   publication_status: string;

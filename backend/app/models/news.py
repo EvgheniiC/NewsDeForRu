@@ -58,6 +58,14 @@ class ImpactPresentation(StrEnum):
     NONE = "none"
 
 
+class SourceUrlStatus(StrEnum):
+    """Health of the publisher article URL (link check job)."""
+
+    ALIVE = "alive"
+    UNAVAILABLE = "unavailable"
+    UNKNOWN = "unknown"
+
+
 class Source(Base):
     __tablename__ = "sources"
 
@@ -120,6 +128,18 @@ class ProcessedNews(Base):
     spoiler: Mapped[str] = mapped_column(Text, default="", nullable=False)
     full_article_ru: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
     source_url: Mapped[str] = mapped_column(String(1024), nullable=False)
+    source_url_status: Mapped[SourceUrlStatus] = mapped_column(
+        Enum(
+            SourceUrlStatus,
+            native_enum=False,
+            length=16,
+            values_callable=lambda t: [m.value for m in t],
+        ),
+        default=SourceUrlStatus.UNKNOWN,
+        nullable=False,
+    )
+    source_url_checked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=None)
+    source_url_http_status: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
     image_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     confidence_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     cluster_id: Mapped[int | None] = mapped_column(ForeignKey("news_clusters.id"), nullable=True, index=True)

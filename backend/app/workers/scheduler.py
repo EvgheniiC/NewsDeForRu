@@ -7,6 +7,7 @@ from apscheduler.triggers.cron import CronTrigger  # type: ignore[import-untyped
 from app.core.config import settings
 from app.core.database import SessionLocal
 from app.tasks.pipeline_task import run_pipeline_task
+from app.tasks.source_url_check_task import run_source_url_check_task
 from app.tasks.telegram_digest_task import run_telegram_digest_for_hour
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -44,6 +45,19 @@ def _scheduled_pipeline_run() -> None:
 def _scheduled_telegram_digest(hour: int) -> None:
     with SessionLocal() as db_session:
         run_telegram_digest_for_hour(db_session, hour)
+
+
+def _scheduled_source_url_check() -> None:
+    with SessionLocal() as db_session:
+        result = run_source_url_check_task(db_session)
+        if result is not None:
+            logger.info(
+                "Source URL check: checked=%s unavailable=%s alive=%s inconclusive=%s",
+                result.checked,
+                result.marked_unavailable,
+                result.marked_alive,
+                result.inconclusive,
+            )
 
 
 def create_scheduler() -> BackgroundScheduler | None:
@@ -89,6 +103,27 @@ def create_scheduler() -> BackgroundScheduler | None:
                 replace_existing=True,
             )
             jobs_added += 1
+
+    if settings.source_url_check_scheduler_enabled:
+        tz_link_name: str = settings.source_url_check_timezone.strip() or "Europe/Berlin"
+        try:
+            tz_link = ZoneInfo(tz_link_name)
+        except Exception:
+            logger.warning(
+                "Invalid SOURCE_URL_CHECK_TIMEZONE=%r — falling back to Europe/Berlin.",
+                tz_link_name,
+            )
+            tz_link = ZoneInfo("Europe/Berlin")
+
+        hour_link: int = settings.source_url_check_hour
+        trigger_link = CronTrigger(minute="0", hour=str(hour_link), timezone=tz_link)
+        scheduler.add_job(
+            _scheduled_source_url_check,
+            trigger_link,
+            id="source_url_check_daily",
+            replace_existing=True,
+        )
+        jobs_added += 1
 
     if jobs_added == 0:
         return None

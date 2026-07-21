@@ -264,6 +264,7 @@ export function NewsDetailsPage(): JSX.Element {
           publishedAt={news.published_at}
           sourceName={news.source_name}
           sourceUrl={news.source_url}
+          sourceUrlStatus={news.source_url_status ?? "unknown"}
           variant="detail"
         />
       </article>
