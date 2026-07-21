@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { enqueueOne } from "../analytics/engagementQueue";
 import { queueScrollPastNews } from "../lib/scrollToRead";
 import { NewsCard } from "./NewsCard";
@@ -18,6 +18,29 @@ interface TikTokFeedProps {
   stackedLayout?: boolean;
 }
 
+/** Keep the same on-screen card (or its successor) after items are removed from the list. */
+function resolveScrollAnchorId(
+  prevItems: NewsFeedItem[],
+  nextItems: NewsFeedItem[],
+  prevScrollTop: number,
+  viewportHeight: number
+): number | null {
+  if (prevItems.length === 0 || nextItems.length === 0 || viewportHeight <= 0) {
+    return null;
+  }
+  const prevIndex: number = Math.min(
+    Math.max(Math.round(prevScrollTop / viewportHeight), 0),
+    prevItems.length - 1
+  );
+  const prevVisibleId: number = prevItems[prevIndex].id;
+  const nextIds: Set<number> = new Set(nextItems.map((item: NewsFeedItem) => item.id));
+  if (nextIds.has(prevVisibleId)) {
+    return prevVisibleId;
+  }
+  const anchor: NewsFeedItem | undefined = nextItems[Math.min(prevIndex, nextItems.length - 1)];
+  return anchor?.id ?? null;
+}
+
 export function TikTokFeed({
   items,
   hasMore,
@@ -29,6 +52,51 @@ export function TikTokFeed({
 }: TikTokFeedProps): JSX.Element {
   const scrollRootRef = useRef<HTMLDivElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const prevItemsRef = useRef<NewsFeedItem[]>(items);
+  const scrollTopRef = useRef<number>(0);
+
+  useEffect(() => {
+    const root: HTMLDivElement | null = scrollRootRef.current;
+    if (root === null) {
+      return;
+    }
+    const onScroll = (): void => {
+      scrollTopRef.current = root.scrollTop;
+    };
+    onScroll();
+    root.addEventListener("scroll", onScroll, { passive: true });
+    return (): void => {
+      root.removeEventListener("scroll", onScroll);
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    const root: HTMLDivElement | null = scrollRootRef.current;
+    const prevItems: NewsFeedItem[] = prevItemsRef.current;
+    prevItemsRef.current = items;
+    if (root === null || stackedLayout || prevItems.length === 0) {
+      return;
+    }
+    const nextIds: Set<number> = new Set(items.map((item: NewsFeedItem) => item.id));
+    const somethingRemoved: boolean = prevItems.some((item: NewsFeedItem) => !nextIds.has(item.id));
+    if (!somethingRemoved) {
+      return;
+    }
+    const anchorId: number | null = resolveScrollAnchorId(
+      prevItems,
+      items,
+      scrollTopRef.current,
+      root.clientHeight
+    );
+    if (anchorId === null) {
+      return;
+    }
+    const el: Element | null = root.querySelector(`.tiktok-feed-snap[data-news-id="${String(anchorId)}"]`);
+    if (el instanceof HTMLElement) {
+      el.scrollIntoView({ block: "start", behavior: "instant" });
+      scrollTopRef.current = root.scrollTop;
+    }
+  }, [items, stackedLayout]);
 
   useEffect(() => {
     const root: HTMLDivElement | null = scrollRootRef.current;

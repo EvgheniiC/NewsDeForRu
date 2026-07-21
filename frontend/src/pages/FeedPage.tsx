@@ -56,7 +56,8 @@ export function FeedPage(): JSX.Element {
   const { initializing: sessionLoading, user, withPipelineAccess } = useAuth();
   const [feedFilter, setFeedFilter] = useState<FeedFilterKey>("life");
   const [feedPeriod, setFeedPeriod] = useState<FeedPeriodKey>("all");
-  const [feedVisibilityRevision, setFeedVisibilityRevision] = useState<number>(0);
+  /** Bumped on read/useful storage changes so visibleItems re-filters; must not be in TikTokFeed key. */
+  const [, setFeedVisibilityRevision] = useState<number>(0);
 
   const isSavedUsefulTab: boolean = feedFilter === "saved_useful";
   const isReadSavedTab: boolean = feedFilter === "read_saved";
@@ -428,7 +429,7 @@ export function FeedPage(): JSX.Element {
         <TikTokFeed
           hasMore={hasMore}
           items={visibleItems}
-          key={`${feedFilter}-${feedPeriod}-${feedVisibilityRevision}`}
+          key={`${feedFilter}-${feedPeriod}`}
           loadingMore={loadingMore}
           onLoadMore={loadMore}
           stackedLayout={isArchiveTab}
