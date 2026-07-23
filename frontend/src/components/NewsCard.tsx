@@ -1,11 +1,13 @@
 import { Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { enqueueOne } from "../analytics/engagementQueue";
-import { feedFilterPillClass, newsCardClassName, newsTopicChipClass } from "../lib/newsUi";
+import { ApiError, getNews } from "../api/client";
+import { newsCardClassName, newsTopicChipClass } from "../lib/newsUi";
 import { formatDateRuBerlin } from "../lib/dateTimeBerlin";
-import type { FeedAnalyticsMode } from "../types/engagement";
-import { newsTopicLabelRu, type NewsFeedItem } from "../types/news";
 import { readStoredUseful, setStoredUseful } from "../lib/usefulStorage";
+import type { FeedAnalyticsMode } from "../types/engagement";
+import { newsTopicLabelRu, type NewsFeedItem, type ProcessedNews } from "../types/news";
+import { NewsArticleBody } from "./NewsArticleBody";
 
 export type NewsCardVariant = "compact" | "immersive";
 
@@ -14,13 +16,28 @@ interface NewsCardProps {
   variant?: NewsCardVariant;
   /** Used in `navigate_next` payloads from parent feeds; card events include scroll/useful/open. */
   feedMode?: FeedAnalyticsMode;
+  /**
+   * List/grid layouts: expand full editorial content in-place.
+   * Immersive snap feed keeps navigation to `/news/:id`.
+   */
+  expandInPlace?: boolean;
 }
 
-export function NewsCard({ item, variant = "compact", feedMode = "grid" }: NewsCardProps): JSX.Element {
+export function NewsCard({
+  item,
+  variant = "compact",
+  feedMode = "grid",
+  expandInPlace = false
+}: NewsCardProps): JSX.Element {
   const [useful, setUseful] = useState<boolean>(() => readStoredUseful(item.id));
+  const [expanded, setExpanded] = useState<boolean>(false);
+  const [details, setDetails] = useState<ProcessedNews | null>(null);
+  const [detailsLoading, setDetailsLoading] = useState<boolean>(false);
+  const [detailsError, setDetailsError] = useState<string>("");
   const readCompleteSentRef: { current: boolean } = useRef<boolean>(false);
   const scrollRootRef: { current: HTMLDivElement | null } = useRef<HTMLDivElement | null>(null);
   const sentinelRef: { current: HTMLDivElement | null } = useRef<HTMLDivElement | null>(null);
+  const expandRequestIdRef: { current: number } = useRef<number>(0);
 
   useEffect(() => {
     setUseful(readStoredUseful(item.id));
@@ -28,13 +45,18 @@ export function NewsCard({ item, variant = "compact", feedMode = "grid" }: NewsC
 
   useEffect(() => {
     readCompleteSentRef.current = false;
+    setExpanded(false);
+    setDetails(null);
+    setDetailsError("");
+    setDetailsLoading(false);
+    expandRequestIdRef.current += 1;
   }, [item.id]);
 
   const isTikTokImmersive: boolean = feedMode === "tiktok" && variant === "immersive";
 
   useEffect(() => {
     const sentinel: HTMLDivElement | null = sentinelRef.current;
-    if (sentinel === null) {
+    if (sentinel === null || expanded) {
       return;
     }
     const root: Element | null = isTikTokImmersive ? null : scrollRootRef.current;
@@ -65,7 +87,7 @@ export function NewsCard({ item, variant = "compact", feedMode = "grid" }: NewsC
     return (): void => {
       observer.disconnect();
     };
-  }, [item.id, variant, feedMode, isTikTokImmersive]);
+  }, [item.id, variant, feedMode, isTikTokImmersive, expanded]);
 
   const rootClass: string = newsCardClassName(item, variant);
   const scrollClass: string = isTikTokImmersive
@@ -87,8 +109,52 @@ export function NewsCard({ item, variant = "compact", feedMode = "grid" }: NewsC
     enqueueOne(item.id, "open_preview", { feed_mode: feedMode }, true);
   };
 
+  const handleExpandToggle = (): void => {
+    if (expanded) {
+      expandRequestIdRef.current += 1;
+      setExpanded(false);
+      setDetailsError("");
+      setDetailsLoading(false);
+      return;
+    }
+
+    enqueueOne(item.id, "open_preview", { feed_mode: feedMode, expand_in_place: true }, true);
+    setExpanded(true);
+
+    if (details !== null) {
+      return;
+    }
+
+    const requestId: number = expandRequestIdRef.current + 1;
+    expandRequestIdRef.current = requestId;
+    setDetailsLoading(true);
+    setDetailsError("");
+    void getNews(item.id)
+      .then((data: ProcessedNews) => {
+        if (expandRequestIdRef.current !== requestId) {
+          return;
+        }
+        setDetails(data);
+      })
+      .catch((error: unknown) => {
+        if (expandRequestIdRef.current !== requestId) {
+          return;
+        }
+        if (error instanceof ApiError) {
+          setDetailsError(error.message);
+        } else {
+          setDetailsError(error instanceof Error ? error.message : "Не удалось загрузить новость.");
+        }
+      })
+      .finally(() => {
+        if (expandRequestIdRef.current === requestId) {
+          setDetailsLoading(false);
+        }
+      });
+  };
+
   return (
-    <article className={rootClass}>
+    <article className={expanded ? `${rootClass} news-card--expanded` : rootClass}>
       {hasBadges ? (
         <div className="news-card-badges">
           {item.is_urgent ? <span className="news-badge news-badge--urgent">Срочно</span> : null}
@@ -110,10 +176,20 @@ export function NewsCard({ item, variant = "compact", feedMode = "grid" }: NewsC
           src={item.image_url}
         />
       ) : null}
-      <div className={scrollClass} ref={scrollRootRef}>
-        <p className={variant === "immersive" ? "news-card-subtitle-immersive" : undefined}>{item.subtitle}</p>
-        <div aria-hidden="true" className="news-card-read-sentinel" ref={sentinelRef} />
-      </div>
+      {expanded ? (
+        <div className="news-card-expanded-body">
+          {detailsLoading ? <p className="muted">Загрузка…</p> : null}
+          {detailsError !== "" ? <p className="error">{detailsError}</p> : null}
+          {details !== null ? <NewsArticleBody news={details} /> : null}
+        </div>
+      ) : (
+        <div className={scrollClass} ref={scrollRootRef}>
+          <p className={variant === "immersive" ? "news-card-subtitle-immersive" : undefined}>
+            {item.subtitle}
+          </p>
+          <div aria-hidden="true" className="news-card-read-sentinel" ref={sentinelRef} />
+        </div>
+      )}
       <div className="news-card-footer">
         <span>⏱ {item.read_time_minutes} мин</span>
         <div className="news-card-actions">
@@ -125,9 +201,20 @@ export function NewsCard({ item, variant = "compact", feedMode = "grid" }: NewsC
           >
             ❤️ Полезно
           </button>
-          <Link className="news-open-link" onClick={handleOpenPreviewClick} to={`/news/${item.id}`}>
-            Открыть
-          </Link>
+          {expandInPlace ? (
+            <button
+              aria-expanded={expanded}
+              className="news-open-link"
+              onClick={handleExpandToggle}
+              type="button"
+            >
+              {expanded ? "Свернуть" : "Раскрыть"}
+            </button>
+          ) : (
+            <Link className="news-open-link" onClick={handleOpenPreviewClick} to={`/news/${item.id}`}>
+              Открыть
+            </Link>
+          )}
         </div>
       </div>
       <div className="news-card-topic-row">

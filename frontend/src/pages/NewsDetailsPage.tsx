@@ -3,99 +3,11 @@ import { useParams } from "react-router-dom";
 import { enqueueOne } from "../analytics/engagementQueue";
 import { ApiError, getNews } from "../api/client";
 import { markNewsAsRead } from "../lib/readStateStorage";
-import { FullArticleMobileSection } from "../components/FullArticleMobileSection";
-import { NewsAttributionBlock } from "../components/NewsAttributionBlock";
-import { ShareNewsMobileSection } from "../components/ShareNewsMobileSection";
+import { NewsArticleBody } from "../components/NewsArticleBody";
 import { newsTopicChipClass } from "../lib/newsUi";
-import {
-  IMPACT_PERSPECTIVE_LABELS,
-  newsTopicLabelRu,
-  type ImpactPresentation,
-  type ProcessedNews
-} from "../types/news";
-
-const IMPACT_PERSPECTIVE_MODIFIERS: readonly string[] = [
-  "news-perspective--owner",
-  "news-perspective--tenant",
-  "news-perspective--buyer"
-] as const;
+import { newsTopicLabelRu, type ProcessedNews } from "../types/news";
 
 const READ_ARTICLE_RATIO: number = 0.91;
-
-/** Legacy API placeholders (no longer stored for new items); treat as absent. */
-const LEGACY_EMPTY_BONUS: string =
-  "Дополнительного редакционного блока не передано.";
-const LEGACY_EMPTY_SPOILER: string =
-  "Отдельной «интриги» нет — главное изложено в тексте выше.";
-
-function normalizeEditorialExtra(raw: string, legacyPlaceholder: string): string {
-  const t: string = raw.trim();
-  if (t === "" || t === legacyPlaceholder) {
-    return "";
-  }
-  return t;
-}
-
-/** One additional-details line; identical bonus and spoiler strings are de-duplicated. */
-function formatAdditionalBlock(bonusBlock: string, spoiler: string): string | null {
-  const bonus: string = normalizeEditorialExtra(bonusBlock, LEGACY_EMPTY_BONUS);
-  const sp: string = normalizeEditorialExtra(spoiler, LEGACY_EMPTY_SPOILER);
-  if (bonus === "" && sp === "") {
-    return null;
-  }
-  if (bonus === sp) {
-    return bonus;
-  }
-  const parts: string[] = [];
-  if (bonus !== "") {
-    parts.push(bonus);
-  }
-  if (sp !== "") {
-    parts.push(sp);
-  }
-  return parts.join(" ");
-}
-
-function renderImpactBlock(
-  presentation: ImpactPresentation,
-  news: ProcessedNews,
-): JSX.Element | null {
-  if (presentation === "none") {
-    return null;
-  }
-  if (presentation === "single") {
-    return (
-      <section aria-labelledby="impact-single-heading" className="news-perspectives">
-        <h2 className="news-perspectives__title" id="impact-single-heading">
-          Что это значит
-        </h2>
-        <div className="news-perspective">
-          <p className="news-perspective__text">{news.impact_unified ?? ""}</p>
-        </div>
-      </section>
-    );
-  }
-  return (
-    <section aria-labelledby="perspectives-heading" className="news-perspectives">
-      <h2 className="news-perspectives__title" id="perspectives-heading">
-        Что это значит с разных сторон
-      </h2>
-      {[
-        news.impact_owner,
-        news.impact_tenant,
-        news.impact_buyer
-      ].map((text: string, index: number) => (
-        <div
-          key={IMPACT_PERSPECTIVE_MODIFIERS[index]}
-          className={`news-perspective ${IMPACT_PERSPECTIVE_MODIFIERS[index]}`}
-        >
-          <p className="news-perspective__label">{IMPACT_PERSPECTIVE_LABELS[index]}</p>
-          <p className="news-perspective__text">{text}</p>
-        </div>
-      ))}
-    </section>
-  );
-}
 
 export function NewsDetailsPage(): JSX.Element {
   const params = useParams<{ id: string }>();
@@ -212,17 +124,6 @@ export function NewsDetailsPage(): JSX.Element {
     );
   }
 
-  const presentation: ImpactPresentation = news.impact_presentation ?? "multi";
-
-  const handleOpenSourceClick = (): void => {
-    enqueueOne(newsId, "open_source", {}, true);
-  };
-
-  const additionalText: string | null = formatAdditionalBlock(
-    news.bonus_block,
-    news.spoiler,
-  );
-
   return (
     <section>
       <article className="news-detail-article">
@@ -242,38 +143,8 @@ export function NewsDetailsPage(): JSX.Element {
             src={news.image_url}
           />
         ) : null}
-        <p className="news-detail-lead">
-          <strong>Суть:</strong> {news.one_sentence_summary}
-        </p>
-        <p className="news-detail-body">
-          <strong>Простым языком:</strong> {news.plain_language}
-        </p>
-        {renderImpactBlock(presentation, news)}
-        {news.action_items.trim().length > 0 ? (
-          <p className="news-detail-body">
-            <strong>Что сделать:</strong> {news.action_items}
-          </p>
-        ) : null}
-        {additionalText !== null ? (
-          <p className="news-detail-body">
-            <strong>Дополнительно:</strong> {additionalText}
-          </p>
-        ) : null}
-        <NewsAttributionBlock
-          onSourceClick={handleOpenSourceClick}
-          publishedAt={news.published_at}
-          sourceName={news.source_name}
-          sourceUrl={news.source_url}
-          sourceUrlStatus={news.source_url_status ?? "unknown"}
-          variant="detail"
-        />
+        <NewsArticleBody news={news} />
       </article>
-      <ShareNewsMobileSection
-        newsId={newsId}
-        oneSentenceSummary={news.one_sentence_summary}
-        titleRu={news.title}
-      />
-      <FullArticleMobileSection newsId={newsId} />
       <p className="news-detail-category">
         Категория: <span className={newsTopicChipClass(news.topic)}>{newsTopicLabelRu(news.topic)}</span>
       </p>

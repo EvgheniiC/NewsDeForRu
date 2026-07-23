@@ -14,7 +14,7 @@ test.describe("end-to-end", () => {
     await expect(page.getByText("E2E Test News").first()).toBeVisible();
   });
 
-  test("лента → детали → вход → модерация (Publish)", async ({ page }) => {
+  test("лента → раскрытие в карточке → вход → модерация (Publish)", async ({ page }) => {
     await installApiMock(page);
     await page.goto("/");
 
@@ -22,11 +22,11 @@ test.describe("end-to-end", () => {
     await expect(page.getByText("E2E Test News").first()).toBeVisible();
     await expect(page.getByText("Загрузка ленты…")).not.toBeVisible({ timeout: 15_000 });
 
-    await page.getByRole("link", { name: "Открыть" }).first().click();
-    await expect(page).toHaveURL(/\/news\/1$/);
-    await expect(page.getByRole("heading", { name: "E2E Test News" })).toBeVisible();
+    await page.getByRole("button", { name: "Раскрыть" }).first().click();
+    await expect(page).toHaveURL(/\/$/);
     await expect(page.getByRole("heading", { name: "Что это значит с разных сторон" })).toBeVisible();
     await expect(page.getByText("тестовый текст перспективы 2.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Свернуть" }).first()).toBeVisible();
 
     await page.getByRole("button", { name: "Меню" }).click();
     await page.getByRole("menuitem", { name: "Войти" }).click();

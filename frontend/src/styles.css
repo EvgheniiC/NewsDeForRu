@@ -1187,12 +1187,31 @@ a:visited {
   min-height: 44px;
   font-size: 0.9rem;
   font-weight: 600;
+  font-family: inherit;
   border-radius: 8px;
   border: 1px solid var(--border-subtle);
   background: var(--bg-muted);
   color: var(--text-primary);
   text-decoration: none;
   white-space: nowrap;
+  cursor: pointer;
+}
+
+.news-card-expanded-body {
+  margin: 0 0 10px;
+}
+
+.news-card-expanded-body .news-detail-lead,
+.news-card-expanded-body .news-detail-body {
+  margin-bottom: 12px;
+}
+
+.news-card-expanded-body .news-perspectives {
+  margin: 0 0 12px;
+}
+
+.news-card-expanded-body .news-attribution {
+  margin-top: 8px;
 }
 
 .news-open-link:hover,
