@@ -28,6 +28,7 @@ export function NewsCard({
   const [detailsLoading, setDetailsLoading] = useState<boolean>(false);
   const [detailsError, setDetailsError] = useState<string>("");
   const readCompleteSentRef: { current: boolean } = useRef<boolean>(false);
+  const articleRef: { current: HTMLElement | null } = useRef<HTMLElement | null>(null);
   const scrollRootRef: { current: HTMLDivElement | null } = useRef<HTMLDivElement | null>(null);
   const sentinelRef: { current: HTMLDivElement | null } = useRef<HTMLDivElement | null>(null);
   const expandRequestIdRef: { current: number } = useRef<number>(0);
@@ -44,6 +45,20 @@ export function NewsCard({
     setDetailsLoading(false);
     expandRequestIdRef.current += 1;
   }, [item.id]);
+
+  /** Bring the card to the top of the feed when expanding so reading starts from the title. */
+  useEffect(() => {
+    if (!expanded) {
+      return;
+    }
+    const el: HTMLElement | null = articleRef.current;
+    if (el === null) {
+      return;
+    }
+    window.requestAnimationFrame(() => {
+      el.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
+  }, [expanded]);
 
   const isTikTokImmersive: boolean = feedMode === "tiktok" && variant === "immersive";
 
@@ -143,7 +158,7 @@ export function NewsCard({
   };
 
   return (
-    <article className={expanded ? `${rootClass} news-card--expanded` : rootClass}>
+    <article className={expanded ? `${rootClass} news-card--expanded` : rootClass} ref={articleRef}>
       {hasBadges ? (
         <div className="news-card-badges">
           {item.is_urgent ? <span className="news-badge news-badge--urgent">Срочно</span> : null}

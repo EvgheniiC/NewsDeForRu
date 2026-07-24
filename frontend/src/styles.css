@@ -472,17 +472,40 @@ a:visited {
     flex-shrink: 0;
   }
 
-  /* Expanded article text scrolls inside the snap page (stay in feed). */
+  /* Expanded: card grows like the detail page; user scrolls the feed, not a tiny pane. */
+  .tiktok-feed-scroll:has(.news-card--expanded) {
+    scroll-snap-type: none;
+  }
+
+  .tiktok-feed-snap:has(.news-card--expanded) {
+    height: auto;
+    min-height: 100%;
+    overflow: visible;
+    scroll-snap-align: none;
+    scroll-snap-stop: normal;
+  }
+
+  .tiktok-feed-snap:has(.news-card--expanded) .news-card-immersive,
+  .tiktok-feed-snap:has(.news-card--expanded) .news-card--expanded {
+    height: auto;
+    min-height: auto;
+    overflow: visible;
+  }
+
+  .tiktok-feed-snap:has(.news-card--expanded) .news-card-immersive h3 {
+    display: block;
+    -webkit-line-clamp: unset;
+    overflow: visible;
+  }
+
   .tiktok-feed-snap .news-card--expanded .news-card-expanded-body {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    flex: none;
+    overflow: visible;
     margin-bottom: 10px;
   }
 
   .tiktok-feed-snap .news-card--expanded .news-card-image {
-    max-height: min(18vh, 110px);
+    max-height: min(22vh, 140px);
   }
 
   /* Saved/read archive tabs: natural card heights inside a scrollable viewport. */
