@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { enqueueOne } from "../analytics/engagementQueue";
 import { ApiError, getNews } from "../api/client";
@@ -16,18 +15,12 @@ interface NewsCardProps {
   variant?: NewsCardVariant;
   /** Used in `navigate_next` payloads from parent feeds; card events include scroll/useful/open. */
   feedMode?: FeedAnalyticsMode;
-  /**
-   * List/grid layouts: expand full editorial content in-place.
-   * Immersive snap feed keeps navigation to `/news/:id`.
-   */
-  expandInPlace?: boolean;
 }
 
 export function NewsCard({
   item,
   variant = "compact",
-  feedMode = "grid",
-  expandInPlace = false
+  feedMode = "grid"
 }: NewsCardProps): JSX.Element {
   const [useful, setUseful] = useState<boolean>(() => readStoredUseful(item.id));
   const [expanded, setExpanded] = useState<boolean>(false);
@@ -103,10 +96,6 @@ export function NewsCard({
     setUseful(next);
     setStoredUseful(item.id, next);
     enqueueOne(item.id, "useful", { value: next }, true);
-  };
-
-  const handleOpenPreviewClick = (): void => {
-    enqueueOne(item.id, "open_preview", { feed_mode: feedMode }, true);
   };
 
   const handleExpandToggle = (): void => {
@@ -201,20 +190,14 @@ export function NewsCard({
           >
             ❤️ Полезно
           </button>
-          {expandInPlace ? (
-            <button
-              aria-expanded={expanded}
-              className="news-open-link"
-              onClick={handleExpandToggle}
-              type="button"
-            >
-              {expanded ? "Свернуть" : "Раскрыть"}
-            </button>
-          ) : (
-            <Link className="news-open-link" onClick={handleOpenPreviewClick} to={`/news/${item.id}`}>
-              Открыть
-            </Link>
-          )}
+          <button
+            aria-expanded={expanded}
+            className="news-open-link"
+            onClick={handleExpandToggle}
+            type="button"
+          >
+            {expanded ? "Свернуть" : "Раскрыть"}
+          </button>
         </div>
       </div>
       <div className="news-card-topic-row">

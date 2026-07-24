@@ -472,6 +472,19 @@ a:visited {
     flex-shrink: 0;
   }
 
+  /* Expanded article text scrolls inside the snap page (stay in feed). */
+  .tiktok-feed-snap .news-card--expanded .news-card-expanded-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 10px;
+  }
+
+  .tiktok-feed-snap .news-card--expanded .news-card-image {
+    max-height: min(18vh, 110px);
+  }
+
   /* Saved/read archive tabs: natural card heights inside a scrollable viewport. */
   .tiktok-feed--stacked .tiktok-feed-scroll {
     scroll-snap-type: none;

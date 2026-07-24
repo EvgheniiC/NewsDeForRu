@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { enqueueOne } from "../analytics/engagementQueue";
 import { queueScrollPastNews } from "../lib/scrollToRead";
 import { NewsCard } from "./NewsCard";
@@ -6,8 +6,6 @@ import { SwipeToReadSnap } from "./SwipeToReadSnap";
 import type { NewsFeedItem } from "../types/news";
 
 const QUICK_NAV_MS: number = 2200;
-/** Matches CSS phone snap breakpoint in styles.css (`@media (max-width: 640px)`). */
-const PHONE_SNAP_MEDIA: string = "(max-width: 640px)";
 
 interface TikTokFeedProps {
   items: NewsFeedItem[];
@@ -56,31 +54,6 @@ export function TikTokFeed({
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const prevItemsRef = useRef<NewsFeedItem[]>(items);
   const scrollTopRef = useRef<number>(0);
-  const [phoneSnapViewport, setPhoneSnapViewport] = useState<boolean>(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-      return false;
-    }
-    return window.matchMedia(PHONE_SNAP_MEDIA).matches;
-  });
-
-  useEffect(() => {
-    if (typeof window.matchMedia !== "function") {
-      return;
-    }
-    const media: MediaQueryList = window.matchMedia(PHONE_SNAP_MEDIA);
-    const onChange = (): void => {
-      setPhoneSnapViewport(media.matches);
-    };
-    onChange();
-    media.addEventListener("change", onChange);
-    return (): void => {
-      media.removeEventListener("change", onChange);
-    };
-  }, []);
-
-  /** Desktop list + archive stacked tabs: expand in card. Phone snap keeps «Открыть». */
-  const expandInPlace: boolean = stackedLayout || !phoneSnapViewport;
-  const cardFeedMode: "grid" | "tiktok" = expandInPlace ? "grid" : "tiktok";
 
   useEffect(() => {
     const root: HTMLDivElement | null = scrollRootRef.current;
@@ -225,14 +198,7 @@ export function TikTokFeed({
     <div className={feedClassName} aria-label="Вертикальная лента">
       <div className="tiktok-feed-scroll" ref={scrollRootRef}>
         {items.map((item: NewsFeedItem) => {
-          const card: JSX.Element = (
-            <NewsCard
-              expandInPlace={expandInPlace}
-              feedMode={cardFeedMode}
-              item={item}
-              variant="immersive"
-            />
-          );
+          const card: JSX.Element = <NewsCard feedMode="tiktok" item={item} variant="immersive" />;
           const snap: JSX.Element = (
             <div className="tiktok-feed-snap" data-news-id={String(item.id)} key={item.id}>
               {card}
