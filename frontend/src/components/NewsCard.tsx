@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { enqueueOne } from "../analytics/engagementQueue";
 import { ApiError, getNews } from "../api/client";
 import { newsCardClassName, newsTopicChipClass } from "../lib/newsUi";
@@ -17,6 +17,12 @@ interface NewsCardProps {
   feedMode?: FeedAnalyticsMode;
 }
 
+/** Prefer the snap page wrapper so TikTok feed scroll restoration lands on the full card. */
+function resolveScrollTarget(article: HTMLElement): HTMLElement {
+  const snap: HTMLElement | null = article.closest(".tiktok-feed-snap");
+  return snap ?? article;
+}
+
 export function NewsCard({
   item,
   variant = "compact",
@@ -32,6 +38,8 @@ export function NewsCard({
   const scrollRootRef: { current: HTMLDivElement | null } = useRef<HTMLDivElement | null>(null);
   const sentinelRef: { current: HTMLDivElement | null } = useRef<HTMLDivElement | null>(null);
   const expandRequestIdRef: { current: number } = useRef<number>(0);
+  /** Set only on user collapse so item-id resets do not steal scroll. */
+  const pendingCollapseScrollRef: { current: boolean } = useRef<boolean>(false);
 
   useEffect(() => {
     setUseful(readStoredUseful(item.id));
@@ -39,6 +47,7 @@ export function NewsCard({
 
   useEffect(() => {
     readCompleteSentRef.current = false;
+    pendingCollapseScrollRef.current = false;
     setExpanded(false);
     setDetails(null);
     setDetailsError("");
@@ -56,8 +65,24 @@ export function NewsCard({
       return;
     }
     window.requestAnimationFrame(() => {
-      el.scrollIntoView({ block: "start", behavior: "smooth" });
+      resolveScrollTarget(el).scrollIntoView({ block: "start", behavior: "smooth" });
     });
+  }, [expanded]);
+
+  /**
+   * After collapse the card shrinks and scrollTop stays put, so the viewport jumps to a later item.
+   * Re-anchor to this card (centered) before paint.
+   */
+  useLayoutEffect(() => {
+    if (expanded || !pendingCollapseScrollRef.current) {
+      return;
+    }
+    pendingCollapseScrollRef.current = false;
+    const el: HTMLElement | null = articleRef.current;
+    if (el === null) {
+      return;
+    }
+    resolveScrollTarget(el).scrollIntoView({ block: "center", behavior: "instant" });
   }, [expanded]);
 
   const isTikTokImmersive: boolean = feedMode === "tiktok" && variant === "immersive";
@@ -116,6 +141,7 @@ export function NewsCard({
   const handleExpandToggle = (): void => {
     if (expanded) {
       expandRequestIdRef.current += 1;
+      pendingCollapseScrollRef.current = true;
       setExpanded(false);
       setDetailsError("");
       setDetailsLoading(false);

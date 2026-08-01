@@ -4,7 +4,8 @@ import {
   type ImpactPresentation,
   type ProcessedNews
 } from "../types/news";
-import { FullArticleMobileSection } from "./FullArticleMobileSection";
+// Temporarily disabled: full-article fetch may be unlawful in Germany (Urheberrecht).
+// import { FullArticleMobileSection } from "./FullArticleMobileSection";
 import { NewsAttributionBlock } from "./NewsAttributionBlock";
 import { ShareNewsMobileSection } from "./ShareNewsMobileSection";
 
@@ -145,7 +146,9 @@ export function NewsArticleBody({
             oneSentenceSummary={news.one_sentence_summary}
             titleRu={news.title}
           />
+          {/* Temporarily disabled: full-article fetch may be unlawful in Germany (Urheberrecht).
           <FullArticleMobileSection newsId={news.id} />
+          */}
         </>
       ) : null}
     </>
