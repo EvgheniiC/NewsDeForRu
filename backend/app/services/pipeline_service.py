@@ -230,14 +230,14 @@ class PipelineService:
                             name=f"telegram-urgent-{urgent_id}",
                         ).start()
                     else:
-                            sent_breaking: bool = send_auto_published_notice(
-                                title_ru=saved.title,
-                                topic=saved.topic,
-                                one_sentence_summary=saved.one_sentence_summary,
-                                source_url=saved.source_url,
-                                processed_id=saved.id,
-                                use_urgent_retries=True,
-                            )
+                        sent_breaking: bool = send_auto_published_notice(
+                            title_ru=saved.title,
+                            topic=saved.topic,
+                            one_sentence_summary=saved.one_sentence_summary,
+                            source_url=saved.source_url,
+                            processed_id=saved.id,
+                            use_urgent_retries=True,
+                        )
                         if sent_breaking:
                             self.repository.mark_telegram_notified(saved.id)
                     if app_settings.push_urgent_background_enabled:
