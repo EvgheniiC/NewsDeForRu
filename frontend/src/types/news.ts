@@ -44,7 +44,7 @@ export interface NewsFeedItem {
   id: number;
   title: string;
   subtitle: string;
-  /** Preview image URL from RSS / Open Graph when available. */
+  /** Legacy publisher preview URL; UI uses topic stock covers instead. */
   image_url?: string | null;
   read_time_minutes: number;
   topic: NewsTopic;

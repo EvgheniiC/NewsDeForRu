@@ -14,6 +14,7 @@ import {
   type ModerationPeriodKey,
   type ModerationPeriodOption,
 } from "../lib/moderationQueue";
+import { newsTopicCoverSrc } from "../lib/newsUi";
 import type { ProcessedNews } from "../types/news";
 
 interface ModerationNewsCardProps {
@@ -33,15 +34,13 @@ function ModerationNewsCard({
     <article className="news-card">
       <p className="moderation-card-date">{formatDateTimeRuBerlin(item.created_at)}</p>
       <h3>{item.title}</h3>
-      {item.image_url ? (
-        <img
-          alt={item.title}
-          className="news-card-image"
-          decoding="async"
-          loading="lazy"
-          src={item.image_url}
-        />
-      ) : null}
+      <img
+        alt=""
+        className="news-card-image"
+        decoding="async"
+        loading="lazy"
+        src={newsTopicCoverSrc(item.topic)}
+      />
       <p>{item.one_sentence_summary}</p>
       <ModerationMetadataForm disabled={busyId !== null} item={item} onSave={onSaveMetadata} />
       <div className="news-card-footer">

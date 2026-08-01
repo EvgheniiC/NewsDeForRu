@@ -4,7 +4,7 @@ import { enqueueOne } from "../analytics/engagementQueue";
 import { ApiError, getNews } from "../api/client";
 import { markNewsAsRead } from "../lib/readStateStorage";
 import { NewsArticleBody } from "../components/NewsArticleBody";
-import { newsTopicChipClass } from "../lib/newsUi";
+import { newsTopicChipClass, newsTopicCoverSrc } from "../lib/newsUi";
 import { newsTopicLabelRu, type ProcessedNews } from "../types/news";
 
 const READ_ARTICLE_RATIO: number = 0.91;
@@ -134,15 +134,13 @@ export function NewsDetailsPage(): JSX.Element {
           </div>
         ) : null}
         <h1>{news.title}</h1>
-        {news.image_url ? (
-          <img
-            alt={news.title}
-            className="news-detail-image"
-            decoding="async"
-            loading="lazy"
-            src={news.image_url}
-          />
-        ) : null}
+        <img
+          alt=""
+          className="news-detail-image"
+          decoding="async"
+          loading="lazy"
+          src={newsTopicCoverSrc(news.topic)}
+        />
         <NewsArticleBody news={news} />
       </article>
       <p className="news-detail-category">

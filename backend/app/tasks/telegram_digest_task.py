@@ -70,7 +70,6 @@ def run_telegram_digest_for_hour(
                 topic=item.topic,
                 one_sentence_summary=item.one_sentence_summary,
                 source_url=item.source_url,
-                image_url=item.image_url,
                 processed_id=item.id,
                 slot_hour=slot_hour,
                 app_settings=cfg,

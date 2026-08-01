@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { enqueueOne } from "../analytics/engagementQueue";
 import { ApiError, getNews } from "../api/client";
-import { newsCardClassName, newsTopicChipClass } from "../lib/newsUi";
+import { newsCardClassName, newsTopicChipClass, newsTopicCoverSrc } from "../lib/newsUi";
 import { formatDateRuBerlin } from "../lib/dateTimeBerlin";
 import { readStoredUseful, setStoredUseful } from "../lib/usefulStorage";
 import type { FeedAnalyticsMode } from "../types/engagement";
@@ -197,15 +197,13 @@ export function NewsCard({
         <span>{item.source_name}</span>
       </p>
       <h3>{item.title}</h3>
-      {item.image_url ? (
-        <img
-          alt={item.title}
-          className="news-card-image"
-          decoding="async"
-          loading="lazy"
-          src={item.image_url}
-        />
-      ) : null}
+      <img
+        alt=""
+        className="news-card-image"
+        decoding="async"
+        loading="lazy"
+        src={newsTopicCoverSrc(item.topic)}
+      />
       {expanded ? (
         <div className="news-card-expanded-body">
           {detailsLoading ? <p className="muted">Загрузка…</p> : null}

@@ -2,6 +2,14 @@ import type { FeedFilterKey, NewsFeedItem, NewsTopic } from "../types/news";
 
 export type NewsCardLayoutVariant = "compact" | "immersive";
 
+/**
+ * Temporary topic stock covers (local assets) instead of publisher image URLs.
+ * Maps: politics → government building, economy → workspace, life → housing.
+ */
+export function newsTopicCoverSrc(topic: NewsTopic): string {
+  return `/topic-covers/${topic}.jpg`;
+}
+
 /** BEM-style chip class for topic-colored labels. */
 export function newsTopicChipClass(topic: NewsTopic): string {
   return `news-topic-chip news-topic-chip--${topic}`;

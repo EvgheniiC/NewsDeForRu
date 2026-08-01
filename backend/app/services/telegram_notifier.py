@@ -17,7 +17,6 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 _MAX_MESSAGE_CHARS: Final[int] = 3900
-_MAX_CAPTION_CHARS: Final[int] = 1024
 
 _READ_IN_APP_LABEL: Final[str] = "Читать в приложении"
 
@@ -231,37 +230,8 @@ def _post_telegram_payload(
         _inline_read_in_app_markup(read_url) if read_url is not None else None
     )
 
-    photo_candidate: str = (image_url or "").strip()
-    use_photo: bool = photo_candidate.startswith(("http://", "https://"))
-
-    if use_photo:
-        photo_api: str = f"https://api.telegram.org/bot{token}/sendPhoto"
-        payload_photo: dict[str, object] = {
-            "chat_id": chat_id,
-            "photo": photo_candidate,
-            "caption": _truncate(text, _MAX_CAPTION_CHARS),
-            "parse_mode": "HTML",
-        }
-        if reply_markup is not None:
-            payload_photo["reply_markup"] = reply_markup
-        try:
-            response: httpx.Response = httpx.post(
-                photo_api, json=payload_photo, timeout=35.0, verify=tls_verify
-            )
-            response.raise_for_status()
-        except Exception:
-            logger.warning(
-                "Telegram sendPhoto HTTP error, falling back to sendMessage processed_news_id=%s",
-                processed_id,
-                exc_info=True,
-            )
-        else:
-            if _telegram_api_result_ok(response, processed_id, "sendPhoto"):
-                return True
-            logger.warning(
-                "Telegram sendPhoto ok=false, falling back to sendMessage processed_news_id=%s",
-                processed_id,
-            )
+    # Publisher preview photos are not used (Urheberrecht); text-only like the app topic covers.
+    _ = image_url
 
     return _send_telegram_message(
         token=token,

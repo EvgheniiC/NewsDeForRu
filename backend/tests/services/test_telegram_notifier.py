@@ -154,7 +154,7 @@ def test_send_notice_includes_read_in_app_markup_when_base_url_set() -> None:
     assert btn.get("url") == "https://app.example.com/news/42"
 
 
-def test_send_photo_failure_falls_back_to_send_message() -> None:
+def test_image_url_is_ignored_text_only() -> None:
     cfg: Settings = Settings(
         telegram_notifications_enabled=True,
         telegram_bot_token="TOKEN",
@@ -165,8 +165,6 @@ def test_send_photo_failure_falls_back_to_send_message() -> None:
 
     def post_side_effect(url: str, **kwargs: object) -> MagicMock:
         call_urls.append(url)
-        if "sendPhoto" in url:
-            raise RuntimeError("photo transport failed")
         return mock_ok
 
     with patch("app.services.telegram_notifier.httpx.post", side_effect=post_side_effect):
@@ -181,9 +179,9 @@ def test_send_photo_failure_falls_back_to_send_message() -> None:
         )
 
     assert out is True
-    assert len(call_urls) == 2
-    assert "sendPhoto" in call_urls[0]
-    assert "sendMessage" in call_urls[1]
+    assert len(call_urls) == 1
+    assert "sendMessage" in call_urls[0]
+    assert "sendPhoto" not in call_urls[0]
 
 
 def test_urgent_retries_then_succeeds() -> None:
@@ -221,7 +219,7 @@ def test_urgent_retries_then_succeeds() -> None:
     assert mock_sleep.call_count == 2
 
 
-def test_send_notice_uses_sendphoto_when_image_url_set() -> None:
+def test_send_notice_uses_sendmessage_even_when_image_url_set() -> None:
     cfg: Settings = Settings(
         telegram_notifications_enabled=True,
         telegram_bot_token="TOKEN",
@@ -243,9 +241,9 @@ def test_send_notice_uses_sendphoto_when_image_url_set() -> None:
 
     mock_post.assert_called_once()
     post_url: str = str(mock_post.call_args[0][0])
-    assert "sendPhoto" in post_url
+    assert "sendMessage" in post_url
     payload: dict[str, object] = mock_post.call_args.kwargs["json"]
-    assert payload["photo"] == "https://cdn.example/p.png"
+    assert "photo" not in payload
     assert "parse_mode" in payload
     assert "reply_markup" in payload
 
@@ -327,20 +325,15 @@ def test_send_notice_fails_when_http_200_but_api_ok_false() -> None:
     assert out is False
 
 
-def test_send_photo_ok_false_falls_back_to_send_message() -> None:
+def test_send_message_ok_false_returns_false() -> None:
     cfg: Settings = Settings(
         telegram_notifications_enabled=True,
         telegram_bot_token="TOKEN",
         telegram_chat_id="999",
     )
-    bad: MagicMock = _mock_telegram_response(ok=False, description="failed to get HTTP URL content")
-    good: MagicMock = _mock_telegram_response(ok=True)
-    responses: list[MagicMock] = [bad, good]
+    bad: MagicMock = _mock_telegram_response(ok=False, description="chat not found")
 
-    def post_side_effect(url: str, **kwargs: object) -> MagicMock:
-        return responses.pop(0)
-
-    with patch("app.services.telegram_notifier.httpx.post", side_effect=post_side_effect):
+    with patch("app.services.telegram_notifier.httpx.post", return_value=bad):
         out: bool = send_auto_published_notice(
             title_ru="t",
             topic=NewsTopic.LIFE,
@@ -350,7 +343,7 @@ def test_send_photo_ok_false_falls_back_to_send_message() -> None:
             processed_id=11,
             app_settings=cfg,
         )
-    assert out is True
+    assert out is False
 
 
 def test_send_notice_passes_ca_bundle_path_to_httpx() -> None:

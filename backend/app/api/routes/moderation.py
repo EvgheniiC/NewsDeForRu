@@ -86,7 +86,6 @@ def moderate_news(
             topic=item.topic,
             one_sentence_summary=item.one_sentence_summary,
             source_url=item.source_url,
-            image_url=item.image_url,
             processed_id=item.id,
         )
         if sent_mod:
