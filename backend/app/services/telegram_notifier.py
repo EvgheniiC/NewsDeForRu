@@ -17,8 +17,12 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 _MAX_MESSAGE_CHARS: Final[int] = 3900
+_MAX_CAPTION_CHARS: Final[int] = 1024
 
 _READ_IN_APP_LABEL: Final[str] = "Читать в приложении"
+
+# Same paths as frontend/public/topic-covers/{topic}.jpg
+_TOPIC_COVER_PATH: Final[str] = "/topic-covers/{topic}.jpg"
 
 _DIGEST_HEADERS_BY_HOUR: Final[dict[int, str]] = {
     7: "🕖 07:00 — важное за сегодня",
@@ -78,6 +82,15 @@ def _read_in_app_url(cfg: Settings, processed_id: int) -> str | None:
     if not base:
         return None
     return f"{base.rstrip('/')}/news/{processed_id}"
+
+
+def _topic_cover_url(cfg: Settings, topic: NewsTopic) -> str | None:
+    """Public HTTPS URL for the app topic stock cover (same assets as the frontend)."""
+    base: str = cfg.public_app_base_url.strip()
+    if not base:
+        return None
+    path: str = _TOPIC_COVER_PATH.format(topic=topic.value)
+    return f"{base.rstrip('/')}{path}"
 
 
 def _inline_read_in_app_markup(app_url: str) -> dict[str, object]:
@@ -211,7 +224,7 @@ def _send_telegram_message(
 def _post_telegram_payload(
     *,
     text: str,
-    image_url: str | None,
+    topic: NewsTopic,
     processed_id: int,
     cfg: Settings,
 ) -> bool:
@@ -230,8 +243,36 @@ def _post_telegram_payload(
         _inline_read_in_app_markup(read_url) if read_url is not None else None
     )
 
-    # Publisher preview photos are not used (Urheberrecht); text-only like the app topic covers.
-    _ = image_url
+    # App topic stock covers (not publisher photos). Requires PUBLIC_APP_BASE_URL.
+    photo_url: str | None = _topic_cover_url(cfg, topic)
+    if photo_url is not None:
+        photo_api: str = f"https://api.telegram.org/bot{token}/sendPhoto"
+        payload_photo: dict[str, object] = {
+            "chat_id": chat_id,
+            "photo": photo_url,
+            "caption": _truncate(text, _MAX_CAPTION_CHARS),
+            "parse_mode": "HTML",
+        }
+        if reply_markup is not None:
+            payload_photo["reply_markup"] = reply_markup
+        try:
+            response: httpx.Response = httpx.post(
+                photo_api, json=payload_photo, timeout=35.0, verify=tls_verify
+            )
+            response.raise_for_status()
+        except Exception:
+            logger.warning(
+                "Telegram sendPhoto HTTP error, falling back to sendMessage processed_news_id=%s",
+                processed_id,
+                exc_info=True,
+            )
+        else:
+            if _telegram_api_result_ok(response, processed_id, "sendPhoto"):
+                return True
+            logger.warning(
+                "Telegram sendPhoto ok=false, falling back to sendMessage processed_news_id=%s",
+                processed_id,
+            )
 
     return _send_telegram_message(
         token=token,
@@ -246,7 +287,7 @@ def _post_telegram_payload(
 def _retrying_post_telegram_payload(
     *,
     text: str,
-    image_url: str | None,
+    topic: NewsTopic,
     processed_id: int,
     cfg: Settings,
     max_attempts: int,
@@ -257,7 +298,7 @@ def _retrying_post_telegram_payload(
     for attempt in range(max_attempts):
         if _post_telegram_payload(
             text=text,
-            image_url=image_url,
+            topic=topic,
             processed_id=processed_id,
             cfg=cfg,
         ):
@@ -283,7 +324,6 @@ def send_auto_published_notice(
     one_sentence_summary: str,
     source_url: str,
     processed_id: int,
-    image_url: str | None = None,
     app_settings: Settings | None = None,
     use_urgent_retries: bool = False,
 ) -> bool:
@@ -303,7 +343,7 @@ def send_auto_published_notice(
 
     for attempt in range(attempts):
         ok: bool = _post_telegram_payload(
-            text=text, image_url=image_url, processed_id=processed_id, cfg=cfg
+            text=text, topic=topic, processed_id=processed_id, cfg=cfg
         )
         if ok:
             return True
@@ -328,7 +368,6 @@ def send_scheduled_digest_notice(
     source_url: str,
     processed_id: int,
     slot_hour: int,
-    image_url: str | None = None,
     app_settings: Settings | None = None,
 ) -> bool:
     """Non-urgent auto-publish digest slot (e.g. 7:00 / 15:00 / 20:00)."""
@@ -345,7 +384,7 @@ def send_scheduled_digest_notice(
     )
     return _retrying_post_telegram_payload(
         text=text,
-        image_url=image_url,
+        topic=topic,
         processed_id=processed_id,
         cfg=cfg,
         max_attempts=cfg.telegram_digest_send_max_attempts,
@@ -361,7 +400,6 @@ def send_moderation_approved_notice(
     one_sentence_summary: str,
     source_url: str,
     processed_id: int,
-    image_url: str | None = None,
     app_settings: Settings | None = None,
 ) -> bool:
     """Notify Telegram right after moderator approval (same channel/settings as autopublish)."""
@@ -377,7 +415,7 @@ def send_moderation_approved_notice(
     )
     return _retrying_post_telegram_payload(
         text=text,
-        image_url=image_url,
+        topic=topic,
         processed_id=processed_id,
         cfg=cfg,
         max_attempts=cfg.telegram_moderation_send_max_attempts,
