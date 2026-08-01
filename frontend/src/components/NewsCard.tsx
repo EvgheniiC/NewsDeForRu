@@ -1,12 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { enqueueOne } from "../analytics/engagementQueue";
 import { ApiError, getNews } from "../api/client";
-import { newsCardClassName, newsTopicChipClass, newsTopicCoverSrc } from "../lib/newsUi";
+import { newsCardClassName, newsTopicChipClass } from "../lib/newsUi";
 import { formatDateRuBerlin } from "../lib/dateTimeBerlin";
 import { readStoredUseful, setStoredUseful } from "../lib/usefulStorage";
 import type { FeedAnalyticsMode } from "../types/engagement";
 import { newsTopicLabelRu, type NewsFeedItem, type ProcessedNews } from "../types/news";
 import { NewsArticleBody } from "./NewsArticleBody";
+import { NewsTopicCover } from "./NewsTopicCover";
 
 export type NewsCardVariant = "compact" | "immersive";
 
@@ -197,13 +198,7 @@ export function NewsCard({
         <span>{item.source_name}</span>
       </p>
       <h3>{item.title}</h3>
-      <img
-        alt=""
-        className="news-card-image"
-        decoding="async"
-        loading="lazy"
-        src={newsTopicCoverSrc(item.topic)}
-      />
+      <NewsTopicCover newsId={item.id} topic={item.topic} variant="card" />
       {expanded ? (
         <div className="news-card-expanded-body">
           {detailsLoading ? <p className="muted">Загрузка…</p> : null}

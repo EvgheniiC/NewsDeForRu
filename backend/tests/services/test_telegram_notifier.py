@@ -144,7 +144,7 @@ def test_send_notice_includes_read_in_app_markup_when_base_url_set() -> None:
     post_url: str = str(mock_post.call_args[0][0])
     assert "sendPhoto" in post_url
     payload: dict[str, object] = mock_post.call_args.kwargs["json"]
-    assert payload["photo"] == "https://app.example.com/topic-covers/life.jpg"
+    assert payload["photo"] == "https://app.example.com/topic-covers/life/001.jpg"
     mk: object = payload.get("reply_markup")
     assert isinstance(mk, dict)
     rows: object = mk["inline_keyboard"]
@@ -244,7 +244,7 @@ def test_send_notice_uses_topic_cover_photo_when_base_url_set() -> None:
     post_url: str = str(mock_post.call_args[0][0])
     assert "sendPhoto" in post_url
     payload: dict[str, object] = mock_post.call_args.kwargs["json"]
-    assert payload["photo"] == "https://app.example.com/topic-covers/politics.jpg"
+    assert payload["photo"] == "https://app.example.com/topic-covers/politics/001.jpg"
     assert "caption" in payload
     assert "parse_mode" in payload
     assert "reply_markup" in payload

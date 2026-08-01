@@ -12,6 +12,7 @@ import httpx
 from app.core.config import Settings, settings
 from app.core.http_tls import httpx_verify_arg
 from app.models.news import NewsTopic
+from app.services.topic_covers import topic_cover_relative_path
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -20,9 +21,7 @@ _MAX_MESSAGE_CHARS: Final[int] = 3900
 _MAX_CAPTION_CHARS: Final[int] = 1024
 
 _READ_IN_APP_LABEL: Final[str] = "Читать в приложении"
-
-# Same paths as frontend/public/topic-covers/{topic}.jpg
-_TOPIC_COVER_PATH: Final[str] = "/topic-covers/{topic}.jpg"
+_AI_COVER_DISCLAIMER: Final[str] = "Иллюстрация: ИИ"
 
 _DIGEST_HEADERS_BY_HOUR: Final[dict[int, str]] = {
     7: "🕖 07:00 — важное за сегодня",
@@ -84,12 +83,14 @@ def _read_in_app_url(cfg: Settings, processed_id: int) -> str | None:
     return f"{base.rstrip('/')}/news/{processed_id}"
 
 
-def _topic_cover_url(cfg: Settings, topic: NewsTopic) -> str | None:
-    """Public HTTPS URL for the app topic stock cover (same assets as the frontend)."""
+def _topic_cover_url(cfg: Settings, topic: NewsTopic, news_id: int) -> str | None:
+    """Public HTTPS URL for a stable topic-pool cover (same assets as the frontend)."""
     base: str = cfg.public_app_base_url.strip()
     if not base:
         return None
-    path: str = _TOPIC_COVER_PATH.format(topic=topic.value)
+    path: str | None = topic_cover_relative_path(topic, news_id)
+    if path is None:
+        return None
     return f"{base.rstrip('/')}{path}"
 
 
@@ -125,6 +126,8 @@ def _format_published_html(
             f"Категория: {category_esc}",
             "",
             f'<a href="{url_esc}">источник</a>',
+            "",
+            html.escape(_AI_COVER_DISCLAIMER),
         ]
     )
     body: str = "\n".join(lines)
@@ -244,7 +247,7 @@ def _post_telegram_payload(
     )
 
     # App topic stock covers (not publisher photos). Requires PUBLIC_APP_BASE_URL.
-    photo_url: str | None = _topic_cover_url(cfg, topic)
+    photo_url: str | None = _topic_cover_url(cfg, topic, processed_id)
     if photo_url is not None:
         photo_api: str = f"https://api.telegram.org/bot{token}/sendPhoto"
         payload_photo: dict[str, object] = {
