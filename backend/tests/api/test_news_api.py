@@ -67,7 +67,7 @@ def test_news_endpoint_accepts_positive_only_filter() -> None:
     assert isinstance(data["items"], list)
 
 
-def test_full_article_endpoint_404_when_missing() -> None:
+def test_full_article_endpoint_is_not_available() -> None:
     init_database()
-    response = client.get("/news/999_999/full-article")
-    assert response.status_code in (404, 503)
+    response = client.get("/news/1/full-article")
+    assert response.status_code == 404

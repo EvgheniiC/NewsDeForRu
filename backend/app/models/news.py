@@ -126,7 +126,6 @@ class ProcessedNews(Base):
     action_items: Mapped[str] = mapped_column(Text, nullable=False)
     bonus_block: Mapped[str] = mapped_column(Text, default="", nullable=False)
     spoiler: Mapped[str] = mapped_column(Text, default="", nullable=False)
-    full_article_ru: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
     source_url: Mapped[str] = mapped_column(String(1024), nullable=False)
     source_url_status: Mapped[SourceUrlStatus] = mapped_column(
         Enum(

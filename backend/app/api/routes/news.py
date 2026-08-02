@@ -8,7 +8,6 @@ from app.models.news import FeedPeriod, ImpactPresentation, NewsTopic, Processed
 from app.repositories.news_repository import NewsRepository
 from app.utils.feed_period import period_start_utc_naive
 from app.schemas.news import (
-    FullArticleResponse,
     NewsFeedItem,
     NewsFeedPageResponse,
     ProcessedNewsResponse,
@@ -18,7 +17,6 @@ from app.schemas.news import (
     TopNewsTodayResponse,
     normalize_one_sentence_for_api,
 )
-from app.services.full_article_service import FullArticleService, FullArticleUnavailableError
 from app.services.news_attribution import build_processed_news_response, published_at_and_source_name
 from app.services.top_news_scoring import total_top_score
 
@@ -155,22 +153,6 @@ def get_news(news_id: int, db_session: Session = Depends(get_db_session)) -> Pro
     if item is None:
         raise HTTPException(status_code=404, detail="News item not found.")
     return build_processed_news_response(item)
-
-
-@router.get("/{news_id}/full-article", response_model=FullArticleResponse)
-def get_news_full_article(
-    news_id: int,
-    db_session: Session = Depends(get_db_session),
-) -> FullArticleResponse:
-    """Return cached Russian full article or fetch, translate, and store on first request."""
-    service: FullArticleService = FullArticleService(db_session)
-    try:
-        body_ru, cached = service.get_or_create_full_article_ru(news_id)
-    except FullArticleUnavailableError as e:
-        detail: str = str(e)
-        status: int = 404 if "not found" in detail.lower() else 503
-        raise HTTPException(status_code=status, detail=detail) from e
-    return FullArticleResponse(news_id=news_id, full_article_ru=body_ru, cached=cached)
 
 
 @router.get("/{news_id}/impact", response_model=RoleImpactResponse)

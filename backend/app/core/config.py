@@ -70,13 +70,6 @@ class Settings(BaseSettings):
     og_image_max_response_bytes: int = 2_000_000
     # One extra HTTP attempt on 429/5xx to OpenAI chat completions.
     openai_request_retries: int = 1
-    # Lazy full-article translation (GET /news/{id}/full-article); empty model uses openai_model.
-    openai_full_article_model: str = ""
-    full_article_fetch_enabled: bool = True
-    full_article_fetch_timeout_seconds: float = 20.0
-    full_article_max_response_bytes: int = 2_000_000
-    full_article_max_extract_chars: int = 12_000
-    full_article_max_stored_chars: int = 50_000
     # When the scheduled pipeline raises, the task can return a failure envelope instead of propagating.
     pipeline_task_swallow_errors: bool = True
 

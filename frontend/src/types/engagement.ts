@@ -5,7 +5,6 @@ export type EngagementEventType =
   | "open_source"
   | "read_complete_preview"
   | "read_complete_article"
-  | "expand_full_article"
   | "navigate_next"
   | "share";
 

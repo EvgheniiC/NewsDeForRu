@@ -51,7 +51,7 @@
 
 Типы событий (см. [`backend/app/models/engagement.py`](../backend/app/models/engagement.py)):
 
-- `useful`, `open_preview`, `open_source`, `read_complete_preview`, `read_complete_article`, `expand_full_article`, `navigate_next`, `share`
+- `useful`, `open_preview`, `open_source`, `read_complete_preview`, `read_complete_article`, `navigate_next`, `share`
 
 Payload (примеры): `feed_mode`, `max_ratio`, `dwell_ms`, `channel`, `cached` — **без имени, email, геолокации**.
 
@@ -72,11 +72,11 @@ Payload (примеры): `feed_mode`, `max_ratio`, `dwell_ms`, `channel`, `cach
 
 | Сервис | Данные | Связь с мобильным клиентом |
 |--------|--------|----------------------------|
-| **OpenAI** | RSS-тексты, полные статьи для перевода | Пользователь может вызвать `GET /news/{id}/full-article`; на OpenAI уходит **контент статьи**, не email пользователя |
+| **OpenAI** | RSS-тексты для подготовки сводок | На OpenAI уходит контент RSS, но не email пользователя |
 | **Telegram** | уведомления о новых новостях | Пользовательские PII **не** отправляются |
 | **GMX SMTP** | email при сбросе пароля | Только если пользователь запросил reset |
 
-Для форм сторов: указывайте передачу **email** процессору почты (GMX). Передачу **текста статей** в OpenAI можно описать как обработку контента сервисом (часто не попадает в «данные пользователя» в Data safety, если не отправляете профиль/идентификаторы на OpenAI — в вашем коде не отправляете).
+Для форм сторов: указывайте передачу **email** процессору почты (GMX). Передачу **RSS-текстов** в OpenAI можно описать как обработку контента сервисом (часто не попадает в «данные пользователя» в Data safety, если не отправляете профиль/идентификаторы на OpenAI — в вашем коде не отправляете).
 
 ---
 

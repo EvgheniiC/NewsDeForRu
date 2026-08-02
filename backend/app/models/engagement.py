@@ -21,7 +21,6 @@ class EngagementEventType(StrEnum):
     OPEN_SOURCE = "open_source"
     READ_COMPLETE_PREVIEW = "read_complete_preview"
     READ_COMPLETE_ARTICLE = "read_complete_article"
-    EXPAND_FULL_ARTICLE = "expand_full_article"
     NAVIGATE_NEXT = "navigate_next"
     SHARE = "share"
 
