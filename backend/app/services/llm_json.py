@@ -30,9 +30,6 @@ def extract_json_string(raw: str) -> str:
 
 def parse_llm_news_json(
     text: str,
-    *,
-    raw_title: str = "",
-    raw_summary: str = "",
 ) -> LLMNewsOutput:
     """Parse model output into a validated :class:`LLMNewsOutput`."""
     s: str = extract_json_string(text)
@@ -44,11 +41,7 @@ def parse_llm_news_json(
     if not isinstance(data, dict):
         omsg: str = "JSON root must be an object"
         raise TypeError(omsg)
-    coerced: dict[str, Any] = coerce_llm_news_dict_before_validate(
-        data,
-        raw_title=raw_title,
-        raw_summary=raw_summary,
-    )
+    coerced: dict[str, Any] = coerce_llm_news_dict_before_validate(data)
     return LLMNewsOutput.model_validate(coerced)
 
 

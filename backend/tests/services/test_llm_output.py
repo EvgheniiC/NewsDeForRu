@@ -85,19 +85,12 @@ def test_parse_llm_news_json_rejects_string_none_placeholder() -> None:
         parse_llm_news_json(s)
 
 
-def test_parse_llm_news_json_fills_empty_title_from_raw_feed() -> None:
+def test_parse_llm_news_json_rejects_empty_title() -> None:
     p: dict[str, object] = _valid_payload()
     p["title"] = "   \n  "
     s: str = json.dumps(p, ensure_ascii=True)
-    out: LLMNewsOutput = parse_llm_news_json(s, raw_title="Streik legt Bahn lahm")
-    assert "Streik" in out.title
-
-
-def test_parse_llm_news_json_placeholder_when_title_blank_and_no_raw() -> None:
-    p: dict[str, object] = _valid_payload()
-    p["title"] = ""
-    out: LLMNewsOutput = parse_llm_news_json(json.dumps(p, ensure_ascii=True))
-    assert out.title.startswith("Заголовок не получен")
+    with pytest.raises(ValidationError):
+        parse_llm_news_json(s)
 
 
 def test_parse_llm_news_json_coerces_is_positive_from_string() -> None:
@@ -139,29 +132,12 @@ def test_parse_llm_news_json_leaves_empty_action_items_optional_like_bonus_spoil
     assert out.spoiler == ""
 
 
-def test_parse_llm_news_json_ignores_placeholder_raw_summary_for_draft() -> None:
+def test_parse_llm_news_json_rejects_missing_core_text() -> None:
     p: dict[str, object] = _valid_payload()
     p["one_sentence_summary"] = ""
     p["plain_language"] = ""
-    out: LLMNewsOutput = parse_llm_news_json(
-        json.dumps(p, ensure_ascii=True),
-        raw_summary="None",
-    )
-    assert "Краткая сводка не была возвращена моделью" in out.one_sentence_summary
-    assert "Черновик из описания фида" not in out.one_sentence_summary
-
-
-def test_parse_llm_news_json_fills_summary_plain_from_raw_feed() -> None:
-    p: dict[str, object] = _valid_payload()
-    p["one_sentence_summary"] = ""
-    p["plain_language"] = ""
-    raw_sum: str = "Die Regierung beschließt neue Maßnahmen."
-    out: LLMNewsOutput = parse_llm_news_json(
-        json.dumps(p, ensure_ascii=True),
-        raw_summary=raw_sum,
-    )
-    assert "Maßnahmen" in out.one_sentence_summary or "нем." in out.one_sentence_summary
-    assert "немецкий" in out.plain_language.lower() or "Maßnahmen" in out.plain_language
+    with pytest.raises(ValidationError):
+        parse_llm_news_json(json.dumps(p, ensure_ascii=True))
 
 
 def test_extract_json_string_code_fence() -> None:
@@ -204,10 +180,16 @@ def test_normalize_action_items_strips_legacy_placeholder() -> None:
 
 
 def test_fallback_after_validation_failure_is_valid() -> None:
-    f: LLMNewsOutput = fallback_after_validation_failure("T", "S", "reason")
-    assert f.confidence_score < 0.2
-    assert f.impact_presentation == "single"
-    assert f.impact_unified
+    f: LLMNewsOutput = fallback_after_validation_failure()
+    serialized: str = f.model_dump_json()
+    assert f.confidence_score == 0.0
+    assert f.impact_presentation == "none"
+    assert f.impact_unified == ""
     assert f.impact_owner == ""
+    assert f.action_items == ""
+    assert f.bonus_block == ""
+    assert f.spoiler == ""
+    assert "Оригинал" not in serialized
+    assert "нем." not in serialized
     assert 1 <= f.importance_score <= 10
     assert f.model_json_schema()["type"] == "object"

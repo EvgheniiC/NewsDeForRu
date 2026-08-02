@@ -89,7 +89,7 @@ class OpenAILLMProvider(LLMProvider):
         ]
         content: str = self._chat(first_messages)
         try:
-            return parse_llm_news_json(content, raw_title=title, raw_summary=summary)
+            return parse_llm_news_json(content)
         except (ValueError, TypeError, ValidationError) as e1:
             logger.warning("LLM first JSON parse/validation failed: %s", e1)
             repair: str = build_repair_user_message(str(e1), content)
@@ -100,21 +100,17 @@ class OpenAILLMProvider(LLMProvider):
             ]
             try:
                 content2: str = self._chat(second_messages)
-                return parse_llm_news_json(content2, raw_title=title, raw_summary=summary)
+                return parse_llm_news_json(content2)
             except (ValueError, TypeError, ValidationError) as e2:
                 logger.error("LLM failed after repair: %s", e2)
-                return fallback_after_validation_failure(title, summary, str(e2))
+                return fallback_after_validation_failure()
 
     def process_news(self, title: str, summary: str) -> LLMNewsOutput:
         try:
             return self._process_news_inner(title, summary)
         except (httpx.HTTPError, httpx.RequestError) as e:
             logger.warning("OpenAI transport error, using validation fallback: %s", e)
-            return fallback_after_validation_failure(
-                title, summary, f"OpenAI request failed: {e!s}"[:200]
-            )
+            return fallback_after_validation_failure()
         except Exception as e:
             logger.exception("OpenAI processing failed, using validation fallback: %s", e)
-            return fallback_after_validation_failure(
-                title, summary, f"OpenAI error: {e!s}"[:200]
-            )
+            return fallback_after_validation_failure()

@@ -4,14 +4,6 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 NewsTopicLiteral = Literal["politics", "economy", "life"]
 
-_PLACEHOLDER_TITLE_NO_MODEL: str = "Заголовок не получен от модели"
-_PLACEHOLDER_SUMMARY_EMPTY: str = (
-    "Краткая сводка не была возвращена моделью; см. блок «Простым языком» или оригинал по ссылке."
-)
-_PLACEHOLDER_PLAIN_EMPTY: str = (
-    "Разъяснение не было возвращено моделью. Откройте оригинал материала по ссылке в карточке."
-)
-
 
 def _coerce_topic_for_llm(value: object) -> NewsTopicLiteral:
     """
@@ -159,14 +151,12 @@ def _optional_llm_string(v: str) -> str:
 
 def coerce_llm_news_dict_before_validate(
     data: dict[str, Any],
-    *,
-    raw_title: str = "",
-    raw_summary: str = "",
 ) -> dict[str, Any]:
     """
     Fix common LLM JSON mistakes before :class:`LLMNewsOutput` validation.
 
-    Fills blank strings and maps topic synonyms onto politics/economy/life.
+    Normalizes optional strings and maps topic synonyms onto politics/economy/life.
+    Missing core Russian fields remain invalid so publisher text is never substituted.
     """
     out: dict[str, Any] = dict(data)
 
@@ -176,38 +166,13 @@ def coerce_llm_news_dict_before_validate(
             return ""
         return str(v).strip()
 
-    rt: str = meaningful_feed_text(raw_title)
-    rs: str = meaningful_feed_text(raw_summary)
-
     title_v: str = _txt("title")
-    if not title_v and rt:
-        title_v = rt[:500]
-    if not title_v:
-        title_v = _PLACEHOLDER_TITLE_NO_MODEL
-    out["title"] = title_v
+    out["title"] = title_v[:500]
 
     osum: str = _txt("one_sentence_summary")
-    if not osum:
-        if rs:
-            osum = f"(Черновик из описания фида, нем.) {rs[:900]}"
-        else:
-            osum = _PLACEHOLDER_SUMMARY_EMPTY
     out["one_sentence_summary"] = osum[:2000]
 
     plain: str = _txt("plain_language")
-    if not plain:
-        if rs:
-            plain = (
-                "Модель не вернула объяснение; ниже фрагмент оригинала (немецкий):\n"
-                f"{rs[:6000]}"
-            )
-        elif rt:
-            plain = (
-                "Модель не вернула объяснение; ниже заголовок источника (немецкий):\n"
-                f"{rt[:2000]}"
-            )
-        else:
-            plain = _PLACEHOLDER_PLAIN_EMPTY
     out["plain_language"] = plain[:8000]
 
     act: str = _txt("action_items")
@@ -374,43 +339,26 @@ class LLMNewsOutput(BaseModel):
         )
 
 
-def fallback_after_validation_failure(
-    title: str, summary: str, failure_reason: str
-) -> LLMNewsOutput:
-    """Deterministic, schema-valid copy when the model output cannot be validated."""
-    tech: str = f"(JSON не прошёл проверку: {failure_reason[:180]})"
-    de_hint: str = (
-        meaningful_feed_text(summary) or meaningful_feed_text(title)
-    )[:400]
-    de_part: str = (
-        f"Оригинал (фрагмент, нем.): {de_hint}. " if de_hint else ""
-    )
-    unified: str = (
-        "Автоматическая обработка не построила отдельный блок «влияния». "
-        "Опирайтесь на «Суть» и «Простым языком» выше; оригинал — по ссылке в карточке. "
-        + tech
-    )[:4000]
+def fallback_after_validation_failure() -> LLMNewsOutput:
+    """Return a safe review-only result without publisher text or invented claims."""
     return LLMNewsOutput(
-        title="Перевод и сводка не сформированы — требуется ручная проверка"[:500],
+        title="Материал требует ручной проверки",
         one_sentence_summary=(
-            "Автоматическая обработка не дала валидный ответ. "
-            "Сформируйте краткое изложение на русском вручную, либо перезапустите с LLM_PROVIDER=openai. "
-            "Полный оригинал — на немецком по ссылке из новости."
-        )[:2000],
+            "Автоматическая обработка не сформировала надёжную русскоязычную сводку."
+        ),
         plain_language=(
-            "Если коротко: ответ ИИ нельзя было надёжно разобрать. "
-            f"{de_part}" + tech
-        )[:8000],
-        impact_presentation="single",
-        impact_unified=unified,
+            "Публикация отложена до повторной обработки или проверки редактором."
+        ),
+        impact_presentation="none",
+        impact_unified="",
         impact_owner="",
         impact_tenant="",
         impact_buyer="",
-        action_items="- Проверьте текущий статус\n- Изучите официальные субсидии",
-        bonus_block="Редакция отметила ошибку в ответе ИИ; материал уйдёт на ручную проверку.",
-        spoiler="Политический компромисс мог смягчить первоначальный вариант реформы.",
+        action_items="",
+        bonus_block="",
+        spoiler="",
         topic="life",
         is_positive=False,
-        confidence_score=0.12,
-        importance_score=5,
+        confidence_score=0.0,
+        importance_score=1,
     )

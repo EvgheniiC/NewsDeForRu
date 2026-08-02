@@ -127,9 +127,7 @@ class PipelineService:
                     err_name,
                     fp,
                 )
-                llm_output = fallback_after_validation_failure(
-                    raw_item.title, raw_item.summary, str(e)[:200]
-                )
+                llm_output = fallback_after_validation_failure()
                 item_errors += 1
                 if len(item_error_details) < _MAX_ITEM_ERROR_DETAILS:
                     item_error_details.append(
