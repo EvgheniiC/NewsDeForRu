@@ -13,6 +13,7 @@ from app.services.dedup_service import DedupService
 from app.services.embedding_service import create_embedding_encoder
 from app.services.llm_provider import LLMProvider, create_llm_provider
 from app.services.publication_service import PublicationDecisionInput, PublicationService
+from app.services.publisher_text_guard import guard_llm_output
 from app.services.telegram_notifier import send_auto_published_notice
 from app.services.push_notifier import send_urgent_push_notice
 from app.services.relevance_filter_service import RelevanceFilterService
@@ -147,6 +148,20 @@ class PipelineService:
                         run_id,
                     )
                     details_truncated_logged = True
+            llm_output, overlap = guard_llm_output(
+                source_title=raw_item.title,
+                source_summary=raw_item.summary,
+                output=llm_output,
+            )
+            if overlap.is_suspicious:
+                logger.warning(
+                    "Publisher text overlap blocked raw_item_id=%s max_ratio=%.3f "
+                    "longest_match_words=%s longest_match_chars=%s",
+                    raw_item.id,
+                    overlap.max_similarity_ratio,
+                    overlap.longest_match_words,
+                    overlap.longest_match_chars,
+                )
             decision_inp = PublicationDecisionInput(
                 confidence_score=llm_output.confidence_score,
                 relevance_score=relevance.score,

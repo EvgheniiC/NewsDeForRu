@@ -6,6 +6,7 @@ import httpx
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
+from app.core.config import settings
 from app.core.database import Base
 from app.models.news import RawNewsItem, Source
 from app.repositories.news_repository import NewsRepository
@@ -40,7 +41,10 @@ def test_rss_ingestion_persists_stripped_summary() -> None:
 
     with session_factory() as session:
         repo: NewsRepository = NewsRepository(session)
-        with patch("app.services.rss_ingestion_service.httpx.Client", return_value=client_cm):
+        with (
+            patch.object(settings, "rss_enabled_source_keys", "tagesschau"),
+            patch("app.services.rss_ingestion_service.httpx.Client", return_value=client_cm),
+        ):
             service: RSSIngestionService = RSSIngestionService(repo)
             stats = service.run()
 
@@ -82,11 +86,28 @@ def test_rss_ingestion_retries_then_succeeds() -> None:
 
     with session_factory() as session:
         repo: NewsRepository = NewsRepository(session)
-        with patch("app.services.rss_ingestion_service.httpx.Client", return_value=client_cm):
+        with (
+            patch.object(settings, "rss_enabled_source_keys", "tagesschau"),
+            patch("app.services.rss_ingestion_service.httpx.Client", return_value=client_cm),
+        ):
             service: RSSIngestionService = RSSIngestionService(repo)
             stats = service.run()
         assert stats.feeds_failed == 0
         assert client_instance.get.call_count >= 2
+
+
+def test_rss_ingestion_skips_network_when_no_source_is_approved() -> None:
+    repository: MagicMock = MagicMock(spec=NewsRepository)
+
+    with (
+        patch.object(settings, "rss_enabled_source_keys", ""),
+        patch("app.services.rss_ingestion_service.httpx.Client") as client_class,
+    ):
+        stats = RSSIngestionService(repository).run()
+
+    assert stats.fetched == 0
+    assert stats.feeds_failed == 0
+    client_class.assert_not_called()
 
 
 def test_upsert_source_updates_name_and_url() -> None:

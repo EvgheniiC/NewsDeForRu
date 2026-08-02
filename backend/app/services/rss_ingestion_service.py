@@ -9,7 +9,7 @@ from app.core.config import settings
 from app.core.http_tls import httpx_verify_arg
 from app.repositories.news_repository import NewsRepository
 from app.services.rss_entry_normalization import normalize_feedparser_entry
-from app.services.rss_sources import DEFAULT_RSS_SOURCES
+from app.services.rss_sources import RSSSource, enabled_rss_sources
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -53,6 +53,12 @@ class RSSIngestionService:
     def run(self) -> IngestionStats:
         fetched: int = 0
         feeds_failed: int = 0
+        sources: tuple[RSSSource, ...] = enabled_rss_sources(settings.rss_enabled_source_keys)
+        if not sources:
+            logger.warning(
+                "RSS ingestion skipped: RSS_ENABLED_SOURCE_KEYS has no approved source keys"
+            )
+            return IngestionStats(fetched=0, feeds_failed=0)
         timeout: httpx.Timeout = httpx.Timeout(settings.rss_fetch_timeout_seconds)
         headers: dict[str, str] = {"User-Agent": settings.rss_user_agent}
 
@@ -62,7 +68,7 @@ class RSSIngestionService:
             follow_redirects=True,
             verify=httpx_verify_arg(settings),
         ) as client:
-            for source in DEFAULT_RSS_SOURCES:
+            for source in sources:
                 body: bytes | None = self._fetch_feed_body(client, source.url)
                 if body is None:
                     feeds_failed += 1

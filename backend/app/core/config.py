@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     rss_fetch_timeout_seconds: float = 30.0
     rss_max_response_bytes: int = 5_000_000
     rss_user_agent: str = "newsForGermanyRU/1.0 (+https://example.local)"
+    # Fail closed: add a source key only after its production usage is approved.
+    rss_enabled_source_keys: str = ""
     auto_publish_threshold: float = 0.85
     # For hybrid publication: stricter than relevance filter; borderline items go to moderation queue.
     auto_publish_min_relevance: float = 0.5
@@ -21,6 +23,11 @@ class Settings(BaseSettings):
     auto_publish_review_on_duplicate_cluster: bool = True
     # Comma-separated substrings; if any appear in title+summary, force moderation (case-insensitive).
     moderation_extra_review_keywords: str = ""
+    # Technical safeguards only; these values are not legally safe quotation limits.
+    publisher_text_overlap_min_words: int = Field(default=8, ge=3, le=50)
+    publisher_text_overlap_min_chars: int = Field(default=50, ge=20, le=500)
+    publisher_text_similarity_min_chars: int = Field(default=40, ge=20, le=500)
+    publisher_text_similarity_threshold: float = Field(default=0.72, ge=0.5, le=1.0)
 
     llm_provider: Literal["stub", "openai"] = "stub"
     openai_api_key: str = ""
