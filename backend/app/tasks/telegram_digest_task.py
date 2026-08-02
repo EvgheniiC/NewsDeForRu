@@ -65,11 +65,18 @@ def run_telegram_digest_for_hour(
             return
 
         for item in candidates:
+            source_name: str = (
+                item.raw_item.source.name
+                if item.raw_item is not None and item.raw_item.source is not None
+                else (item.copyright_holder or "")
+            )
             ok: bool = send_scheduled_digest_notice(
                 title_ru=item.title,
                 topic=item.topic,
                 one_sentence_summary=item.one_sentence_summary,
                 source_url=item.source_url,
+                source_name=source_name,
+                changes_notice=item.changes_notice or "",
                 processed_id=item.id,
                 slot_hour=slot_hour,
                 app_settings=cfg,

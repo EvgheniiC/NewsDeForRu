@@ -57,6 +57,17 @@ class ProcessedNewsResponse(BaseModel):
     importance_ai_score: int
     published_at: datetime
     source_name: str
+    original_title: str | None = None
+    original_language: str | None = None
+    retrieved_at: datetime | None = None
+    licence: str | None = None
+    licence_url: str | None = None
+    copyright_holder: str | None = None
+    is_translated: bool = True
+    is_ai_summarised: bool = True
+    changes_notice: str | None = None
+    third_party_material_excluded: bool = True
+    source_revision: str | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -64,6 +75,10 @@ class ProcessedNewsResponse(BaseModel):
     @field_serializer("published_at", "created_at")
     def _serialize_datetimes(self, value: datetime) -> str:
         return to_berlin_iso(value)
+
+    @field_serializer("retrieved_at")
+    def _serialize_optional_datetime(self, value: datetime | None) -> str | None:
+        return to_berlin_iso(value) if value is not None else None
 
     @model_validator(mode="after")
     def _fix_legacy_placeholder_summary(self) -> Self:

@@ -15,7 +15,13 @@ export function buildNewsShareUrl(newsId: number): string {
 }
 
 /** Title + summary + deep link line for WhatsApp (full message in one text field). */
-export function buildNewsShareText(titleRu: string, oneSentenceSummary: string, shareUrl: string): string {
+export function buildNewsShareText(
+  titleRu: string,
+  oneSentenceSummary: string,
+  shareUrl: string,
+  sourceName: string = "",
+  sourceUrl: string = ""
+): string {
   const parts: string[] = [];
   const title: string = titleRu.trim();
   const summary: string = oneSentenceSummary.trim();
@@ -24,13 +30,21 @@ export function buildNewsShareText(titleRu: string, oneSentenceSummary: string, 
   }
   if (summary.length > 0) {
     parts.push(summary);
+  }
+  if (sourceName.trim() || sourceUrl.trim()) {
+    parts.push(`Источник: ${sourceName.trim() || "оригинал"}${sourceUrl.trim() ? ` — ${sourceUrl.trim()}` : ""}`);
   }
   parts.push(`Читать в приложении: ${shareUrl}`);
   return parts.join("\n\n");
 }
 
 /** Caption for Telegram share (URL is passed separately). */
-export function buildTelegramShareCaption(titleRu: string, oneSentenceSummary: string): string {
+export function buildTelegramShareCaption(
+  titleRu: string,
+  oneSentenceSummary: string,
+  sourceName: string = "",
+  sourceUrl: string = ""
+): string {
   const parts: string[] = [];
   const title: string = titleRu.trim();
   const summary: string = oneSentenceSummary.trim();
@@ -39,6 +53,9 @@ export function buildTelegramShareCaption(titleRu: string, oneSentenceSummary: s
   }
   if (summary.length > 0) {
     parts.push(summary);
+  }
+  if (sourceName.trim() || sourceUrl.trim()) {
+    parts.push(`Источник: ${sourceName.trim() || "оригинал"}${sourceUrl.trim() ? ` — ${sourceUrl.trim()}` : ""}`);
   }
   return parts.join("\n\n");
 }
@@ -60,12 +77,14 @@ export function buildShareUrlForChannel(
   titleRu: string,
   oneSentenceSummary: string,
   newsId: number,
+  sourceName: string = "",
+  sourceUrl: string = ""
 ): string {
   const shareUrl: string = buildNewsShareUrl(newsId);
   if (channel === "whatsapp") {
-    const text: string = buildNewsShareText(titleRu, oneSentenceSummary, shareUrl);
+    const text: string = buildNewsShareText(titleRu, oneSentenceSummary, shareUrl, sourceName, sourceUrl);
     return buildWhatsAppShareUrl(text);
   }
-  const caption: string = buildTelegramShareCaption(titleRu, oneSentenceSummary);
+  const caption: string = buildTelegramShareCaption(titleRu, oneSentenceSummary, sourceName, sourceUrl);
   return buildTelegramShareUrl(shareUrl, caption);
 }

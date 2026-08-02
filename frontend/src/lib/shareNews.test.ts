@@ -27,6 +27,16 @@ describe("shareNews", () => {
     expect(buildTelegramShareCaption("A", "B")).toBe("A\n\nB");
   });
 
+  it("includes the original source when supplied", () => {
+    const text: string = buildTelegramShareCaption(
+      "A",
+      "B",
+      "Eurostat",
+      "https://ec.europa.eu/eurostat/example"
+    );
+    expect(text).toContain("Источник: Eurostat — https://ec.europa.eu/eurostat/example");
+  });
+
   it("buildWhatsAppShareUrl encodes text", () => {
     expect(buildWhatsAppShareUrl("hello world")).toBe("https://wa.me/?text=hello%20world");
   });

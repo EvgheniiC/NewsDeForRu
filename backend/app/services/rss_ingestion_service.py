@@ -83,6 +83,13 @@ class RSSIngestionService:
                     source_key=source.key,
                     name=source.name,
                     rss_url=source.url,
+                    default_licence=source.licence,
+                    default_licence_url=source.licence_url,
+                    copyright_holder=source.copyright_holder,
+                    original_language=source.original_language,
+                    changes_notice=source.changes_notice,
+                    rights_verified=source.rights_verified,
+                    text_only=source.text_only,
                 )
                 for entry in parsed.entries[: settings.rss_fetch_limit]:
                     normalized = normalize_feedparser_entry(entry)
@@ -97,7 +104,14 @@ class RSSIngestionService:
                         summary=normalized.summary,
                         url=normalized.url,
                         published_at=normalized.published_at,
-                        image_url=normalized.image_url,
+                        image_url=None if source.text_only else normalized.image_url,
+                        original_language=source.original_language,
+                        licence=source.licence,
+                        licence_url=source.licence_url,
+                        copyright_holder=source.copyright_holder,
+                        changes_notice=source.changes_notice,
+                        source_revision=normalized.guid,
+                        rights_verified=source.rights_verified,
                     )
                     fetched += 1
 

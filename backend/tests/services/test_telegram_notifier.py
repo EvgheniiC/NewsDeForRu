@@ -36,11 +36,15 @@ def test_format_auto_published_html() -> None:
         topic=NewsTopic.POLITICS,
         one_sentence_summary="Кратко о событии.",
         source_url="https://example.com/a",
+        source_name="Eurostat",
+        changes_notice="Неофициальная AI-суммаризация.",
     )
     assert "Автопубликация" not in html_out
     assert "Заголовок" in html_out
     assert "Категория" in html_out
     assert "Политика" in html_out
+    assert "Eurostat" in html_out
+    assert "Неофициальная AI-суммаризация." in html_out
     assert "confidence" not in html_out.lower()
     assert "relevance" not in html_out.lower()
     assert "processed_news" not in html_out

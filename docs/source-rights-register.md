@@ -35,10 +35,20 @@ Technische Referenzen:
 | DIE ZEIT | `https://newsfeed.zeit.de/news/index` | Unklar/nicht freigegeben | Deaktivieren, bis der Widerspruch zwischen älterem RSS-Hinweis und aktuellem Nutzungsvorbehalt schriftlich geklärt ist |
 | ZDF | `https://www.zdfheute.de/rss/zdf/nachrichten` | Nicht freigegeben | Deaktivieren, bis Feed-Autorisierung und Nutzungsumfang schriftlich bestätigt sind |
 | WELT | `https://www.welt.de/feeds/latest.rss` | Nicht freigegeben | Deaktivieren, bis Syndication die konkrete Nutzung schriftlich genehmigt |
+| Destatis | `https://www.destatis.de/SiteGlobals/Functions/RSSFeed/DE/RSSNewsfeed/Aktuell.xml?nn=3624` | Freigegeben, Text-only | Quellenangabe, Fundstelle, Abrufdatum und Änderungsvermerk ausgeben |
+| European Commission Press Corner | `https://ec.europa.eu/commission/presscorner/api/rss?language=en&pagesize=20` | Freigegeben, EU-owned Text-only | CC BY 4.0; Drittwerke, Medien, Logos und abweichende Hinweise ausschließen |
+| Destatis GENESIS-Online | konfigurierbare Tabellen-API | Freigegeben, Allowlist | DL-DE-BY-2.0; Dataset-Code, Abrufdatum und eigene Verarbeitung angeben |
+| Eurostat | konfigurierbare JSON-stat API | Freigegeben, Allowlist | Copyright notice und Ausnahmen pro Dataset beachten; sequenziell abrufen |
 
 `Nicht freigegeben` bedeutet nicht, dass jede Nutzung zwingend rechtswidrig ist.
 Es bedeutet, dass die für dieses Produkt erforderlichen Rechte durch die
 geprüften offiziellen Informationen nicht eindeutig belegt sind.
+
+Die vier offenen Quellen werden technisch fail-closed betrieben: RSS-Quellen
+müssen in `RSS_ENABLED_SOURCE_KEYS`, Statistik-Datasets in
+`GENESIS_DATASET_CODES` beziehungsweise `EUROSTAT_DATASET_CODES` stehen.
+Alle Importe sind Text-only und benötigen verifizierte Lizenzmetadaten, bevor
+automatische oder manuelle Veröffentlichung möglich ist.
 
 ## Tagesschau
 

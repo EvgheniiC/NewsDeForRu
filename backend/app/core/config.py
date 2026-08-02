@@ -16,6 +16,13 @@ class Settings(BaseSettings):
     rss_user_agent: str = "newsForGermanyRU/1.0 (+https://example.local)"
     # Fail closed: add a source key only after its production usage is approved.
     rss_enabled_source_keys: str = ""
+    genesis_base_url: str = "https://www-genesis.destatis.de/genesisWS/rest/2020"
+    genesis_api_token: str = ""
+    genesis_dataset_codes: str = ""
+    eurostat_base_url: str = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data"
+    eurostat_dataset_codes: str = ""
+    official_data_fetch_timeout_seconds: float = Field(default=30.0, ge=2.0, le=120.0)
+    official_data_max_summary_chars: int = Field(default=6000, ge=500, le=20000)
     auto_publish_threshold: float = 0.85
     # For hybrid publication: stricter than relevance filter; borderline items go to moderation queue.
     auto_publish_min_relevance: float = 0.5

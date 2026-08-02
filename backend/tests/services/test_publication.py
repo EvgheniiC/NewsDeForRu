@@ -21,6 +21,9 @@ def _inp(
         is_new_cluster=new_cluster,
         title=title,
         summary=summary,
+        licence="CC BY 4.0",
+        licence_url="https://creativecommons.org/licenses/by/4.0/",
+        rights_verified=True,
     )
 
 
@@ -93,3 +96,23 @@ def test_publication_service_keyword_forces_review() -> None:
     status, reason = service.decide_status(_inp(title="ACHTUNG im Titel"))
     assert status == PipelineStatus.NEEDS_REVIEW
     assert reason == PublicationReviewReason.KEYWORD
+
+
+def test_publication_service_fails_closed_without_verified_licence() -> None:
+    service: PublicationService = PublicationService()
+    inp: PublicationDecisionInput = _inp()
+    unsafe: PublicationDecisionInput = PublicationDecisionInput(
+        confidence_score=inp.confidence_score,
+        relevance_score=inp.relevance_score,
+        is_new_cluster=inp.is_new_cluster,
+        title=inp.title,
+        summary=inp.summary,
+        licence=None,
+        licence_url=None,
+        rights_verified=False,
+    )
+
+    status, reason = service.decide_status(unsafe)
+
+    assert status == PipelineStatus.NEEDS_REVIEW
+    assert reason == PublicationReviewReason.LICENCE

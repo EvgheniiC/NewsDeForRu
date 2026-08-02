@@ -3,6 +3,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
+    Boolean,
     DateTime,
     Enum,
     Float,
@@ -73,6 +74,13 @@ class Source(Base):
     source_key: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
     rss_url: Mapped[str] = mapped_column(String(512), unique=True, nullable=False)
+    default_licence: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    default_licence_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    copyright_holder: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    original_language: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    changes_notice: Mapped[str | None] = mapped_column(Text, nullable=True)
+    rights_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    text_only: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
 
@@ -88,6 +96,17 @@ class RawNewsItem(Base):
     url: Mapped[str] = mapped_column(String(1024), nullable=False)
     image_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     published_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    original_language: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    retrieved_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    licence: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    licence_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    copyright_holder: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    is_translated: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_ai_summarised: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    changes_notice: Mapped[str | None] = mapped_column(Text, nullable=True)
+    third_party_material_excluded: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    source_revision: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    rights_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     pipeline_status: Mapped[PipelineStatus] = mapped_column(
         Enum(PipelineStatus), default=PipelineStatus.INGESTED, nullable=False
     )
@@ -127,6 +146,18 @@ class ProcessedNews(Base):
     bonus_block: Mapped[str] = mapped_column(Text, default="", nullable=False)
     spoiler: Mapped[str] = mapped_column(Text, default="", nullable=False)
     source_url: Mapped[str] = mapped_column(String(1024), nullable=False)
+    original_title: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    original_language: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    retrieved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    licence: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    licence_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    copyright_holder: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    is_translated: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_ai_summarised: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    changes_notice: Mapped[str | None] = mapped_column(Text, nullable=True)
+    third_party_material_excluded: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    source_revision: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    rights_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     source_url_status: Mapped[SourceUrlStatus] = mapped_column(
         Enum(
             SourceUrlStatus,

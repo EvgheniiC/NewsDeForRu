@@ -47,10 +47,15 @@ def test_send_urgent_push_success(_mock_init: MagicMock) -> None:
             title_ru="Заголовок",
             one_sentence_summary="Кратко",
             processed_id=42,
+            source_name="Destatis",
+            source_url="https://www.destatis.de/example",
             app_settings=_enabled_settings(),
         )
     assert ok is True
     mock_send.assert_called_once()
+    message_data: dict[str, str] = mock_message.call_args.kwargs["data"]
+    assert message_data["source_name"] == "Destatis"
+    assert message_data["source_url"] == "https://www.destatis.de/example"
 
 
 @patch.object(push_notifier, "_ensure_firebase_app", return_value=True)

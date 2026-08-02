@@ -12,12 +12,17 @@ from app.schemas.news import PipelineItemErrorDetail, PipelineRunResponse
 from app.services.dedup_service import DedupService
 from app.services.embedding_service import create_embedding_encoder
 from app.services.llm_provider import LLMProvider, create_llm_provider
+from app.services.official_data_ingestion import (
+    EurostatIngestionService,
+    GenesisIngestionService,
+    IngestionProvider,
+)
 from app.services.publication_service import PublicationDecisionInput, PublicationService
 from app.services.publisher_text_guard import guard_llm_output
 from app.services.telegram_notifier import send_auto_published_notice
 from app.services.push_notifier import send_urgent_push_notice
 from app.services.relevance_filter_service import RelevanceFilterService
-from app.services.rss_ingestion_service import RSSIngestionService
+from app.services.rss_ingestion_service import IngestionStats, RSSIngestionService
 from app.services.urgent_news import ev_is_urgent_news
 from app.utils.url_fingerprint import url_fingerprint
 
@@ -28,7 +33,7 @@ _MAX_ITEM_ERROR_DETAILS: int = 100
 
 @dataclass(frozen=True)
 class PipelineContext:
-    ingestion: RSSIngestionService
+    ingestion_providers: tuple[IngestionProvider, ...]
     relevance_filter: RelevanceFilterService
     dedup: DedupService
     llm_provider: LLMProvider
@@ -40,7 +45,11 @@ class PipelineService:
         self.repository: NewsRepository = repository
         encoder = create_embedding_encoder()
         self.context: PipelineContext = PipelineContext(
-            ingestion=RSSIngestionService(repository),
+            ingestion_providers=(
+                RSSIngestionService(repository),
+                GenesisIngestionService(repository),
+                EurostatIngestionService(repository),
+            ),
             relevance_filter=RelevanceFilterService(encoder),
             dedup=DedupService(encoder),
             llm_provider=create_llm_provider(),
@@ -48,7 +57,13 @@ class PipelineService:
         )
 
     def run(self, run_id: str) -> PipelineRunResponse:
-        ingestion_stats = self.context.ingestion.run()
+        provider_stats: tuple[IngestionStats, ...] = tuple(
+            provider.run() for provider in self.context.ingestion_providers
+        )
+        ingestion_stats: IngestionStats = IngestionStats(
+            fetched=sum(item.fetched for item in provider_stats),
+            feeds_failed=sum(item.feeds_failed for item in provider_stats),
+        )
         requeued_breaking: int = self.repository.requeue_filtered_breaking_news(
             lookback=timedelta(hours=48),
         )
@@ -168,6 +183,9 @@ class PipelineService:
                 is_new_cluster=dedup_result.is_new_cluster,
                 title=raw_item.title,
                 summary=raw_item.summary,
+                licence=raw_item.licence,
+                licence_url=raw_item.licence_url,
+                rights_verified=raw_item.rights_verified,
             )
             publication_status, _ = self.context.publication.decide_status(decision_inp)
             if publication_status == PipelineStatus.PUBLISHED:
@@ -197,6 +215,18 @@ class PipelineService:
                 bonus_block=llm_output.bonus_block,
                 spoiler=llm_output.spoiler,
                 source_url=raw_item.url,
+                original_title=raw_item.title,
+                original_language=raw_item.original_language,
+                retrieved_at=raw_item.retrieved_at,
+                licence=raw_item.licence,
+                licence_url=raw_item.licence_url,
+                copyright_holder=raw_item.copyright_holder,
+                is_translated=raw_item.is_translated,
+                is_ai_summarised=raw_item.is_ai_summarised,
+                changes_notice=raw_item.changes_notice,
+                third_party_material_excluded=raw_item.third_party_material_excluded,
+                source_revision=raw_item.source_revision,
+                rights_verified=raw_item.rights_verified,
                 image_url=None,
                 confidence_score=llm_output.confidence_score,
                 importance_ai_score=llm_output.importance_score,
@@ -216,6 +246,8 @@ class PipelineService:
                         urgent_topic: NewsTopic = saved.topic
                         urgent_summary: str = saved.one_sentence_summary
                         urgent_source_url: str = saved.source_url
+                        urgent_source_name: str = raw_item.source.name
+                        urgent_changes_notice: str = saved.changes_notice or ""
 
                         def _urgent_telegram_worker() -> None:
                             try:
@@ -224,6 +256,8 @@ class PipelineService:
                                     topic=urgent_topic,
                                     one_sentence_summary=urgent_summary,
                                     source_url=urgent_source_url,
+                                    source_name=urgent_source_name,
+                                    changes_notice=urgent_changes_notice,
                                     processed_id=urgent_id,
                                     use_urgent_retries=True,
                                 )
@@ -248,6 +282,8 @@ class PipelineService:
                             topic=saved.topic,
                             one_sentence_summary=saved.one_sentence_summary,
                             source_url=saved.source_url,
+                            source_name=raw_item.source.name,
+                            changes_notice=saved.changes_notice or "",
                             processed_id=saved.id,
                             use_urgent_retries=True,
                         )
@@ -257,6 +293,8 @@ class PipelineService:
                         push_id: int = saved.id
                         push_title: str = saved.title
                         push_summary: str = saved.one_sentence_summary
+                        push_source_name: str = raw_item.source.name
+                        push_source_url: str = saved.source_url
 
                         def _urgent_push_worker() -> None:
                             try:
@@ -264,6 +302,8 @@ class PipelineService:
                                     title_ru=push_title,
                                     one_sentence_summary=push_summary,
                                     processed_id=push_id,
+                                    source_name=push_source_name,
+                                    source_url=push_source_url,
                                     use_urgent_retries=True,
                                 )
                                 if not sent_push_bg:
@@ -286,6 +326,8 @@ class PipelineService:
                             title_ru=saved.title,
                             one_sentence_summary=saved.one_sentence_summary,
                             processed_id=saved.id,
+                            source_name=raw_item.source.name,
+                            source_url=saved.source_url,
                             use_urgent_retries=True,
                         )
                         if sent_push:

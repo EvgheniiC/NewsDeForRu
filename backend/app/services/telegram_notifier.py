@@ -109,6 +109,8 @@ def _format_published_html(
     topic: NewsTopic,
     one_sentence_summary: str,
     source_url: str,
+    source_name: str = "",
+    changes_notice: str = "",
 ) -> str:
     title_esc: str = html.escape(title_ru.strip() or "(без заголовка)")
     summary_esc: str = html.escape(_truncate(one_sentence_summary.strip(), 900))
@@ -125,7 +127,9 @@ def _format_published_html(
             "",
             f"Категория: {category_esc}",
             "",
-            f'<a href="{url_esc}">источник</a>',
+            f'Источник: <a href="{url_esc}">{html.escape(source_name.strip() or "оригинал")}</a>',
+            "",
+            html.escape(changes_notice.strip() or "Неофициальная AI-суммаризация на русском языке."),
             "",
             html.escape(_AI_COVER_DISCLAIMER),
         ]
@@ -140,6 +144,8 @@ def format_auto_published_html(
     topic: NewsTopic,
     one_sentence_summary: str,
     source_url: str,
+    source_name: str = "",
+    changes_notice: str = "",
 ) -> str:
     """Build Telegram HTML body for items that passed automatic publication checks."""
     return _format_published_html(
@@ -148,6 +154,8 @@ def format_auto_published_html(
         topic=topic,
         one_sentence_summary=one_sentence_summary,
         source_url=source_url,
+        source_name=source_name,
+        changes_notice=changes_notice,
     )
 
 
@@ -157,6 +165,8 @@ def format_moderation_approved_html(
     topic: NewsTopic,
     one_sentence_summary: str,
     source_url: str,
+    source_name: str = "",
+    changes_notice: str = "",
 ) -> str:
     """Build Telegram HTML body when a moderator approves an item for the main feed."""
     return _format_published_html(
@@ -165,6 +175,8 @@ def format_moderation_approved_html(
         topic=topic,
         one_sentence_summary=one_sentence_summary,
         source_url=source_url,
+        source_name=source_name,
+        changes_notice=changes_notice,
     )
 
 
@@ -179,6 +191,8 @@ def format_scheduled_digest_html(
     topic: NewsTopic,
     one_sentence_summary: str,
     source_url: str,
+    source_name: str = "",
+    changes_notice: str = "",
 ) -> str:
     """Build Telegram HTML for scheduled digest slots (auto-published, non-urgent)."""
     header: str = _digest_header_for_slot_hour(slot_hour)
@@ -188,6 +202,8 @@ def format_scheduled_digest_html(
         topic=topic,
         one_sentence_summary=one_sentence_summary,
         source_url=source_url,
+        source_name=source_name,
+        changes_notice=changes_notice,
     )
 
 
@@ -327,6 +343,8 @@ def send_auto_published_notice(
     one_sentence_summary: str,
     source_url: str,
     processed_id: int,
+    source_name: str = "",
+    changes_notice: str = "",
     app_settings: Settings | None = None,
     use_urgent_retries: bool = False,
 ) -> bool:
@@ -340,6 +358,8 @@ def send_auto_published_notice(
         topic=topic,
         one_sentence_summary=one_sentence_summary,
         source_url=source_url,
+        source_name=source_name,
+        changes_notice=changes_notice,
     )
     attempts: int = cfg.telegram_urgent_send_max_attempts if use_urgent_retries else 1
     base_delay: float = cfg.telegram_urgent_send_retry_base_seconds
@@ -371,6 +391,8 @@ def send_scheduled_digest_notice(
     source_url: str,
     processed_id: int,
     slot_hour: int,
+    source_name: str = "",
+    changes_notice: str = "",
     app_settings: Settings | None = None,
 ) -> bool:
     """Non-urgent auto-publish digest slot (e.g. 7:00 / 15:00 / 20:00)."""
@@ -384,6 +406,8 @@ def send_scheduled_digest_notice(
         topic=topic,
         one_sentence_summary=one_sentence_summary,
         source_url=source_url,
+        source_name=source_name,
+        changes_notice=changes_notice,
     )
     return _retrying_post_telegram_payload(
         text=text,
@@ -403,6 +427,8 @@ def send_moderation_approved_notice(
     one_sentence_summary: str,
     source_url: str,
     processed_id: int,
+    source_name: str = "",
+    changes_notice: str = "",
     app_settings: Settings | None = None,
 ) -> bool:
     """Notify Telegram right after moderator approval (same channel/settings as autopublish)."""
@@ -415,6 +441,8 @@ def send_moderation_approved_notice(
         topic=topic,
         one_sentence_summary=one_sentence_summary,
         source_url=source_url,
+        source_name=source_name,
+        changes_notice=changes_notice,
     )
     return _retrying_post_telegram_payload(
         text=text,

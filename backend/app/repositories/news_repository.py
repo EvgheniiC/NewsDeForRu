@@ -24,19 +24,55 @@ class NewsRepository:
     def __init__(self, db_session: Session) -> None:
         self.db_session: Session = db_session
 
-    def upsert_source(self, source_key: str, name: str, rss_url: str) -> Source:
+    def upsert_source(
+        self,
+        source_key: str,
+        name: str,
+        rss_url: str,
+        *,
+        default_licence: str | None = None,
+        default_licence_url: str | None = None,
+        copyright_holder: str | None = None,
+        original_language: str | None = None,
+        changes_notice: str | None = None,
+        rights_verified: bool = False,
+        text_only: bool = True,
+    ) -> Source:
         query: Select[tuple[Source]] = select(Source).where(Source.source_key == source_key)
         source: Source | None = self.db_session.execute(query).scalar_one_or_none()
         if source is not None:
-            if source.name != name or source.rss_url != rss_url:
-                source.name = name
-                source.rss_url = rss_url
+            new_values: dict[str, object] = {
+                "name": name,
+                "rss_url": rss_url,
+                "default_licence": default_licence,
+                "default_licence_url": default_licence_url,
+                "copyright_holder": copyright_holder,
+                "original_language": original_language,
+                "changes_notice": changes_notice,
+                "rights_verified": rights_verified,
+                "text_only": text_only,
+            }
+            changed: bool = any(getattr(source, key) != value for key, value in new_values.items())
+            if changed:
+                for key, value in new_values.items():
+                    setattr(source, key, value)
                 self.db_session.add(source)
                 self.db_session.commit()
                 self.db_session.refresh(source)
             return source
 
-        source = Source(source_key=source_key, name=name, rss_url=rss_url)
+        source = Source(
+            source_key=source_key,
+            name=name,
+            rss_url=rss_url,
+            default_licence=default_licence,
+            default_licence_url=default_licence_url,
+            copyright_holder=copyright_holder,
+            original_language=original_language,
+            changes_notice=changes_notice,
+            rights_verified=rights_verified,
+            text_only=text_only,
+        )
         self.db_session.add(source)
         self.db_session.commit()
         self.db_session.refresh(source)
@@ -58,6 +94,14 @@ class NewsRepository:
         url: str,
         published_at: datetime,
         image_url: str | None = None,
+        original_language: str | None = None,
+        retrieved_at: datetime | None = None,
+        licence: str | None = None,
+        licence_url: str | None = None,
+        copyright_holder: str | None = None,
+        changes_notice: str | None = None,
+        source_revision: str | None = None,
+        rights_verified: bool = False,
     ) -> RawNewsItem:
         item: RawNewsItem = RawNewsItem(
             source_id=source_id,
@@ -67,6 +111,17 @@ class NewsRepository:
             url=url,
             image_url=image_url,
             published_at=published_at,
+            original_language=original_language,
+            retrieved_at=retrieved_at or datetime.utcnow(),
+            licence=licence,
+            licence_url=licence_url,
+            copyright_holder=copyright_holder,
+            is_translated=True,
+            is_ai_summarised=True,
+            changes_notice=changes_notice,
+            third_party_material_excluded=True,
+            source_revision=source_revision or guid,
+            rights_verified=rights_verified,
         )
         self.db_session.add(item)
         self.db_session.commit()

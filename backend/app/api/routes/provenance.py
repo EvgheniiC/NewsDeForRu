@@ -48,6 +48,17 @@ def _raw_out_from_item(raw_item: RawNewsItem, source_key: str) -> ProvenanceRawO
         cluster_key=raw_item.cluster_key,
         url_fingerprint=url_fingerprint(raw_item.url),
         published_at=raw_item.published_at,
+        original_language=raw_item.original_language,
+        retrieved_at=raw_item.retrieved_at,
+        licence=raw_item.licence,
+        licence_url=raw_item.licence_url,
+        copyright_holder=raw_item.copyright_holder,
+        is_translated=raw_item.is_translated,
+        is_ai_summarised=raw_item.is_ai_summarised,
+        changes_notice=raw_item.changes_notice,
+        third_party_material_excluded=raw_item.third_party_material_excluded,
+        source_revision=raw_item.source_revision,
+        rights_verified=raw_item.rights_verified,
         created_at=raw_item.created_at,
     )
 

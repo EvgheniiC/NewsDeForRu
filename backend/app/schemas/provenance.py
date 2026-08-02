@@ -17,9 +17,20 @@ class ProvenanceRawOut(BaseModel):
     cluster_key: str | None
     url_fingerprint: str
     published_at: datetime
+    original_language: str | None
+    retrieved_at: datetime
+    licence: str | None
+    licence_url: str | None
+    copyright_holder: str | None
+    is_translated: bool
+    is_ai_summarised: bool
+    changes_notice: str | None
+    third_party_material_excluded: bool
+    source_revision: str | None
+    rights_verified: bool
     created_at: datetime
 
-    @field_serializer("published_at", "created_at")
+    @field_serializer("published_at", "retrieved_at", "created_at")
     def _serialize_raw_datetimes(self, value: datetime) -> str:
         return to_berlin_iso(value)
 

@@ -102,6 +102,8 @@ def send_urgent_push_notice(
     title_ru: str,
     one_sentence_summary: str,
     processed_id: int,
+    source_name: str = "",
+    source_url: str = "",
     app_settings: Settings | None = None,
     use_urgent_retries: bool = False,
 ) -> bool:
@@ -112,7 +114,9 @@ def send_urgent_push_notice(
     if not _ensure_firebase_app(cfg):
         return False
 
-    body: str = _truncate(one_sentence_summary or title_ru, _MAX_BODY_CHARS)
+    attribution: str = f"Источник: {source_name.strip()}" if source_name.strip() else ""
+    body_parts: list[str] = [part for part in (one_sentence_summary or title_ru, attribution) if part]
+    body: str = _truncate("\n".join(body_parts), _MAX_BODY_CHARS)
     notification_title: str = _truncate(title_ru, _MAX_TITLE_CHARS)
 
     attempts: int = cfg.push_urgent_send_max_attempts if use_urgent_retries else 1
@@ -129,6 +133,8 @@ def send_urgent_push_notice(
             data={
                 "news_id": str(processed_id),
                 "path": f"/news/{processed_id}",
+                "source_name": source_name,
+                "source_url": source_url,
             },
             topic=cfg.fcm_urgent_topic,
             android=messaging.AndroidConfig(priority="high"),

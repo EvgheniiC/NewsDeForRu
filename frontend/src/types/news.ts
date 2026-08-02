@@ -85,6 +85,17 @@ export interface ProcessedNews {
   is_positive: boolean;
   published_at: string;
   source_name: string;
+  original_title?: string | null;
+  original_language?: string | null;
+  retrieved_at?: string | null;
+  licence?: string | null;
+  licence_url?: string | null;
+  copyright_holder?: string | null;
+  is_translated?: boolean;
+  is_ai_summarised?: boolean;
+  changes_notice?: string | null;
+  third_party_material_excluded?: boolean;
+  source_revision?: string | null;
   created_at: string;
 }
 

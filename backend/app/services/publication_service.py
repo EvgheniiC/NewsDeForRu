@@ -14,6 +14,9 @@ class PublicationDecisionInput:
     is_new_cluster: bool
     title: str
     summary: str
+    licence: str | None
+    licence_url: str | None
+    rights_verified: bool
 
 
 class PublicationReviewReason(StrEnum):
@@ -23,6 +26,7 @@ class PublicationReviewReason(StrEnum):
     LOW_RELEVANCE = "low_relevance"
     DUPLICATE_CLUSTER = "duplicate_cluster"
     KEYWORD = "keyword"
+    LICENCE = "licence"
 
 
 def _parse_review_keywords(raw: str) -> tuple[str, ...]:
@@ -38,6 +42,9 @@ class PublicationService:
         """
         Return publication status and, when not auto-published, the primary reason for review.
         """
+        if not inp.rights_verified or not (inp.licence or "").strip() or not (inp.licence_url or "").strip():
+            return PipelineStatus.NEEDS_REVIEW, PublicationReviewReason.LICENCE
+
         text_lower: str = f"{inp.title}\n{inp.summary}".lower()
         for kw in _parse_review_keywords(self._s.moderation_extra_review_keywords):
             if kw.lower() in text_lower:

@@ -106,7 +106,18 @@ def test_alembic_upgrade_creates_expected_schema(postgres_test_db_url: str) -> N
         cluster_item_columns: set[str] = {column["name"] for column in inspector.get_columns("cluster_items")}
         cluster_columns: set[str] = {column["name"] for column in inspector.get_columns("news_clusters")}
 
-        assert {"guid", "pipeline_status", "cluster_key", "processed_at", "image_url"} <= raw_columns
+        assert {
+            "guid",
+            "pipeline_status",
+            "cluster_key",
+            "processed_at",
+            "image_url",
+            "licence",
+            "licence_url",
+            "retrieved_at",
+            "rights_verified",
+            "changes_notice",
+        } <= raw_columns
         assert {
             "raw_item_id",
             "cluster_id",
@@ -121,18 +132,32 @@ def test_alembic_upgrade_creates_expected_schema(postgres_test_db_url: str) -> N
             "source_url_status",
             "source_url_checked_at",
             "source_url_http_status",
+            "original_title",
+            "original_language",
+            "licence",
+            "licence_url",
+            "rights_verified",
+            "changes_notice",
         } <= processed_columns
         assert "full_article_ru" not in processed_columns
         assert {"cluster_id", "raw_item_id", "is_primary", "similarity_score"} <= cluster_item_columns
         assert "centroid_embedding_json" in cluster_columns
 
         source_columns: set[str] = {column["name"] for column in inspector.get_columns("sources")}
-        assert {"source_key", "name", "rss_url"} <= source_columns
+        assert {
+            "source_key",
+            "name",
+            "rss_url",
+            "default_licence",
+            "default_licence_url",
+            "rights_verified",
+            "text_only",
+        } <= source_columns
 
         with engine.connect() as connection:
             version_rows = connection.execute(text("SELECT version_num FROM alembic_version")).all()
         assert len(version_rows) == 1
-        assert version_rows[0][0] == "20260802_01"
+        assert version_rows[0][0] == "20260802_02"
 
         moderation_cols: set[str] = {
             column["name"] for column in inspector.get_columns("moderation_events")

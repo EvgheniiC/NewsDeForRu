@@ -131,7 +131,14 @@ export function NewsArticleBody({
       ) : null}
       <NewsAttributionBlock
         onSourceClick={handleOpenSourceClick}
+        changesNotice={news.changes_notice}
+        copyrightHolder={news.copyright_holder}
+        licence={news.licence}
+        licenceUrl={news.licence_url}
+        originalLanguage={news.original_language}
+        originalTitle={news.original_title}
         publishedAt={news.published_at}
+        retrievedAt={news.retrieved_at}
         sourceName={news.source_name}
         sourceUrl={news.source_url}
         sourceUrlStatus={news.source_url_status ?? "unknown"}
@@ -142,6 +149,8 @@ export function NewsArticleBody({
           <ShareNewsMobileSection
             newsId={news.id}
             oneSentenceSummary={news.one_sentence_summary}
+            sourceName={news.source_name}
+            sourceUrl={news.source_url}
             titleRu={news.title}
           />
         </>

@@ -68,6 +68,15 @@ def moderate_news(
         raise HTTPException(status_code=404, detail="News item not found.")
 
     from_moderation_queue: bool = before.publication_status == PipelineStatus.NEEDS_REVIEW
+    if request.action == "approve" and (
+        not before.rights_verified
+        or not (before.licence or "").strip()
+        or not (before.licence_url or "").strip()
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="News item cannot be published without a verified licence.",
+        )
     target_status: PipelineStatus = (
         PipelineStatus.PUBLISHED if request.action == "approve" else PipelineStatus.FILTERED_OUT
     )
@@ -86,6 +95,8 @@ def moderate_news(
             topic=item.topic,
             one_sentence_summary=item.one_sentence_summary,
             source_url=item.source_url,
+            source_name=item.copyright_holder or "",
+            changes_notice=item.changes_notice or "",
             processed_id=item.id,
         )
         if sent_mod:
@@ -95,6 +106,8 @@ def moderate_news(
                 title_ru=item.title,
                 one_sentence_summary=item.one_sentence_summary,
                 processed_id=item.id,
+                source_name=item.copyright_holder or "",
+                source_url=item.source_url,
                 use_urgent_retries=True,
             )
             if sent_push_mod:

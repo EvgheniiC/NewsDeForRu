@@ -8,9 +8,13 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
 from app.core.database import Base
+from app.models import app_user as _app_user_models
 from app.models.news import RawNewsItem, Source
 from app.repositories.news_repository import NewsRepository
 from app.services.rss_ingestion_service import RSSIngestionService
+from app.services.rss_sources import enabled_rss_sources
+
+assert _app_user_models.AppUser.__tablename__ == "app_users"
 
 _MINIMAL_RSS: bytes = b"""<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"><channel><title>Test</title>
@@ -42,7 +46,7 @@ def test_rss_ingestion_persists_stripped_summary() -> None:
     with session_factory() as session:
         repo: NewsRepository = NewsRepository(session)
         with (
-            patch.object(settings, "rss_enabled_source_keys", "tagesschau"),
+            patch.object(settings, "rss_enabled_source_keys", "destatis"),
             patch("app.services.rss_ingestion_service.httpx.Client", return_value=client_cm),
         ):
             service: RSSIngestionService = RSSIngestionService(repo)
@@ -87,7 +91,7 @@ def test_rss_ingestion_retries_then_succeeds() -> None:
     with session_factory() as session:
         repo: NewsRepository = NewsRepository(session)
         with (
-            patch.object(settings, "rss_enabled_source_keys", "tagesschau"),
+            patch.object(settings, "rss_enabled_source_keys", "destatis"),
             patch("app.services.rss_ingestion_service.httpx.Client", return_value=client_cm),
         ):
             service: RSSIngestionService = RSSIngestionService(repo)
@@ -124,3 +128,16 @@ def test_upsert_source_updates_name_and_url() -> None:
         assert second.id == first.id
         assert second.name == "New"
         assert second.rss_url == "https://b/feed"
+
+
+def test_open_rss_sources_have_verified_text_only_policies() -> None:
+    sources = enabled_rss_sources("destatis,ec_press_corner")
+
+    assert {source.key for source in sources} == {"destatis", "ec_press_corner"}
+    assert all(source.rights_verified for source in sources)
+    assert all(source.text_only for source in sources)
+    assert all(source.licence and source.licence_url for source in sources)
+
+
+def test_unverified_rss_sources_remain_disabled_even_when_requested() -> None:
+    assert enabled_rss_sources("tagesschau,spiegel,welt") == ()

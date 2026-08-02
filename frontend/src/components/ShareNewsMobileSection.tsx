@@ -6,12 +6,16 @@ interface ShareNewsMobileSectionProps {
   newsId: number;
   titleRu: string;
   oneSentenceSummary: string;
+  sourceName?: string;
+  sourceUrl?: string;
 }
 
 export function ShareNewsMobileSection({
   newsId,
   titleRu,
   oneSentenceSummary,
+  sourceName = "",
+  sourceUrl = "",
 }: ShareNewsMobileSectionProps): JSX.Element | null {
   if (!Capacitor.isNativePlatform()) {
     return null;
@@ -21,8 +25,22 @@ export function ShareNewsMobileSection({
     enqueueOne(newsId, "share", { channel }, true);
   };
 
-  const whatsAppHref: string = buildShareUrlForChannel("whatsapp", titleRu, oneSentenceSummary, newsId);
-  const telegramHref: string = buildShareUrlForChannel("telegram", titleRu, oneSentenceSummary, newsId);
+  const whatsAppHref: string = buildShareUrlForChannel(
+    "whatsapp",
+    titleRu,
+    oneSentenceSummary,
+    newsId,
+    sourceName,
+    sourceUrl
+  );
+  const telegramHref: string = buildShareUrlForChannel(
+    "telegram",
+    titleRu,
+    oneSentenceSummary,
+    newsId,
+    sourceName,
+    sourceUrl
+  );
 
   return (
     <section aria-labelledby="share-news-heading" className="news-share">
