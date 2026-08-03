@@ -465,9 +465,9 @@ a:visited {
   }
 
   .tiktok-feed-snap .news-card-body-immersive {
-    flex: 0 1 auto;
-    min-height: 0;
-    overflow: hidden;
+    flex: 0 0 auto;
+    min-height: auto;
+    overflow: visible;
   }
 
   .tiktok-feed-snap .news-card-body-immersive .news-card-subtitle-immersive {

@@ -4,15 +4,18 @@ import { installApiMock } from "./fixtures/apiMock";
 test.describe("end-to-end", () => {
   test("мобильная карточка полностью показывает кнопку раскрытия", async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 568 });
+    const subtitleText: string =
+      "Длинное описание новости занимает много места, но не должно выталкивать нижнюю панель действий за границы карточки.";
     await installApiMock(page, {
       title: "Очень длинный заголовок новости, который занимает сразу несколько строк на мобильном экране",
-      subtitle:
-        "Длинное описание новости занимает много места, но не должно выталкивать нижнюю панель действий за границы карточки.",
+      subtitle: subtitleText,
     });
     await page.goto("/");
 
     const button = page.getByRole("button", { name: "Раскрыть" }).first();
+    const subtitle = page.getByText(subtitleText);
     await expect(button).toBeVisible();
+    await expect(subtitle).toBeVisible();
 
     const fitsInsideCard: boolean = await button.evaluate((element: HTMLElement): boolean => {
       const buttonRect: DOMRect = element.getBoundingClientRect();
@@ -29,6 +32,17 @@ test.describe("end-to-end", () => {
       );
     });
     expect(fitsInsideCard).toBe(true);
+
+    const subtitleFitsInsideCard: boolean = await subtitle.evaluate((element: HTMLElement): boolean => {
+      const subtitleRect: DOMRect = element.getBoundingClientRect();
+      const card: HTMLElement | null = element.closest(".news-card");
+      if (card === null) {
+        return false;
+      }
+      const cardRect: DOMRect = card.getBoundingClientRect();
+      return subtitleRect.bottom <= cardRect.bottom && element.scrollHeight <= element.clientHeight;
+    });
+    expect(subtitleFitsInsideCard).toBe(true);
   });
 
   test("прямая ссылка на новость → назад в ленту", async ({ page }) => {
