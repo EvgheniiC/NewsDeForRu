@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Final
+from _thread import LockType
+from threading import Lock
+from typing import Final, cast
 
 from app.core.config import Settings, settings
 
@@ -15,6 +17,7 @@ _MAX_BODY_CHARS: Final[int] = 240
 _URGENT_TITLE: Final[str] = "⚡ Срочно"
 
 _firebase_initialized: bool = False
+_firebase_init_lock: Final[LockType] = Lock()
 
 
 def _truncate(text: str, limit: int) -> str:
@@ -32,18 +35,28 @@ def _ensure_firebase_app(cfg: Settings) -> bool:
         return False
     if _firebase_initialized:
         return True
-    try:
-        import firebase_admin
-        from firebase_admin import credentials
 
-        if not firebase_admin._apps:
-            cred = credentials.Certificate(path)
-            firebase_admin.initialize_app(cred)
-        _firebase_initialized = True
-        return True
-    except Exception:
-        logger.exception("Failed to initialize Firebase Admin SDK")
-        return False
+    with _firebase_init_lock:
+        if _firebase_initialized:
+            return True
+        try:
+            import firebase_admin  # type: ignore[import-untyped]
+            from firebase_admin import credentials
+
+            try:
+                firebase_admin.get_app()
+            except ValueError:
+                cred = credentials.Certificate(path)
+                try:
+                    firebase_admin.initialize_app(cred)
+                except ValueError:
+                    # Another initializer may have created the default app concurrently.
+                    firebase_admin.get_app()
+            _firebase_initialized = True
+            return True
+        except Exception:
+            logger.exception("Failed to initialize Firebase Admin SDK")
+            return False
 
 
 def subscribe_device_to_urgent_topic(*, device_token: str, app_settings: Settings | None = None) -> bool:
@@ -66,7 +79,7 @@ def subscribe_device_to_urgent_topic(*, device_token: str, app_settings: Setting
                     err.index,
                 )
             return False
-        return response.success_count > 0
+        return cast(bool, response.success_count > 0)
     except Exception:
         logger.exception("FCM subscribe_to_topic failed")
         return False
@@ -91,7 +104,7 @@ def unsubscribe_device_from_urgent_topic(*, device_token: str, app_settings: Set
                     err.reason,
                     err.index,
                 )
-        return response.success_count > 0 or response.failure_count == 0
+        return cast(bool, response.success_count > 0 or response.failure_count == 0)
     except Exception:
         logger.exception("FCM unsubscribe_from_topic failed")
         return False

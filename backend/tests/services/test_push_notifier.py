@@ -20,6 +20,33 @@ def _enabled_settings(**overrides: object) -> Settings:
     return Settings(**base)
 
 
+def test_ensure_firebase_app_reuses_existing_default_app() -> None:
+    with patch.object(push_notifier, "_firebase_initialized", False), patch(
+        "firebase_admin.get_app", return_value=object()
+    ) as mock_get_app, patch("firebase_admin.initialize_app") as mock_initialize:
+        ok: bool = push_notifier._ensure_firebase_app(_enabled_settings())
+
+    assert ok is True
+    mock_get_app.assert_called_once_with()
+    mock_initialize.assert_not_called()
+
+
+def test_ensure_firebase_app_handles_concurrent_initialization() -> None:
+    with patch.object(push_notifier, "_firebase_initialized", False), patch(
+        "firebase_admin.get_app",
+        side_effect=[ValueError("No default app"), object()],
+    ) as mock_get_app, patch(
+        "firebase_admin.credentials.Certificate", return_value=object()
+    ), patch(
+        "firebase_admin.initialize_app",
+        side_effect=ValueError("The default Firebase app already exists"),
+    ):
+        ok: bool = push_notifier._ensure_firebase_app(_enabled_settings())
+
+    assert ok is True
+    assert mock_get_app.call_count == 2
+
+
 def test_send_urgent_push_disabled_returns_false() -> None:
     cfg: Settings = Settings(push_notifications_enabled=False)
     ok: bool = push_notifier.send_urgent_push_notice(
