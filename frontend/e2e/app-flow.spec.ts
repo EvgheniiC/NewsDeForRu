@@ -2,6 +2,35 @@ import { expect, test } from "@playwright/test";
 import { installApiMock } from "./fixtures/apiMock";
 
 test.describe("end-to-end", () => {
+  test("мобильная карточка полностью показывает кнопку раскрытия", async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 568 });
+    await installApiMock(page, {
+      title: "Очень длинный заголовок новости, который занимает сразу несколько строк на мобильном экране",
+      subtitle:
+        "Длинное описание новости занимает много места, но не должно выталкивать нижнюю панель действий за границы карточки.",
+    });
+    await page.goto("/");
+
+    const button = page.getByRole("button", { name: "Раскрыть" }).first();
+    await expect(button).toBeVisible();
+
+    const fitsInsideCard: boolean = await button.evaluate((element: HTMLElement): boolean => {
+      const buttonRect: DOMRect = element.getBoundingClientRect();
+      const card: HTMLElement | null = element.closest(".news-card");
+      if (card === null) {
+        return false;
+      }
+      const cardRect: DOMRect = card.getBoundingClientRect();
+      return (
+        buttonRect.top >= cardRect.top &&
+        buttonRect.left >= cardRect.left &&
+        buttonRect.right <= cardRect.right &&
+        buttonRect.bottom <= cardRect.bottom
+      );
+    });
+    expect(fitsInsideCard).toBe(true);
+  });
+
   test("прямая ссылка на новость → назад в ленту", async ({ page }) => {
     await installApiMock(page);
     await page.goto("/news/1");

@@ -446,20 +446,28 @@ a:visited {
   }
 
   .tiktok-feed-snap .news-card-image {
-    /* Yield height to the one-sentence summary so it never scrolls in a nested pane. */
+    /* Share the available cover height without pushing actions below the card. */
     flex: 1 1 auto;
-    flex-shrink: 1;
-    min-height: 64px;
+    min-height: 0;
+    height: 100%;
     max-height: min(28vh, 160px);
     width: 100%;
     aspect-ratio: 16 / 9;
     object-fit: cover;
   }
 
+  .tiktok-feed-snap .news-topic-cover {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 80px;
+    overflow: hidden;
+  }
+
   .tiktok-feed-snap .news-card-body-immersive {
-    flex: 0 0 auto;
-    min-height: auto;
-    overflow: visible;
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .tiktok-feed-snap .news-card-body-immersive .news-card-subtitle-immersive {
@@ -473,6 +481,28 @@ a:visited {
   .tiktok-feed-snap .news-card-footer,
   .tiktok-feed-snap .news-card-topic-row {
     flex-shrink: 0;
+  }
+
+  .tiktok-feed-snap .news-card-footer {
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .tiktok-feed-snap .news-card-footer > span {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .tiktok-feed-snap .news-card-actions {
+    flex-wrap: nowrap;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .tiktok-feed-snap .news-open-link,
+  .tiktok-feed-snap .news-useful-btn {
+    padding-right: 10px;
+    padding-left: 10px;
   }
 
   /* Expanded: card grows like the detail page; user scrolls the feed, not a tiny pane. */

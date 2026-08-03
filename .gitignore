@@ -41,17 +41,5 @@ frontend/vite.config.d.ts
 # Local database
 backend/news.db
 
-# Local docs
-LOCAL_RUN_GUIDE.md
-how_to_start_app_local.md
-deploy.md
-updateOnserver.md
-plan_news_app_22_TODO.md
-prod-deployment-summary-ru.md
-prod-architecture-ru.md
-prod-logs-ru.md
-prod-restart-ru.md
-prod-deploy-full-steps-ru.md
-how_to_add_new_admin.md
-TODO_LIST_JURISTISCH_FOR_DEPLOY.md
-TODO_Quellen.md
+# Markdown documentation
+*.md

@@ -13,6 +13,11 @@ const jsonHeaders: Readonly<Record<string, string>> = {
   "Content-Type": "application/json; charset=utf-8",
 };
 
+interface FeedItemOverrides {
+  title?: string;
+  subtitle?: string;
+}
+
 async function fulfillJson(route: Route, data: unknown, status: number = 200): Promise<void> {
   await route.fulfill({
     status,
@@ -36,7 +41,11 @@ function bearerPresent(route: Route): boolean {
  * Mocks the backend (default `VITE_API_BASE_URL` = http://127.0.0.1:8000).
  * Stateful moderation queue: first GET returns one item, after approve GET returns [].
  */
-export async function installApiMock(page: Page): Promise<void> {
+export async function installApiMock(
+  page: Page,
+  feedItemOverrides: FeedItemOverrides = {}
+): Promise<void> {
+  const nowIso: string = new Date().toISOString();
   const feedItem: Record<string, unknown> = {
     id: 1,
     title: "E2E Test News",
@@ -45,9 +54,10 @@ export async function installApiMock(page: Page): Promise<void> {
     topic: "life",
     is_urgent: false,
     is_positive: false,
-    published_at: "2024-01-15T10:00:00",
+    published_at: nowIso,
     source_name: "Example News",
-    created_at: "2024-01-15T10:00:00",
+    created_at: nowIso,
+    ...feedItemOverrides,
   };
 
   const processedBody: Record<string, unknown> = {
