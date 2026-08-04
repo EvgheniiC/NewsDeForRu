@@ -5,7 +5,11 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.llm_output import LLMNewsOutput, fallback_after_validation_failure
+from app.schemas.llm_output import (
+    LLMNewsOutput,
+    fallback_after_validation_failure,
+    is_validation_fallback,
+)
 from app.schemas.news import normalize_action_items_for_api, normalize_one_sentence_for_api
 from app.services.llm_json import extract_json_string, parse_llm_news_json
 from app.services.llm_provider import StubLLMProvider, create_llm_provider
@@ -193,3 +197,25 @@ def test_fallback_after_validation_failure_is_valid() -> None:
     assert "нем." not in serialized
     assert 1 <= f.importance_score <= 10
     assert f.model_json_schema()["type"] == "object"
+    assert is_validation_fallback(f) is True
+
+
+def test_is_validation_fallback_rejects_real_news_output() -> None:
+    real: LLMNewsOutput = LLMNewsOutput(
+        title="Уровень безработицы в Дармштадте",
+        one_sentence_summary="В Дармштадте обновили квартальную статистику по безработице.",
+        plain_language="Город опубликовал CSV с показателями за квартал.",
+        impact_presentation="none",
+        impact_unified="",
+        impact_owner="",
+        impact_tenant="",
+        impact_buyer="",
+        action_items="",
+        bonus_block="",
+        spoiler="",
+        topic="economy",
+        is_positive=False,
+        confidence_score=0.8,
+        importance_score=5,
+    )
+    assert is_validation_fallback(real) is False

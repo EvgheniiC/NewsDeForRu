@@ -7,7 +7,7 @@ from app.core.config import settings as app_settings
 from app.core.database import SessionLocal
 from app.models.news import ImpactPresentation, NewsTopic, PipelineStatus, ProcessedNews, RawNewsItem
 from app.repositories.news_repository import NewsRepository
-from app.schemas.llm_output import fallback_after_validation_failure
+from app.schemas.llm_output import fallback_after_validation_failure, is_validation_fallback
 from app.schemas.news import PipelineItemErrorDetail, PipelineRunResponse
 from app.services.dedup_service import DedupService
 from app.services.embedding_service import create_embedding_encoder
@@ -197,6 +197,27 @@ class PipelineService:
                     overlap.longest_match_words,
                     overlap.longest_match_chars,
                 )
+            # Empty placeholder cards only clutter moderation; drop them instead.
+            if is_validation_fallback(llm_output):
+                fallback_reason: str = (
+                    "llm_validation_fallback_overlap"
+                    if overlap.is_suspicious
+                    else "llm_validation_fallback"
+                )
+                logger.warning(
+                    "Skipping unusable LLM fallback card raw_item_id=%s reason=%s",
+                    raw_item.id,
+                    fallback_reason,
+                )
+                filtered_out += 1
+                self.repository.update_raw_status(
+                    raw_item=raw_item,
+                    status=PipelineStatus.FILTERED_OUT,
+                    relevance_score=relevance.score,
+                    relevance_reason=fallback_reason,
+                    cluster_key=dedup_result.cluster_key,
+                )
+                continue
             decision_inp = PublicationDecisionInput(
                 confidence_score=llm_output.confidence_score,
                 relevance_score=relevance.score,

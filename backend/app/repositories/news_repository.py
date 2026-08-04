@@ -314,6 +314,9 @@ class NewsRepository:
         )
         requeued: int = 0
         for raw_item in self.db_session.execute(query).scalars().all():
+            # Do not re-open items dropped because LLM produced an empty fallback card.
+            if (raw_item.relevance_reason or "").startswith("llm_validation_fallback"):
+                continue
             raw_item.pipeline_status = PipelineStatus.INGESTED
             raw_item.relevance_score = 0.0
             raw_item.relevance_reason = ""

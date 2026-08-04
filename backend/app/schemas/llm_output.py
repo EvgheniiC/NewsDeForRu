@@ -339,13 +339,17 @@ class LLMNewsOutput(BaseModel):
         )
 
 
+VALIDATION_FALLBACK_TITLE: str = "Материал требует ручной проверки"
+VALIDATION_FALLBACK_SUMMARY: str = (
+    "Автоматическая обработка не сформировала надёжную русскоязычную сводку."
+)
+
+
 def fallback_after_validation_failure() -> LLMNewsOutput:
     """Return a safe review-only result without publisher text or invented claims."""
     return LLMNewsOutput(
-        title="Материал требует ручной проверки",
-        one_sentence_summary=(
-            "Автоматическая обработка не сформировала надёжную русскоязычную сводку."
-        ),
+        title=VALIDATION_FALLBACK_TITLE,
+        one_sentence_summary=VALIDATION_FALLBACK_SUMMARY,
         plain_language=(
             "Публикация отложена до повторной обработки или проверки редактором."
         ),
@@ -361,4 +365,13 @@ def fallback_after_validation_failure() -> LLMNewsOutput:
         is_positive=False,
         confidence_score=0.0,
         importance_score=1,
+    )
+
+
+def is_validation_fallback(output: LLMNewsOutput) -> bool:
+    """True when output is the empty placeholder (no usable Russian news card)."""
+    return (
+        output.title == VALIDATION_FALLBACK_TITLE
+        and output.one_sentence_summary == VALIDATION_FALLBACK_SUMMARY
+        and output.confidence_score == 0.0
     )
