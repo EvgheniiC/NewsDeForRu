@@ -203,7 +203,7 @@ export function FeedPage(): JSX.Element {
   };
 
   return (
-    <section>
+    <section className="feed-page">
       {verificationPendingEmail !== "" ? (
         <div className="account-form-card feed-verification-notice">
           <h2>Подтвердите email</h2>

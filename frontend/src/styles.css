@@ -401,11 +401,65 @@ a:visited {
     padding-top: 4px;
   }
 
+  /*
+   * Feed route: size the snap viewport to the remaining screen height.
+   * A magic `100dvh - Npx` underestimates the topic bar / period / safe-area,
+   * so the last card's actions (Раскрыть / Полезно) sit below the fold and
+   * cannot be reached (overscroll-behavior: contain + no further snap pages).
+   */
+  html:has(.feed-page),
+  html:has(.feed-page) body,
+  html:has(.feed-page) #root {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  #root:has(.feed-page) {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .container:has(.feed-page) {
+    box-sizing: border-box;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .container:has(.feed-page) > .app-header,
+  .container:has(.feed-page) > .consent-banner {
+    flex-shrink: 0;
+  }
+
+  .feed-page {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .feed-page > :not(.tiktok-feed) {
+    flex-shrink: 0;
+  }
+
+  .feed-page .tiktok-feed {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
   /* Phone-sized viewports: one fixed-height page per swipe, TikTok-style snap. */
   .tiktok-feed-scroll {
     scroll-snap-type: y mandatory;
     scroll-behavior: auto;
-    height: min(920px, calc(100dvh - 175px));
+    /* height:0 + flex-grow fills leftover space and gives snap pages a definite 100% height. */
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 0;
+    max-height: none;
     touch-action: pan-y;
   }
 
@@ -417,6 +471,7 @@ a:visited {
     min-height: 0;
     flex-shrink: 0;
     overflow: hidden;
+    padding-bottom: 8px;
   }
 
   .tiktok-feed-snap.tiktok-feed-sentinel {
@@ -460,20 +515,21 @@ a:visited {
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
-    min-height: 80px;
+    min-height: 0;
     overflow: hidden;
   }
 
   .tiktok-feed-snap .news-card-body-immersive {
-    flex: 0 0 auto;
-    min-height: auto;
-    overflow: visible;
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .tiktok-feed-snap .news-card-body-immersive .news-card-subtitle-immersive {
-    -webkit-line-clamp: unset;
-    display: block;
-    overflow: visible;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 5;
+    overflow: hidden;
   }
 
   .tiktok-feed-snap .news-card-meta,
@@ -544,7 +600,10 @@ a:visited {
   /* Saved/read archive tabs: natural card heights inside a scrollable viewport. */
   .tiktok-feed--stacked .tiktok-feed-scroll {
     scroll-snap-type: none;
-    height: min(920px, calc(100dvh - 175px));
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 0;
+    max-height: none;
     overflow-y: auto;
   }
 
