@@ -35,7 +35,8 @@ class Settings(BaseSettings):
     data_europa_max_response_bytes: int = Field(default=500_000, ge=10_000, le=5_000_000)
     data_europa_request_delay_seconds: float = Field(default=0.5, ge=0.0, le=30.0)
     data_europa_max_datasets_per_run: int = Field(default=20, ge=1, le=100)
-    data_europa_max_distributions_per_dataset: int = Field(default=3, ge=1, le=20)
+    # One stable table per dataset keeps news cards quiet (avoid quarterly CSV spam).
+    data_europa_max_distributions_per_dataset: int = Field(default=1, ge=1, le=20)
     official_data_fetch_timeout_seconds: float = Field(default=30.0, ge=2.0, le=120.0)
     official_data_max_summary_chars: int = Field(default=6000, ge=500, le=20000)
     auto_publish_threshold: float = 0.85

@@ -14,6 +14,8 @@ from app.services.data_europa_ingestion import (
     DataEuropaIngestionService,
     classify_distribution_license,
     data_europa_content_revision,
+    is_stable_tabular_distribution,
+    select_stable_distributions,
 )
 from app.services.open_license_gate import LicenseVerdict
 
@@ -38,6 +40,48 @@ def _stream_response(body: bytes, content_type: str = "text/csv") -> MagicMock:
     stream_cm.__enter__.return_value = response
     stream_cm.__exit__.return_value = False
     return stream_cm
+
+
+def test_is_stable_tabular_distribution_blocks_api_json() -> None:
+    assert is_stable_tabular_distribution(
+        "CSV",
+        "https://www.regionalstatistik.de/genesisws/downloader/06/tables/AIG-08-2_06.csv",
+    )
+    assert not is_stable_tabular_distribution(
+        "JSON",
+        "https://www.regionalstatistik.de/genesisws/rest/2020/GOJsonApi.json",
+    )
+    assert not is_stable_tabular_distribution(
+        "CSV",
+        "https://example.de/api/v1/table.csv",
+    )
+
+
+def test_select_stable_distributions_prefers_newest_csv() -> None:
+    selected = select_stable_distributions(
+        [
+            {
+                "id": "api",
+                "format": {"id": "JSON"},
+                "access_url": [
+                    "https://www.regionalstatistik.de/genesisws/rest/2020/GOJsonApi.json"
+                ],
+            },
+            {
+                "id": "old",
+                "format": {"id": "CSV"},
+                "access_url": ["https://opendata.example.de/ALO_2020_Q4.csv"],
+            },
+            {
+                "id": "new",
+                "format": {"id": "CSV"},
+                "download_url": ["https://opendata.example.de/ALO_2026_Q1.csv"],
+            },
+        ],
+        max_dists=1,
+    )
+    assert len(selected) == 1
+    assert selected[0]["id"] == "new"
 
 
 def test_classify_distribution_license_prefers_distribution_object() -> None:

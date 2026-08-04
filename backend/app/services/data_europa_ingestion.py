@@ -8,7 +8,7 @@ import time
 from collections.abc import Mapping
 from datetime import datetime
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 import httpx
 
@@ -22,6 +22,18 @@ from app.services.open_license_gate import LicenseClassification, LicenseVerdict
 from app.services.rss_ingestion_service import IngestionStats
 
 logger: logging.Logger = logging.getLogger(__name__)
+
+# Volatile REST/API endpoints change on every fetch and must not create news revisions.
+_API_URL_MARKERS: tuple[str, ...] = (
+    "/rest/",
+    "/api/",
+    "gojsonapi",
+    "jsonapi",
+    "/wfs",
+    "/wms",
+    "service=wfs",
+    "service=wms",
+)
 
 
 def data_europa_content_revision(dataset_id: str, distribution_id: str, body: bytes) -> str:
@@ -120,6 +132,63 @@ def _looks_like_html(content_type: str, body: bytes) -> bool:
     return head.startswith(b"<!doctype html") or head.startswith(b"<html")
 
 
+def is_stable_tabular_distribution(format_value: str | None, url: str) -> bool:
+    """Accept static CSV/TSV/TXT tables; reject JSON APIs and catalogue service endpoints."""
+    lower_url: str = url.strip().lower()
+    if any(marker in lower_url for marker in _API_URL_MARKERS):
+        return False
+    path: str = urlparse(lower_url).path
+    if path.endswith((".json", ".jsonld", ".geojson")):
+        return False
+    fmt: str = (format_value or "").strip().lower()
+    if "json" in fmt and "csv" not in fmt:
+        return False
+    return is_text_resource(format_value, url)
+
+
+def _distribution_access_url(distribution: Mapping[str, Any]) -> str:
+    return _first_url(distribution.get("download_url") or distribution.get("access_url"))
+
+
+def select_stable_distributions(
+    distributions: list[Mapping[str, Any]],
+    max_dists: int,
+) -> list[Mapping[str, Any]]:
+    """Prefer CSV downloaders; within the same tier prefer newer-looking filenames."""
+    csv_tier: list[tuple[str, Mapping[str, Any]]] = []
+    other_tier: list[tuple[str, Mapping[str, Any]]] = []
+    for distribution in distributions:
+        dist_id: str = str(distribution.get("id") or "").strip()
+        access_url: str = _distribution_access_url(distribution)
+        if not dist_id or not access_url:
+            continue
+        format_id: str = _format_id(distribution.get("format"))
+        if not is_stable_tabular_distribution(format_id, access_url):
+            continue
+        path: str = urlparse(access_url).path.lower()
+        fmt: str = format_id.lower()
+        entry: tuple[str, Mapping[str, Any]] = (path, distribution)
+        if path.endswith(".csv") or "csv" in fmt:
+            csv_tier.append(entry)
+        else:
+            other_tier.append(entry)
+
+    csv_tier.sort(key=lambda item: item[0], reverse=True)
+    other_tier.sort(key=lambda item: item[0], reverse=True)
+
+    selected: list[Mapping[str, Any]] = []
+    seen_urls: set[str] = set()
+    for _path, distribution in csv_tier + other_tier:
+        if len(selected) >= max_dists:
+            break
+        access_url = _distribution_access_url(distribution)
+        if access_url in seen_urls:
+            continue
+        seen_urls.add(access_url)
+        selected.append(distribution)
+    return selected
+
+
 class DataEuropaIngestionService:
     def __init__(self, repository: NewsRepository, app_settings: Settings | None = None) -> None:
         self._repository: NewsRepository = repository
@@ -190,28 +259,22 @@ class DataEuropaIngestionService:
                     failed += 1
                     continue
 
-                seen_urls: set[str] = set()
-                accepted: int = 0
-                for distribution in distributions:
-                    if accepted >= max_dists:
-                        break
-                    dist_id: str = str(distribution.get("id") or "").strip()
-                    access_url: str = _first_url(
-                        distribution.get("download_url") or distribution.get("access_url")
+                selected_distributions: list[Mapping[str, Any]] = select_stable_distributions(
+                    distributions,
+                    max_dists,
+                )
+                if not selected_distributions:
+                    logger.warning(
+                        "data.europa.eu dataset has no stable tabular distributions id=%s",
+                        dataset_id,
                     )
-                    if not dist_id or not access_url:
-                        continue
-                    if access_url in seen_urls:
-                        continue
+                    failed += 1
+                    continue
+
+                for distribution in selected_distributions:
+                    dist_id: str = str(distribution.get("id") or "").strip()
+                    access_url: str = _distribution_access_url(distribution)
                     format_id: str = _format_id(distribution.get("format"))
-                    if not is_text_resource(format_id, access_url):
-                        logger.info(
-                            "data.europa.eu distribution skipped (non-text) dataset=%s dist=%s format=%s",
-                            dataset_id,
-                            dist_id,
-                            format_id,
-                        )
-                        continue
 
                     classification: LicenseClassification = classify_distribution_license(
                         dataset,
@@ -254,17 +317,16 @@ class DataEuropaIngestionService:
 
                     if _looks_like_html(content_type, body):
                         logger.warning(
-                            "data.europa.eu distribution looks like HTML page dataset=%s dist=%s",
+                            "data.europa.eu distribution looks like HTML page dataset=%s dist=%s format=%s",
                             dataset_id,
                             dist_id,
+                            format_id,
                         )
                         failed += 1
                         continue
 
                     revision: str = data_europa_content_revision(dataset_id, dist_id, body)
                     if self._repository.has_raw_item(source.id, revision):
-                        seen_urls.add(access_url)
-                        accepted += 1
                         continue
 
                     rights_verified: bool = classification.verdict == LicenseVerdict.ALLOWED
@@ -303,8 +365,6 @@ class DataEuropaIngestionService:
                         source_revision=revision,
                         rights_verified=rights_verified,
                     )
-                    seen_urls.add(access_url)
-                    accepted += 1
                     fetched += 1
         return IngestionStats(fetched=fetched, feeds_failed=failed)
 
