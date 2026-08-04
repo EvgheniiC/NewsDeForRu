@@ -86,6 +86,22 @@ class NewsRepository:
         )
         return self.db_session.execute(query).scalar_one_or_none() is not None
 
+    def find_latest_raw_item_for_guid_prefix(
+        self,
+        source_id: int,
+        guid_prefix: str,
+    ) -> RawNewsItem | None:
+        query: Select[tuple[RawNewsItem]] = (
+            select(RawNewsItem)
+            .where(
+                RawNewsItem.source_id == source_id,
+                RawNewsItem.guid.startswith(guid_prefix),
+            )
+            .order_by(RawNewsItem.id.desc())
+            .limit(1)
+        )
+        return self.db_session.execute(query).scalar_one_or_none()
+
     def create_raw_item(
         self,
         source_id: int,

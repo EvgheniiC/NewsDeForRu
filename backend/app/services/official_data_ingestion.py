@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 from collections.abc import Mapping
 from datetime import datetime
 from typing import Protocol
@@ -29,6 +30,32 @@ _GENESIS_VOLATILE_KEYS: frozenset[str] = frozenset(
     {"Ident", "Status", "Parameter", "Copyright"}
 )
 
+_GENESIS_VOLATILE_LINE_MARKERS: tuple[str, ...] = (
+    "erstellt am",
+    "erstellungszeit",
+    "copyright",
+    "©",
+    "stand:",
+    "retrieved",
+    "abrufdatum",
+    "generiert",
+    "www.destatis.de",
+    "genesis-online",
+)
+
+# Prefer hashing only statistical rows; header/meta lines often include fetch time.
+_GENESIS_DATA_LINE_RE: re.Pattern[str] = re.compile(
+    r"^(?:"
+    r"\d{4}"
+    r"|"
+    r"\d{1,2}\.\d{1,2}\.\d{4}"
+    r"|"
+    r"\d{4}-\d{2}"
+    r")"
+)
+
+_GENESIS_UPDATE_KEYS: tuple[str, ...] = ("Updated", "LastUpdate", "LatestUpdate")
+
 
 class IngestionProvider(Protocol):
     def run(self) -> IngestionStats: ...
@@ -43,20 +70,46 @@ def _payload_text(payload: object, max_chars: int) -> str:
     return text if len(text) <= max_chars else f"{text[:max_chars]}…"
 
 
+def normalize_genesis_content(content: object) -> object:
+    """Strip fetch-time metadata so identical tables hash identically."""
+    if isinstance(content, Mapping):
+        return {
+            key: normalize_genesis_content(value) if key == "Content" else value
+            for key, value in content.items()
+            if key not in _GENESIS_VOLATILE_KEYS
+        }
+    if not isinstance(content, str):
+        return content
+
+    text: str = content.replace("\r\n", "\n").replace("\r", "\n")
+    lines: list[str] = [line.strip() for line in text.split("\n") if line.strip()]
+    data_lines: list[str] = [line for line in lines if _GENESIS_DATA_LINE_RE.match(line)]
+    if data_lines:
+        return "\n".join(data_lines)
+
+    filtered: list[str] = []
+    for line in lines:
+        lower: str = line.lower()
+        if any(marker in lower for marker in _GENESIS_VOLATILE_LINE_MARKERS):
+            continue
+        filtered.append(line)
+    return "\n".join(filtered)
+
+
 def genesis_stable_content(payload: object) -> object:
     """Return only the data-bearing part of a GENESIS envelope for revision hashing."""
     if not isinstance(payload, Mapping):
-        return payload
+        return normalize_genesis_content(payload)
     obj: object = payload.get("Object")
     if isinstance(obj, Mapping):
         content: object = obj.get("Content")
         if content is not None:
-            return content
-        return dict(obj)
+            return normalize_genesis_content(content)
+        return normalize_genesis_content(dict(obj))
     stable: dict[str, object] = {
         key: value for key, value in payload.items() if key not in _GENESIS_VOLATILE_KEYS
     }
-    return stable if stable else payload
+    return normalize_genesis_content(stable if stable else payload)
 
 
 def _payload_revision(code: str, payload: object) -> str:
@@ -69,6 +122,26 @@ def genesis_payload_revision(code: str, payload: object) -> str:
     return _payload_revision(code, genesis_stable_content(payload))
 
 
+def genesis_item_revision(code: str, payload: object, update_token: str | None) -> str:
+    """Prefer official table update stamp; fall back to normalized content hash."""
+    if update_token:
+        return f"{code}:upd:{update_token}"
+    return genesis_payload_revision(code, payload)
+
+
+def extract_genesis_update_token(payload: object) -> str | None:
+    if not isinstance(payload, Mapping):
+        return None
+    obj: object = payload.get("Object")
+    if not isinstance(obj, Mapping):
+        return None
+    for key in _GENESIS_UPDATE_KEYS:
+        value: object = obj.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
+
+
 def _genesis_item_title(code: str) -> str:
     label: str = GENESIS_DATASET_LABELS.get(code, f"Datensatz {code}")
     return f"Destatis GENESIS: {label}"
@@ -76,11 +149,15 @@ def _genesis_item_title(code: str) -> str:
 
 def _genesis_item_summary(code: str, payload: object, max_chars: int) -> str:
     label: str = GENESIS_DATASET_LABELS.get(code, code)
-    content: object = genesis_stable_content(payload)
-    if isinstance(content, str):
-        body: str = content if len(content) <= max_chars else f"{content[:max_chars]}…"
+    raw_content: object | None = None
+    if isinstance(payload, Mapping):
+        obj: object = payload.get("Object")
+        if isinstance(obj, Mapping):
+            raw_content = obj.get("Content")
+    if isinstance(raw_content, str) and raw_content.strip():
+        body: str = raw_content if len(raw_content) <= max_chars else f"{raw_content[:max_chars]}…"
     else:
-        body = _payload_text(content, max_chars)
+        body = _payload_text(genesis_stable_content(payload), max_chars)
     return f"{label} ({code})\n{body}"
 
 
@@ -118,7 +195,9 @@ class GenesisIngestionService:
         fetched: int = 0
         failed: int = 0
         headers: dict[str, str] = {"username": token, "password": ""}
-        endpoint: str = f"{self._settings.genesis_base_url.rstrip('/')}/data/table"
+        base_url: str = self._settings.genesis_base_url.rstrip("/")
+        data_endpoint: str = f"{base_url}/data/table"
+        meta_endpoint: str = f"{base_url}/metadata/table"
         with httpx.Client(
             timeout=self._settings.official_data_fetch_timeout_seconds,
             verify=httpx_verify_arg(self._settings),
@@ -126,9 +205,23 @@ class GenesisIngestionService:
             follow_redirects=True,
         ) as client:
             for code in codes:
+                update_token: str | None = None
+                try:
+                    meta_response: httpx.Response = client.post(
+                        meta_endpoint,
+                        data={"name": code, "area": "all"},
+                    )
+                    meta_response.raise_for_status()
+                    update_token = extract_genesis_update_token(meta_response.json())
+                except (httpx.HTTPError, ValueError):
+                    logger.info(
+                        "GENESIS metadata unavailable code=%s; falling back to content hash",
+                        code,
+                    )
+
                 try:
                     response: httpx.Response = client.post(
-                        endpoint,
+                        data_endpoint,
                         data={"name": code, "area": "all", "compress": "false"},
                     )
                     response.raise_for_status()
@@ -137,8 +230,15 @@ class GenesisIngestionService:
                     logger.warning("GENESIS dataset fetch failed code=%s", code, exc_info=True)
                     failed += 1
                     continue
-                revision: str = genesis_payload_revision(code, payload)
-                if self._repository.has_raw_item(source.id, revision):
+
+                content_revision: str = genesis_payload_revision(code, payload)
+                revision: str = genesis_item_revision(code, payload, update_token)
+                if self._should_skip_genesis_item(
+                    source_id=source.id,
+                    code=code,
+                    revision=revision,
+                    content_revision=content_revision,
+                ):
                     continue
                 self._repository.create_raw_item(
                     source_id=source.id,
@@ -156,11 +256,35 @@ class GenesisIngestionService:
                     licence_url=source.default_licence_url,
                     copyright_holder=source.copyright_holder,
                     changes_notice=source.changes_notice,
-                    source_revision=revision,
+                    source_revision=content_revision,
                     rights_verified=source.rights_verified,
                 )
                 fetched += 1
         return IngestionStats(fetched=fetched, feeds_failed=failed)
+
+    def _should_skip_genesis_item(
+        self,
+        *,
+        source_id: int,
+        code: str,
+        revision: str,
+        content_revision: str,
+    ) -> bool:
+        candidates: set[str] = {revision, content_revision}
+        for key in candidates:
+            if self._repository.has_raw_item(source_id, key):
+                return True
+        latest = self._repository.find_latest_raw_item_for_guid_prefix(
+            source_id,
+            f"{code}:",
+        )
+        if latest is None:
+            return False
+        if latest.guid in candidates:
+            return True
+        if latest.source_revision and latest.source_revision in candidates:
+            return True
+        return False
 
 
 class EurostatIngestionService:
