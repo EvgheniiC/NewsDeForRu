@@ -122,6 +122,9 @@ def test_govdata_ingests_allowed_csv_from_publisher_not_govdata() -> None:
         assert "govdata.de" not in (rows[0].copyright_holder or "").lower()
         assert rows[0].url == "https://publisher.example.de/data.csv"
         assert rows[0].guid == govdata_content_revision("demo-package", "res-csv", csv_body)
+        assert "Key figures" in (rows[0].summary or "")
+        assert "EDITOR NOTES (open dataset" in (rows[0].summary or "")
+        assert "2020;83.1" in (rows[0].summary or "") or "83.1" in (rows[0].summary or "")
         source: Source = session.execute(select(Source)).scalar_one()
         assert source.source_key == "govdata"
     finally:

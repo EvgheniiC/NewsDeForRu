@@ -172,6 +172,8 @@ def test_data_europa_ingests_allowed_csv_from_publisher() -> None:
         assert row.licence == "DL-DE BY 2.0"
         assert row.url == "https://publisher.example.de/data.csv"
         assert "Catalogue: data.europa.eu" in row.summary
+        assert "Key figures" in row.summary
+        assert "EDITOR NOTES (open dataset" in row.summary
         source: Source = session.execute(select(Source)).scalar_one()
         assert source.source_key == "data_europa"
     finally:

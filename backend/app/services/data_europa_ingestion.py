@@ -20,6 +20,7 @@ from app.services.http_fetch_limits import ResponseTooLargeError, read_http_body
 from app.services.official_data_ingestion import parse_dataset_codes
 from app.services.open_license_gate import LicenseClassification, LicenseVerdict, classify_license
 from app.services.rss_ingestion_service import IngestionStats
+from app.services.tabular_digest import build_open_dataset_summary
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -337,18 +338,16 @@ class DataEuropaIngestionService:
                     )
                     licence_url: str = classification.licence_url if rights_verified else ""
                     text_body: str = body.decode("utf-8", errors="replace")
-                    if len(text_body) > self._settings.official_data_max_summary_chars:
-                        text_body = f"{text_body[: self._settings.official_data_max_summary_chars]}…"
-
-                    summary: str = (
-                        f"Dataset: {title}\n"
-                        f"Dataset URI: {dataset_uri}\n"
-                        f"Distribution URI: {access_url}\n"
-                        f"Publisher: {publisher}\n"
-                        f"License: {licence_name or 'unknown'}\n"
-                        f"License URI: {classification.licence_url or 'n/a'}\n"
-                        f"Catalogue: data.europa.eu (discovery only)\n\n"
-                        f"{text_body}"
+                    summary: str = build_open_dataset_summary(
+                        title=title,
+                        dataset_uri=dataset_uri,
+                        resource_uri=access_url,
+                        publisher=publisher,
+                        licence_name=licence_name or "unknown",
+                        licence_uri=classification.licence_url or "n/a",
+                        body_text=text_body,
+                        max_body_chars=self._settings.official_data_max_summary_chars,
+                        extra_meta_lines=("Catalogue: data.europa.eu (discovery only)",),
                     )
                     self._repository.create_raw_item(
                         source_id=source.id,

@@ -12,6 +12,10 @@ from app.core.http_tls import httpx_verify_arg
 from app.schemas.llm_output import LLMNewsOutput, fallback_after_validation_failure
 from app.services.llm_json import build_repair_user_message, parse_llm_news_json
 from app.services.llm_provider import LLMProvider
+from app.services.tabular_digest import (
+    ensure_open_dataset_key_figures,
+    is_open_dataset_summary,
+)
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -79,9 +83,21 @@ class OpenAILLMProvider(LLMProvider):
             "MUST be written in Russian (Cyrillic), never in German. "
             "Output only valid JSON, no surrounding prose. " + LLMNewsOutput.system_prompt_addendum()
         )
+        summary_for_llm: str = ensure_open_dataset_key_figures(summary)
+        open_data_hint: str = ""
+        if is_open_dataset_summary(summary_for_llm):
+            open_data_hint = (
+                "Это открытый госдатасет (не новостная статья). "
+                "В one_sentence_summary и plain_language обязательно опирайся на блок "
+                "\"Key figures\": укажи 1–3 конкретные цифры из превью/numeric highlights, "
+                "если они есть. Не выдумывай статистику. "
+                "impact_presentation обычно none или single.\n\n"
+            )
         user: str = (
+            f"{open_data_hint}"
             f"Оригинальный заголовок (на немецком, переведи для полей в JSON):\n{title}\n\n"
-            f"Оригинальное краткое описание (на немецком, переведи для полей в JSON):\n{summary}\n"
+            f"Оригинальное краткое описание (на немецком, переведи для полей в JSON):\n"
+            f"{summary_for_llm}\n"
         )
         first_messages: list[dict[str, str]] = [
             {"role": "system", "content": system},
