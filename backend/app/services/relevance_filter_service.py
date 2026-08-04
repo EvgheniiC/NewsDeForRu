@@ -5,7 +5,9 @@ from app.services.embedding_service import EmbeddingEncoder, create_embedding_en
 from app.services.urgent_news import is_breaking_news
 
 # Official statistics are curated allowlists; skip life-impact semantic filtering.
-OFFICIAL_DATA_SOURCE_KEYS: frozenset[str] = frozenset({"destatis_genesis", "eurostat"})
+OFFICIAL_DATA_SOURCE_KEYS: frozenset[str] = frozenset(
+    {"destatis_genesis", "eurostat", "govdata"}
+)
 
 DENY_KEYWORDS: tuple[str, ...] = ("sport", "bundesliga", "transfer", "promi", "unfall")
 

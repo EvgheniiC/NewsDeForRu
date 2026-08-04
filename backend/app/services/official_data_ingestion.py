@@ -7,6 +7,7 @@ import json
 import logging
 import re
 from collections.abc import Mapping
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Protocol
 
@@ -15,14 +16,19 @@ import httpx
 from app.core.config import Settings, settings
 from app.core.http_tls import httpx_verify_arg
 from app.repositories.news_repository import NewsRepository
+from app.services.http_fetch_limits import ResponseTooLargeError, read_http_body_with_limit
 from app.services.rss_ingestion_service import IngestionStats
 
 logger: logging.Logger = logging.getLogger(__name__)
 
 # Known table codes → short German labels for titles / LLM context.
+# Curated for life-impact news in Germany; add codes only after size/quality check.
 GENESIS_DATASET_LABELS: dict[str, str] = {
     "61111-0002": "Verbraucherpreisindex Deutschland (Monate)",
+    "61111-0004": "Verbraucherpreisindex nach Verwendungszwecken (Jahre)",
     "12411-0001": "Bevölkerung Deutschland",
+    "13211-0006": "Arbeitslosenquote Deutschland (Monate)",
+    "81000-0007": "Löhne und Gehälter Deutschland (Jahre)",
 }
 
 # Envelope keys that change between identical GENESIS data responses.
@@ -287,6 +293,81 @@ class GenesisIngestionService:
         return False
 
 
+@dataclass(frozen=True)
+class EurostatDatasetSpec:
+    """Allowlisted Eurostat extraction: Germany-only, bounded time and indicators."""
+
+    code: str
+    title: str
+    filters: dict[str, str]
+
+
+# Curated profiles only. Unknown codes in EUROSTAT_DATASET_CODES are skipped (fail closed).
+EUROSTAT_DATASET_SPECS: dict[str, EurostatDatasetSpec] = {
+    "prc_hicp_midx": EurostatDatasetSpec(
+        code="prc_hicp_midx",
+        title="HICP monthly index Germany (all-items)",
+        filters={
+            "geo": "DE",
+            "lastTimePeriod": "6",
+            "coicop": "CP00",
+            "unit": "I15",
+        },
+    ),
+    "une_rt_m": EurostatDatasetSpec(
+        code="une_rt_m",
+        title="Unemployment rate Germany (monthly, SA)",
+        filters={
+            "geo": "DE",
+            "lastTimePeriod": "6",
+            "age": "TOTAL",
+            "sex": "T",
+            "unit": "PC_ACT",
+            "s_adj": "SA",
+        },
+    ),
+    "demo_pjan": EurostatDatasetSpec(
+        code="demo_pjan",
+        title="Population on 1 January Germany",
+        filters={
+            "geo": "DE",
+            "lastTimePeriod": "5",
+            "age": "TOTAL",
+            "sex": "T",
+        },
+    ),
+}
+
+
+# Backward-compatible alias used by existing tests.
+EurostatResponseTooLargeError = ResponseTooLargeError
+
+
+def build_eurostat_query_params(spec: EurostatDatasetSpec) -> dict[str, str]:
+    params: dict[str, str] = {"format": "JSON", "lang": "EN"}
+    params.update(spec.filters)
+    return params
+
+
+def eurostat_stable_payload(payload: object) -> object:
+    """Keep only fields that reflect statistical content for revision hashing."""
+    if not isinstance(payload, Mapping):
+        return payload
+    stable: dict[str, object] = {}
+    for key in ("updated", "value", "size", "id", "dimension"):
+        if key in payload:
+            stable[key] = payload[key]
+    return stable if stable else payload
+
+
+def eurostat_payload_revision(code: str, payload: object) -> str:
+    return _payload_revision(code, eurostat_stable_payload(payload))
+
+
+def _read_http_body_with_limit(response: httpx.Response, max_bytes: int) -> bytes:
+    return read_http_body_with_limit(response, max_bytes)
+
+
 class EurostatIngestionService:
     def __init__(self, repository: NewsRepository, app_settings: Settings | None = None) -> None:
         self._repository: NewsRepository = repository
@@ -314,6 +395,7 @@ class EurostatIngestionService:
         )
         fetched: int = 0
         failed: int = 0
+        max_bytes: int = self._settings.eurostat_max_response_bytes
         with httpx.Client(
             timeout=self._settings.official_data_fetch_timeout_seconds,
             verify=httpx_verify_arg(self._settings),
@@ -321,29 +403,61 @@ class EurostatIngestionService:
         ) as client:
             # Eurostat asks clients to perform extraction calls sequentially.
             for code in codes:
-                endpoint: str = f"{self._settings.eurostat_base_url.rstrip('/')}/{code}"
+                spec: EurostatDatasetSpec | None = EUROSTAT_DATASET_SPECS.get(code)
+                if spec is None:
+                    logger.warning(
+                        "Eurostat dataset skipped: no allowlisted filter profile code=%s",
+                        code,
+                    )
+                    failed += 1
+                    continue
+                endpoint: str = f"{self._settings.eurostat_base_url.rstrip('/')}/{spec.code}"
+                params: dict[str, str] = build_eurostat_query_params(spec)
                 try:
-                    response: httpx.Response = client.get(endpoint)
-                    response.raise_for_status()
-                    payload: object = response.json()
-                except (httpx.HTTPError, ValueError):
+                    with client.stream("GET", endpoint, params=params) as response:
+                        response.raise_for_status()
+                        body: bytes = _read_http_body_with_limit(response, max_bytes)
+                    payload: object = json.loads(body.decode("utf-8"))
+                except EurostatResponseTooLargeError:
+                    logger.warning(
+                        "Eurostat dataset response too large code=%s limit=%s",
+                        code,
+                        max_bytes,
+                    )
+                    failed += 1
+                    continue
+                except (httpx.HTTPError, ValueError, UnicodeError):
                     logger.warning("Eurostat dataset fetch failed code=%s", code, exc_info=True)
                     failed += 1
                     continue
-                revision: str = _payload_revision(code, payload)
+
+                revision: str = eurostat_payload_revision(code, payload)
                 if self._repository.has_raw_item(source.id, revision):
                     continue
-                label: str = code
+                latest = self._repository.find_latest_raw_item_for_guid_prefix(
+                    source.id,
+                    f"{code}:",
+                )
+                if latest is not None and (
+                    latest.guid == revision or latest.source_revision == revision
+                ):
+                    continue
+
+                label: str = spec.title
                 if isinstance(payload, Mapping):
                     raw_label: object = payload.get("label")
                     if isinstance(raw_label, str) and raw_label.strip():
                         label = raw_label.strip()
+                summary_payload: object = eurostat_stable_payload(payload)
                 self._repository.create_raw_item(
                     source_id=source.id,
                     guid=revision,
                     title=f"Eurostat: {label}",
-                    summary=_payload_text(payload, self._settings.official_data_max_summary_chars),
-                    url=f"https://ec.europa.eu/eurostat/databrowser/view/{code}/default/table",
+                    summary=_payload_text(
+                        summary_payload,
+                        self._settings.official_data_max_summary_chars,
+                    ),
+                    url=f"https://ec.europa.eu/eurostat/databrowser/view/{code}/default/table?lang=en",
                     published_at=datetime.utcnow(),
                     original_language="en",
                     licence=source.default_licence,

@@ -11,8 +11,12 @@ from app.models import app_user as _app_user_models
 from app.models.news import RawNewsItem
 from app.repositories.news_repository import NewsRepository
 from app.services.official_data_ingestion import (
+    EUROSTAT_DATASET_SPECS,
     EurostatIngestionService,
+    EurostatResponseTooLargeError,
     GenesisIngestionService,
+    build_eurostat_query_params,
+    eurostat_payload_revision,
     genesis_item_revision,
     genesis_payload_revision,
     genesis_stable_content,
@@ -43,16 +47,48 @@ def test_dataset_codes_are_trimmed_deduplicated_and_fail_closed() -> None:
         session.close()
 
 
-def test_eurostat_fetches_configured_datasets_sequentially_with_legal_metadata() -> None:
+def _eurostat_stream_response(payload: dict[str, object]) -> MagicMock:
+    body: bytes = __import__("json").dumps(payload).encode("utf-8")
+    response: MagicMock = MagicMock()
+    response.headers = {}
+    response.raise_for_status.return_value = None
+    response.iter_bytes.return_value = [body]
+    response.close.return_value = None
+    stream_cm: MagicMock = MagicMock()
+    stream_cm.__enter__.return_value = response
+    stream_cm.__exit__.return_value = False
+    return stream_cm
+
+
+def test_eurostat_query_params_are_germany_scoped_and_bounded() -> None:
+    hicp = build_eurostat_query_params(EUROSTAT_DATASET_SPECS["prc_hicp_midx"])
+    assert hicp["geo"] == "DE"
+    assert hicp["lastTimePeriod"] == "6"
+    assert hicp["coicop"] == "CP00"
+    assert hicp["unit"] == "I15"
+
+    une = build_eurostat_query_params(EUROSTAT_DATASET_SPECS["une_rt_m"])
+    assert une["geo"] == "DE"
+    assert une["s_adj"] == "SA"
+    assert une["unit"] == "PC_ACT"
+
+    demo = build_eurostat_query_params(EUROSTAT_DATASET_SPECS["demo_pjan"])
+    assert demo["geo"] == "DE"
+    assert demo["age"] == "TOTAL"
+    assert demo["sex"] == "T"
+
+
+def test_eurostat_fetches_allowlisted_datasets_sequentially_with_filters() -> None:
     session, repository = _repository()
-    response_one: MagicMock = MagicMock()
-    response_one.json.return_value = {"label": "First dataset", "value": {"0": 1}}
-    response_one.raise_for_status.return_value = None
-    response_two: MagicMock = MagicMock()
-    response_two.json.return_value = {"label": "Second dataset", "value": {"0": 2}}
-    response_two.raise_for_status.return_value = None
     client_instance: MagicMock = MagicMock()
-    client_instance.get.side_effect = [response_one, response_two]
+    client_instance.stream.side_effect = [
+        _eurostat_stream_response(
+            {"label": "HICP", "updated": "2026-08-01", "value": {"0": 120.1}, "size": [1]}
+        ),
+        _eurostat_stream_response(
+            {"label": "Unemployment", "updated": "2026-08-01", "value": {"0": 3.2}, "size": [1]}
+        ),
+    ]
     client_context: MagicMock = MagicMock()
     client_context.__enter__.return_value = client_instance
     client_context.__exit__.return_value = False
@@ -64,20 +100,93 @@ def test_eurostat_fetches_configured_datasets_sequentially_with_legal_metadata()
         ):
             stats = EurostatIngestionService(
                 repository,
-                Settings(eurostat_dataset_codes="first,second"),
+                Settings(eurostat_dataset_codes="prc_hicp_midx,une_rt_m,unknown_code"),
             ).run()
 
         assert stats.fetched == 2
-        assert [call.args[0].rsplit("/", 1)[-1] for call in client_instance.get.call_args_list] == [
-            "first",
-            "second",
-        ]
+        assert stats.feeds_failed == 1
+        assert len(client_instance.stream.call_args_list) == 2
+        first_params: dict[str, str] = client_instance.stream.call_args_list[0].kwargs["params"]
+        assert first_params["geo"] == "DE"
+        assert first_params["lastTimePeriod"] == "6"
+        second_url: str = client_instance.stream.call_args_list[1].args[1]
+        assert second_url.endswith("/une_rt_m")
         rows: list[RawNewsItem] = list(session.execute(select(RawNewsItem)).scalars())
+        assert len(rows) == 2
         assert all(row.rights_verified for row in rows)
         assert all(row.licence_url for row in rows)
         assert all(row.image_url is None for row in rows)
     finally:
         session.close()
+
+
+def test_eurostat_skips_duplicate_revision_and_rejects_oversized_response() -> None:
+    session, repository = _repository()
+    payload: dict[str, object] = {
+        "label": "HICP",
+        "updated": "2026-08-01",
+        "value": {"0": 120.1},
+        "size": [1],
+    }
+    client_instance: MagicMock = MagicMock()
+    client_instance.stream.side_effect = [
+        _eurostat_stream_response(payload),
+        _eurostat_stream_response(payload),
+    ]
+    client_context: MagicMock = MagicMock()
+    client_context.__enter__.return_value = client_instance
+    client_context.__exit__.return_value = False
+
+    try:
+        with patch(
+            "app.services.official_data_ingestion.httpx.Client",
+            return_value=client_context,
+        ):
+            service = EurostatIngestionService(
+                repository,
+                Settings(eurostat_dataset_codes="prc_hicp_midx"),
+            )
+            assert service.run().fetched == 1
+            assert service.run().fetched == 0
+        assert eurostat_payload_revision("prc_hicp_midx", payload).startswith("prc_hicp_midx:")
+
+        oversized: MagicMock = MagicMock()
+        oversized.headers = {"Content-Length": "500001"}
+        oversized.raise_for_status.return_value = None
+        oversized.close.return_value = None
+        oversized_cm: MagicMock = MagicMock()
+        oversized_cm.__enter__.return_value = oversized
+        oversized_cm.__exit__.return_value = False
+        client_instance.stream.side_effect = [oversized_cm]
+        with patch(
+            "app.services.official_data_ingestion.httpx.Client",
+            return_value=client_context,
+        ):
+            stats = EurostatIngestionService(
+                repository,
+                Settings(
+                    eurostat_dataset_codes="prc_hicp_midx",
+                    eurostat_max_response_bytes=10_000,
+                ),
+            ).run()
+        assert stats.fetched == 0
+        assert stats.feeds_failed == 1
+    finally:
+        session.close()
+
+
+def test_eurostat_response_limit_helper_raises() -> None:
+    response: MagicMock = MagicMock()
+    response.headers = {}
+    response.iter_bytes.return_value = [b"12345", b"67890"]
+    response.close.return_value = None
+    try:
+        from app.services.official_data_ingestion import _read_http_body_with_limit
+
+        _read_http_body_with_limit(response, max_bytes=8)
+        raise AssertionError("expected EurostatResponseTooLargeError")
+    except EurostatResponseTooLargeError:
+        response.close.assert_called()
 
 
 def test_genesis_requires_token_when_dataset_codes_are_configured() -> None:

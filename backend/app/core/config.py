@@ -20,7 +20,15 @@ class Settings(BaseSettings):
     genesis_api_token: str = ""
     genesis_dataset_codes: str = ""
     eurostat_base_url: str = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data"
+    # Fail closed: only codes with a built-in filter profile are fetched.
     eurostat_dataset_codes: str = ""
+    eurostat_max_response_bytes: int = Field(default=500_000, ge=10_000, le=5_000_000)
+    # GovData CKAN catalogue (fail closed while package id list is empty).
+    govdata_ckan_base_url: str = "https://ckan.govdata.de/api/3/action"
+    govdata_package_ids: str = ""
+    govdata_max_response_bytes: int = Field(default=500_000, ge=10_000, le=5_000_000)
+    govdata_request_delay_seconds: float = Field(default=0.5, ge=0.0, le=30.0)
+    govdata_max_packages_per_run: int = Field(default=20, ge=1, le=100)
     official_data_fetch_timeout_seconds: float = Field(default=30.0, ge=2.0, le=120.0)
     official_data_max_summary_chars: int = Field(default=6000, ge=500, le=20000)
     auto_publish_threshold: float = 0.85
