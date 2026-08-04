@@ -10,6 +10,7 @@ def test_classify_allows_open_licences() -> None:
         ({"license_id": "cc-by-4.0"}, "CC BY"),
         ({"license_id": "CC-BY"}, "CC BY"),
         ({"license_url": "http://dcat-ap.de/def/licenses/dl-by-de/2.0"}, "DL-DE BY 2.0"),
+        ({"license_url": "http://dcat-ap.de/def/licenses/cc-by"}, "CC BY"),
         (
             {"license_title": "Datenlizenz Deutschland – Namensnennung – Version 2.0"},
             "DL-DE BY 2.0",

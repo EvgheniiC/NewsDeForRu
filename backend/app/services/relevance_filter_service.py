@@ -6,7 +6,7 @@ from app.services.urgent_news import is_breaking_news
 
 # Official statistics are curated allowlists; skip life-impact semantic filtering.
 OFFICIAL_DATA_SOURCE_KEYS: frozenset[str] = frozenset(
-    {"destatis_genesis", "eurostat", "govdata"}
+    {"destatis_genesis", "eurostat", "govdata", "data_europa"}
 )
 
 DENY_KEYWORDS: tuple[str, ...] = ("sport", "bundesliga", "transfer", "promi", "unfall")

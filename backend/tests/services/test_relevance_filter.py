@@ -57,3 +57,11 @@ def test_relevance_filter_bypasses_official_statistics_sources() -> None:
     )
     assert govdata.is_relevant is True
     assert govdata.reason == "Official statistics source bypass."
+
+    europa = service.evaluate(
+        title="data.europa.eu: Demo",
+        summary="csv",
+        source_key="data_europa",
+    )
+    assert europa.is_relevant is True
+    assert europa.reason == "Official statistics source bypass."

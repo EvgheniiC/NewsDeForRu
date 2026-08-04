@@ -36,6 +36,8 @@ _ALLOWED_LICENCES: tuple[tuple[tuple[str, ...], str, str], ...] = (
             "creativecommons.org/licenses/by/3.0",
             "licenses/by/4.0",
             "licenses/by/3.0",
+            "dcat-ap.de/def/licenses/cc-by",
+            "licenses/cc-by",
         ),
         "CC BY",
         "https://creativecommons.org/licenses/by/4.0/",

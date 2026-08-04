@@ -12,6 +12,7 @@ from app.schemas.news import PipelineItemErrorDetail, PipelineRunResponse
 from app.services.dedup_service import DedupService
 from app.services.embedding_service import create_embedding_encoder
 from app.services.llm_provider import LLMProvider, create_llm_provider
+from app.services.data_europa_ingestion import DataEuropaIngestionService
 from app.services.govdata_ingestion import GovDataIngestionService
 from app.services.official_data_ingestion import (
     EurostatIngestionService,
@@ -51,6 +52,7 @@ class PipelineService:
                 GenesisIngestionService(repository),
                 EurostatIngestionService(repository),
                 GovDataIngestionService(repository),
+                DataEuropaIngestionService(repository),
             ),
             relevance_filter=RelevanceFilterService(encoder),
             dedup=DedupService(encoder),
