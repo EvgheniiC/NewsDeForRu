@@ -73,6 +73,15 @@ class PipelineService:
                 requeued_breaking,
                 run_id,
             )
+        requeued_official: int = self.repository.requeue_filtered_official_data(
+            lookback=timedelta(hours=48),
+        )
+        if requeued_official:
+            logger.info(
+                "requeued filtered official data count=%s run_id=%s",
+                requeued_official,
+                run_id,
+            )
         filtered_out: int = 0
         clustered: int = 0
         processed_count: int = 0
@@ -84,7 +93,14 @@ class PipelineService:
 
         raw_items: list[RawNewsItem] = self.repository.list_raw_items_for_processing()
         for raw_item in raw_items:
-            relevance = self.context.relevance_filter.evaluate(raw_item.title, raw_item.summary)
+            source_key: str | None = (
+                raw_item.source.source_key if raw_item.source is not None else None
+            )
+            relevance = self.context.relevance_filter.evaluate(
+                raw_item.title,
+                raw_item.summary,
+                source_key=source_key,
+            )
             if not relevance.is_relevant:
                 filtered_out += 1
                 self.repository.update_raw_status(

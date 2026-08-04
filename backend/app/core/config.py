@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     rss_user_agent: str = "newsForGermanyRU/1.0 (+https://example.local)"
     # Fail closed: add a source key only after its production usage is approved.
     rss_enabled_source_keys: str = ""
-    genesis_base_url: str = "https://www-genesis.destatis.de/genesisWS/rest/2020"
+    genesis_base_url: str = "https://genesis.destatis.de/genesisWS/rest/2020"
     genesis_api_token: str = ""
     genesis_dataset_codes: str = ""
     eurostat_base_url: str = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data"

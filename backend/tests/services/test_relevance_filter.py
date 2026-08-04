@@ -29,3 +29,23 @@ def test_relevance_filter_accepts_breaking_school_attack() -> None:
     assert result.is_relevant is True
     assert result.score >= 0.85
     assert result.reason == "Breaking news bypass."
+
+
+def test_relevance_filter_bypasses_official_statistics_sources() -> None:
+    service = RelevanceFilterService()
+    result = service.evaluate(
+        title="Destatis GENESIS: Datensatz 61111-0002",
+        summary='{"Object":{"Content":"raw csv"}}',
+        source_key="destatis_genesis",
+    )
+    assert result.is_relevant is True
+    assert result.score == 1.0
+    assert result.reason == "Official statistics source bypass."
+
+    eurostat = service.evaluate(
+        title="Eurostat: Inflation",
+        summary="{}",
+        source_key="eurostat",
+    )
+    assert eurostat.is_relevant is True
+    assert eurostat.reason == "Official statistics source bypass."

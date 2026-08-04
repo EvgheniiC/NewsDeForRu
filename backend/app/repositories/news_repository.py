@@ -17,6 +17,7 @@ from app.models.news import (
     RawNewsItem,
     Source,
 )
+from app.services.relevance_filter_service import OFFICIAL_DATA_SOURCE_KEYS
 from app.services.urgent_news import is_breaking_news
 
 
@@ -273,6 +274,30 @@ class NewsRepository:
         for raw_item in self.db_session.execute(query).scalars().all():
             if not is_breaking_news(raw_item.title, raw_item.summary):
                 continue
+            raw_item.pipeline_status = PipelineStatus.INGESTED
+            raw_item.relevance_score = 0.0
+            raw_item.relevance_reason = ""
+            self.db_session.add(raw_item)
+            requeued += 1
+        if requeued:
+            self.db_session.commit()
+        return requeued
+
+    def requeue_filtered_official_data(self, *, lookback: timedelta) -> int:
+        """Re-open recently filtered official-statistics items after source bypass is enabled."""
+        since: datetime = datetime.now(timezone.utc) - lookback
+        query: Select[tuple[RawNewsItem]] = (
+            select(RawNewsItem)
+            .join(Source, Source.id == RawNewsItem.source_id)
+            .where(
+                RawNewsItem.pipeline_status == PipelineStatus.FILTERED_OUT,
+                RawNewsItem.created_at >= since,
+                Source.source_key.in_(tuple(OFFICIAL_DATA_SOURCE_KEYS)),
+            )
+            .options(selectinload(RawNewsItem.source))
+        )
+        requeued: int = 0
+        for raw_item in self.db_session.execute(query).scalars().all():
             raw_item.pipeline_status = PipelineStatus.INGESTED
             raw_item.relevance_score = 0.0
             raw_item.relevance_reason = ""

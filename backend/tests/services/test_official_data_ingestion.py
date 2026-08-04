@@ -13,6 +13,8 @@ from app.repositories.news_repository import NewsRepository
 from app.services.official_data_ingestion import (
     EurostatIngestionService,
     GenesisIngestionService,
+    genesis_payload_revision,
+    genesis_stable_content,
     parse_dataset_codes,
 )
 
@@ -87,5 +89,75 @@ def test_genesis_requires_token_when_dataset_codes_are_configured() -> None:
         assert stats.fetched == 0
         assert stats.feeds_failed == 1
         client.assert_not_called()
+    finally:
+        session.close()
+
+
+def test_genesis_revision_ignores_volatile_envelope_fields() -> None:
+    content: str = "Verbraucherpreisindex;2024;110.1"
+    first: dict[str, object] = {
+        "Ident": {"Service": "data", "Method": "table"},
+        "Status": {"Code": "0", "Content": "erfolgreich", "Type": "Information"},
+        "Parameter": {"name": "61111-0002", "username": "********"},
+        "Copyright": "© Destatis, retrieved 2026-08-04T13:17:00",
+        "Object": {"Content": content, "Code": "61111-0002"},
+    }
+    second: dict[str, object] = {
+        "Ident": {"Service": "data", "Method": "table"},
+        "Status": {"Code": "0", "Content": "ok", "Type": "Information"},
+        "Parameter": {"name": "61111-0002", "username": "********"},
+        "Copyright": "© Destatis, retrieved 2026-08-04T13:22:00",
+        "Object": {"Content": content, "Code": "61111-0002"},
+    }
+    assert genesis_stable_content(first) == content
+    assert genesis_payload_revision("61111-0002", first) == genesis_payload_revision(
+        "61111-0002",
+        second,
+    )
+    changed: dict[str, object] = {
+        **second,
+        "Object": {"Content": "Verbraucherpreisindex;2024;111.0", "Code": "61111-0002"},
+    }
+    assert genesis_payload_revision("61111-0002", first) != genesis_payload_revision(
+        "61111-0002",
+        changed,
+    )
+
+
+def test_genesis_skips_duplicate_when_only_envelope_changes() -> None:
+    session, repository = _repository()
+    content: str = "Bevölkerung;2024;83194500"
+    response_one: MagicMock = MagicMock()
+    response_one.json.return_value = {
+        "Copyright": "first-fetch",
+        "Object": {"Content": content},
+    }
+    response_one.raise_for_status.return_value = None
+    response_two: MagicMock = MagicMock()
+    response_two.json.return_value = {
+        "Copyright": "second-fetch",
+        "Object": {"Content": content},
+    }
+    response_two.raise_for_status.return_value = None
+    client_instance: MagicMock = MagicMock()
+    client_instance.post.side_effect = [response_one, response_two]
+    client_context: MagicMock = MagicMock()
+    client_context.__enter__.return_value = client_instance
+    client_context.__exit__.return_value = False
+
+    try:
+        with patch(
+            "app.services.official_data_ingestion.httpx.Client",
+            return_value=client_context,
+        ):
+            service = GenesisIngestionService(
+                repository,
+                Settings(genesis_dataset_codes="12411-0001", genesis_api_token="token"),
+            )
+            assert service.run().fetched == 1
+            assert service.run().fetched == 0
+        rows: list[RawNewsItem] = list(session.execute(select(RawNewsItem)).scalars())
+        assert len(rows) == 1
+        assert "Bevölkerung Deutschland" in rows[0].title
     finally:
         session.close()

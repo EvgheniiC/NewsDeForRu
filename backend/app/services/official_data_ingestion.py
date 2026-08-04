@@ -18,6 +18,17 @@ from app.services.rss_ingestion_service import IngestionStats
 
 logger: logging.Logger = logging.getLogger(__name__)
 
+# Known table codes → short German labels for titles / LLM context.
+GENESIS_DATASET_LABELS: dict[str, str] = {
+    "61111-0002": "Verbraucherpreisindex Deutschland (Monate)",
+    "12411-0001": "Bevölkerung Deutschland",
+}
+
+# Envelope keys that change between identical GENESIS data responses.
+_GENESIS_VOLATILE_KEYS: frozenset[str] = frozenset(
+    {"Ident", "Status", "Parameter", "Copyright"}
+)
+
 
 class IngestionProvider(Protocol):
     def run(self) -> IngestionStats: ...
@@ -32,10 +43,45 @@ def _payload_text(payload: object, max_chars: int) -> str:
     return text if len(text) <= max_chars else f"{text[:max_chars]}…"
 
 
+def genesis_stable_content(payload: object) -> object:
+    """Return only the data-bearing part of a GENESIS envelope for revision hashing."""
+    if not isinstance(payload, Mapping):
+        return payload
+    obj: object = payload.get("Object")
+    if isinstance(obj, Mapping):
+        content: object = obj.get("Content")
+        if content is not None:
+            return content
+        return dict(obj)
+    stable: dict[str, object] = {
+        key: value for key, value in payload.items() if key not in _GENESIS_VOLATILE_KEYS
+    }
+    return stable if stable else payload
+
+
 def _payload_revision(code: str, payload: object) -> str:
     body: str = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
     digest: str = hashlib.sha256(body.encode("utf-8")).hexdigest()
     return f"{code}:{digest}"
+
+
+def genesis_payload_revision(code: str, payload: object) -> str:
+    return _payload_revision(code, genesis_stable_content(payload))
+
+
+def _genesis_item_title(code: str) -> str:
+    label: str = GENESIS_DATASET_LABELS.get(code, f"Datensatz {code}")
+    return f"Destatis GENESIS: {label}"
+
+
+def _genesis_item_summary(code: str, payload: object, max_chars: int) -> str:
+    label: str = GENESIS_DATASET_LABELS.get(code, code)
+    content: object = genesis_stable_content(payload)
+    if isinstance(content, str):
+        body: str = content if len(content) <= max_chars else f"{content[:max_chars]}…"
+    else:
+        body = _payload_text(content, max_chars)
+    return f"{label} ({code})\n{body}"
 
 
 class GenesisIngestionService:
@@ -91,15 +137,19 @@ class GenesisIngestionService:
                     logger.warning("GENESIS dataset fetch failed code=%s", code, exc_info=True)
                     failed += 1
                     continue
-                revision: str = _payload_revision(code, payload)
+                revision: str = genesis_payload_revision(code, payload)
                 if self._repository.has_raw_item(source.id, revision):
                     continue
                 self._repository.create_raw_item(
                     source_id=source.id,
                     guid=revision,
-                    title=f"Destatis GENESIS: Datensatz {code}",
-                    summary=_payload_text(payload, self._settings.official_data_max_summary_chars),
-                    url=f"https://www-genesis.destatis.de/datenbank/online/statistic/{code}",
+                    title=_genesis_item_title(code),
+                    summary=_genesis_item_summary(
+                        code,
+                        payload,
+                        self._settings.official_data_max_summary_chars,
+                    ),
+                    url=f"https://genesis.destatis.de/datenbank/online/statistic/{code}",
                     published_at=datetime.utcnow(),
                     original_language="de",
                     licence=source.default_licence,

@@ -4,6 +4,9 @@ from app.core.config import settings
 from app.services.embedding_service import EmbeddingEncoder, create_embedding_encoder, cosine_similarity
 from app.services.urgent_news import is_breaking_news
 
+# Official statistics are curated allowlists; skip life-impact semantic filtering.
+OFFICIAL_DATA_SOURCE_KEYS: frozenset[str] = frozenset({"destatis_genesis", "eurostat"})
+
 DENY_KEYWORDS: tuple[str, ...] = ("sport", "bundesliga", "transfer", "promi", "unfall")
 
 POSITIVE_ANCHORS: tuple[str, ...] = (
@@ -44,7 +47,20 @@ class RelevanceFilterService:
         assert self._negative_embeddings is not None
         return self._positive_embeddings, self._negative_embeddings
 
-    def evaluate(self, title: str, summary: str) -> RelevanceResult:
+    def evaluate(
+        self,
+        title: str,
+        summary: str,
+        *,
+        source_key: str | None = None,
+    ) -> RelevanceResult:
+        if source_key is not None and source_key in OFFICIAL_DATA_SOURCE_KEYS:
+            return RelevanceResult(
+                is_relevant=True,
+                score=1.0,
+                reason="Official statistics source bypass.",
+            )
+
         if is_breaking_news(title, summary):
             return RelevanceResult(
                 is_relevant=True,
