@@ -5,7 +5,7 @@ test.describe("end-to-end", () => {
   test("мобильная карточка полностью показывает кнопку раскрытия", async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 568 });
     const subtitleText: string =
-      "Длинное описание новости занимает много места, но не должно выталкивать нижнюю панель действий за границы карточки.";
+      "Согласно данным Eurostat, население Германии на 1 января выросло; длинная вводка после иллюстрации должна оставаться читаемой и не обрезаться посередине предложения без многоточия.";
     await installApiMock(page, {
       title: "Очень длинный заголовок новости, который занимает сразу несколько строк на мобильном экране",
       subtitle: subtitleText,
@@ -33,16 +33,24 @@ test.describe("end-to-end", () => {
     });
     expect(fitsInsideCard).toBe(true);
 
-    const subtitleFitsInsideCard: boolean = await subtitle.evaluate((element: HTMLElement): boolean => {
-      const subtitleRect: DOMRect = element.getBoundingClientRect();
-      const card: HTMLElement | null = element.closest(".news-card");
-      if (card === null) {
-        return false;
+    const subtitleLayout: { fitsInsideCard: boolean; notParentClipped: boolean } = await subtitle.evaluate(
+      (element: HTMLElement): { fitsInsideCard: boolean; notParentClipped: boolean } => {
+        const subtitleRect: DOMRect = element.getBoundingClientRect();
+        const card: HTMLElement | null = element.closest(".news-card");
+        const body: HTMLElement | null = element.closest(".news-card-body-immersive");
+        if (card === null) {
+          return { fitsInsideCard: false, notParentClipped: false };
+        }
+        const cardRect: DOMRect = card.getBoundingClientRect();
+        const fitsInsideCard: boolean =
+          subtitleRect.bottom <= cardRect.bottom && element.scrollHeight <= element.clientHeight + 1;
+        const bodyHeight: number = body?.clientHeight ?? 0;
+        const notParentClipped: boolean = bodyHeight === 0 || element.scrollHeight <= bodyHeight + 1;
+        return { fitsInsideCard, notParentClipped };
       }
-      const cardRect: DOMRect = card.getBoundingClientRect();
-      return subtitleRect.bottom <= cardRect.bottom && element.scrollHeight <= element.clientHeight;
-    });
-    expect(subtitleFitsInsideCard).toBe(true);
+    );
+    expect(subtitleLayout.fitsInsideCard).toBe(true);
+    expect(subtitleLayout.notParentClipped).toBe(true);
   });
 
   test("прямая ссылка на новость → назад в ленту", async ({ page }) => {

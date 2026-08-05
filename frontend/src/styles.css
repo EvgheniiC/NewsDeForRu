@@ -501,9 +501,9 @@ a:visited {
   }
 
   .tiktok-feed-snap .news-card-image {
-    /* Share the available cover height without pushing actions below the card. */
+    /* Cover yields height first so the one-sentence lead stays readable. */
     flex: 1 1 auto;
-    min-height: 0;
+    min-height: 48px;
     height: 100%;
     max-height: min(28vh, 160px);
     width: 100%;
@@ -515,20 +515,26 @@ a:visited {
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
+    justify-content: flex-start;
     min-height: 0;
     overflow: hidden;
   }
 
+  /*
+   * Never flex-shrink the lead: parent overflow:hidden was clipping mid-sentence
+   * without ellipsis. Line-clamp handles very long text; the cover shrinks first.
+   */
   .tiktok-feed-snap .news-card-body-immersive {
-    flex: 0 1 auto;
-    min-height: 0;
-    overflow: hidden;
+    flex: 0 0 auto;
+    min-height: auto;
+    overflow: visible;
   }
 
   .tiktok-feed-snap .news-card-body-immersive .news-card-subtitle-immersive {
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 5;
+    text-overflow: ellipsis;
     overflow: hidden;
   }
 
@@ -576,9 +582,14 @@ a:visited {
 
   .tiktok-feed-snap:has(.news-card--expanded) .news-card-immersive,
   .tiktok-feed-snap:has(.news-card--expanded) .news-card--expanded {
+    flex: 0 0 auto;
     height: auto;
     min-height: auto;
     overflow: visible;
+  }
+
+  .tiktok-feed-snap:has(.news-card--expanded) .news-topic-cover {
+    flex: 0 0 auto;
   }
 
   .tiktok-feed-snap:has(.news-card--expanded) .news-card-immersive h3 {
