@@ -25,6 +25,7 @@ from app.services.telegram_notifier import send_auto_published_notice
 from app.services.push_notifier import send_urgent_push_notice
 from app.services.relevance_filter_service import RelevanceFilterService
 from app.services.rss_ingestion_service import IngestionStats, RSSIngestionService
+from app.services.rss_sources import is_source_allowed_for_publication
 from app.services.urgent_news import ev_is_urgent_news
 from app.utils.url_fingerprint import url_fingerprint
 
@@ -100,6 +101,19 @@ class PipelineService:
             source_key: str | None = (
                 raw_item.source.source_key if raw_item.source is not None else None
             )
+            if not is_source_allowed_for_publication(
+                source_key,
+                rights_verified=raw_item.rights_verified,
+                enabled_source_keys=app_settings.rss_enabled_source_keys,
+            ):
+                filtered_out += 1
+                self.repository.update_raw_status(
+                    raw_item=raw_item,
+                    status=PipelineStatus.FILTERED_OUT,
+                    relevance_score=0.0,
+                    relevance_reason="source_not_enabled",
+                )
+                continue
             relevance = self.context.relevance_filter.evaluate(
                 raw_item.title,
                 raw_item.summary,

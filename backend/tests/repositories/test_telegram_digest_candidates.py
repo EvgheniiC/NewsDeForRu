@@ -44,6 +44,7 @@ def test_list_telegram_digest_candidates_excludes_moderation_approve() -> None:
             topic=NewsTopic.LIFE,
             importance_ai_score=8,
             is_urgent=False,
+            rights_verified=True,
         )
         repo.create_processed_news(auto_hi)
 
@@ -71,6 +72,7 @@ def test_list_telegram_digest_candidates_excludes_moderation_approve() -> None:
             topic=NewsTopic.LIFE,
             importance_ai_score=9,
             is_urgent=False,
+            rights_verified=True,
         )
         saved_m: ProcessedNews = repo.create_processed_news(moderated)
         db.add(
@@ -119,6 +121,7 @@ def test_list_telegram_digest_candidates_skips_urgent_and_low_score() -> None:
                 topic=NewsTopic.LIFE,
                 importance_ai_score=imp,
                 is_urgent=urgent,
+                rights_verified=True,
             )
             repo.create_processed_news(p)
 
@@ -164,6 +167,7 @@ def test_list_telegram_digest_candidates_one_per_cluster() -> None:
                 importance_ai_score=score,
                 is_urgent=False,
                 cluster_id=cluster.id,
+                rights_verified=True,
             )
             repo.create_processed_news(p)
         raw_other = repo.create_raw_item(
@@ -191,6 +195,7 @@ def test_list_telegram_digest_candidates_one_per_cluster() -> None:
             importance_ai_score=7,
             is_urgent=False,
             cluster_id=None,
+            rights_verified=True,
         )
         repo.create_processed_news(p_other)
 

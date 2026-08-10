@@ -105,6 +105,7 @@ def _seed_published(session: Session, url: str) -> int:
         confidence_score=0.9,
         publication_status=PipelineStatus.PUBLISHED,
         topic=NewsTopic.LIFE,
+        rights_verified=True,
     )
     session.add(processed)
     session.commit()

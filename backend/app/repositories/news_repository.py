@@ -1,12 +1,13 @@
 import json
 from datetime import datetime, timedelta, timezone
-from typing import Literal
+from typing import Any, Literal
 
 from sqlalchemy import Select, and_, exists, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 import numpy as np
 
+from app.core.config import settings
 from app.models.news import (
     ClusterItem,
     ModerationEvent,
@@ -18,12 +19,19 @@ from app.models.news import (
     Source,
 )
 from app.services.relevance_filter_service import OFFICIAL_DATA_SOURCE_KEYS
+from app.services.rss_sources import (
+    is_source_allowed_for_publication,
+    publication_allowed_sql_filter,
+)
 from app.services.urgent_news import is_breaking_news
 
 
 class NewsRepository:
     def __init__(self, db_session: Session) -> None:
         self.db_session: Session = db_session
+
+    def _publication_source_filter(self) -> Any:
+        return publication_allowed_sql_filter(settings.rss_enabled_source_keys)
 
     def upsert_source(
         self,
@@ -290,6 +298,15 @@ class NewsRepository:
         for raw_item in self.db_session.execute(query).scalars().all():
             if not is_breaking_news(raw_item.title, raw_item.summary):
                 continue
+            source_key: str | None = (
+                raw_item.source.source_key if raw_item.source is not None else None
+            )
+            if not is_source_allowed_for_publication(
+                source_key,
+                rights_verified=raw_item.rights_verified,
+                enabled_source_keys=settings.rss_enabled_source_keys,
+            ):
+                continue
             raw_item.pipeline_status = PipelineStatus.INGESTED
             raw_item.relevance_score = 0.0
             raw_item.relevance_reason = ""
@@ -368,7 +385,11 @@ class NewsRepository:
         base: Select[tuple[ProcessedNews]] = (
             select(ProcessedNews)
             .join(RawNewsItem, ProcessedNews.raw_item_id == RawNewsItem.id)
-            .where(ProcessedNews.publication_status == PipelineStatus.PUBLISHED)
+            .join(Source, Source.id == RawNewsItem.source_id)
+            .where(
+                ProcessedNews.publication_status == PipelineStatus.PUBLISHED,
+                self._publication_source_filter(),
+            )
             .options(selectinload(ProcessedNews.raw_item).selectinload(RawNewsItem.source))
         )
         if urgent_only:
@@ -383,6 +404,8 @@ class NewsRepository:
         if cursor_id is not None:
             anchor: ProcessedNews | None = self.get_processed_by_id_with_raw(cursor_id)
             if anchor is None or anchor.publication_status != PipelineStatus.PUBLISHED:
+                return [], False
+            if not self.is_processed_visible_in_feed(anchor):
                 return [], False
             if urgent_only and not anchor.is_urgent:
                 return [], False
@@ -431,10 +454,12 @@ class NewsRepository:
         query: Select[tuple[ProcessedNews]] = (
             select(ProcessedNews)
             .join(RawNewsItem, ProcessedNews.raw_item_id == RawNewsItem.id)
+            .join(Source, Source.id == RawNewsItem.source_id)
             .where(
                 and_(
                     ProcessedNews.publication_status == PipelineStatus.PUBLISHED,
                     RawNewsItem.published_at >= published_at_since,
+                    self._publication_source_filter(),
                 ),
             )
             .options(selectinload(ProcessedNews.raw_item).selectinload(RawNewsItem.source))
@@ -442,6 +467,20 @@ class NewsRepository:
             .limit(limit)
         )
         return list(self.db_session.execute(query).scalars().all())
+
+    def is_processed_visible_in_feed(self, item: ProcessedNews) -> bool:
+        """Return True when a processed row may be shown on the public feed / detail API."""
+        if item.publication_status != PipelineStatus.PUBLISHED:
+            return False
+        raw_item: RawNewsItem | None = item.raw_item
+        source_key: str | None = None
+        if raw_item is not None and raw_item.source is not None:
+            source_key = raw_item.source.source_key
+        return is_source_allowed_for_publication(
+            source_key,
+            rights_verified=item.rights_verified,
+            enabled_source_keys=settings.rss_enabled_source_keys,
+        )
 
     def list_needs_review(self) -> list[ProcessedNews]:
         from app.utils.feed_period import moderation_queue_since_utc_naive
@@ -490,13 +529,17 @@ class NewsRepository:
         )
         query: Select[tuple[ProcessedNews]] = (
             select(ProcessedNews)
+            .join(RawNewsItem, ProcessedNews.raw_item_id == RawNewsItem.id)
+            .join(Source, Source.id == RawNewsItem.source_id)
             .where(
                 ProcessedNews.publication_status == PipelineStatus.PUBLISHED,
                 ProcessedNews.importance_ai_score >= min_importance,
                 ProcessedNews.telegram_notified_at.is_(None),
                 ProcessedNews.is_urgent.is_(False),
                 ~approve_exists,
+                self._publication_source_filter(),
             )
+            .options(selectinload(ProcessedNews.raw_item).selectinload(RawNewsItem.source))
             .order_by(
                 ProcessedNews.importance_ai_score.desc(),
                 ProcessedNews.created_at.desc(),

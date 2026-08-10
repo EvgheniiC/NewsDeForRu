@@ -148,9 +148,7 @@ def list_top_news_today(
 def get_news(news_id: int, db_session: Session = Depends(get_db_session)) -> ProcessedNewsResponse:
     repository = NewsRepository(db_session)
     item = repository.get_processed_by_id_with_raw(news_id)
-    if item is None:
-        raise HTTPException(status_code=404, detail="News item not found.")
-    if item is None:
+    if item is None or not repository.is_processed_visible_in_feed(item):
         raise HTTPException(status_code=404, detail="News item not found.")
     return build_processed_news_response(item)
 
@@ -162,8 +160,8 @@ def get_news_impact(
     db_session: Session = Depends(get_db_session),
 ) -> RoleImpactResponse:
     repository = NewsRepository(db_session)
-    item = repository.get_processed_by_id(news_id)
-    if item is None:
+    item = repository.get_processed_by_id_with_raw(news_id)
+    if item is None or not repository.is_processed_visible_in_feed(item):
         raise HTTPException(status_code=404, detail="News item not found.")
     if item.impact_presentation != ImpactPresentation.MULTI:
         raise HTTPException(
