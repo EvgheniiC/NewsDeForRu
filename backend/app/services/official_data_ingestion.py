@@ -6,7 +6,7 @@ import hashlib
 import json
 import logging
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Protocol
@@ -18,6 +18,7 @@ from app.core.http_tls import httpx_verify_arg
 from app.repositories.news_repository import NewsRepository
 from app.services.http_fetch_limits import ResponseTooLargeError, read_http_body_with_limit
 from app.services.rss_ingestion_service import IngestionStats
+from app.services.tabular_digest import format_number
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -364,6 +365,159 @@ def eurostat_payload_revision(code: str, payload: object) -> str:
     return _payload_revision(code, eurostat_stable_payload(payload))
 
 
+def _eurostat_category_codes(dimension: object) -> list[str]:
+    if not isinstance(dimension, Mapping):
+        return []
+    category: object = dimension.get("category")
+    if not isinstance(category, Mapping):
+        return []
+    index: object = category.get("index")
+    if isinstance(index, Mapping):
+        indexed_codes: list[tuple[int, str]] = []
+        for code, position in index.items():
+            if isinstance(position, int):
+                indexed_codes.append((position, str(code)))
+        return [code for _, code in sorted(indexed_codes)]
+    if isinstance(index, Sequence) and not isinstance(index, (str, bytes)):
+        return [str(code) for code in index]
+    return []
+
+
+def _eurostat_category_label(dimension: object, code: str) -> str:
+    if not isinstance(dimension, Mapping):
+        return code
+    category: object = dimension.get("category")
+    if not isinstance(category, Mapping):
+        return code
+    labels: object = category.get("label")
+    if not isinstance(labels, Mapping):
+        return code
+    label: object = labels.get(code)
+    return label.strip() if isinstance(label, str) and label.strip() else code
+
+
+def _eurostat_values(payload: Mapping[object, object]) -> list[tuple[int, int | float]]:
+    raw_values: object = payload.get("value")
+    observations: list[tuple[int, int | float]] = []
+    if isinstance(raw_values, Mapping):
+        for raw_index, value in raw_values.items():
+            try:
+                index: int = int(str(raw_index))
+            except ValueError:
+                continue
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                observations.append((index, value))
+    elif isinstance(raw_values, Sequence) and not isinstance(raw_values, (str, bytes)):
+        observations = [
+            (index, value)
+            for index, value in enumerate(raw_values)
+            if isinstance(value, (int, float)) and not isinstance(value, bool)
+        ]
+    return sorted(observations)
+
+
+def _eurostat_coordinates(flat_index: int, sizes: Sequence[int]) -> list[int]:
+    coordinates: list[int] = [0] * len(sizes)
+    remainder: int = flat_index
+    for index in range(len(sizes) - 1, -1, -1):
+        size: int = sizes[index]
+        if size <= 0:
+            return []
+        coordinates[index] = remainder % size
+        remainder //= size
+    return coordinates
+
+
+def eurostat_key_figures(payload: object, max_observations: int = 6) -> tuple[str, ...]:
+    """Decode bounded JSON-stat observations into human-readable figure lines."""
+    observation_limit: int = max(0, max_observations)
+    if observation_limit == 0 or not isinstance(payload, Mapping):
+        return ()
+    raw_ids: object = payload.get("id")
+    raw_sizes: object = payload.get("size")
+    dimensions: object = payload.get("dimension")
+    if (
+        not isinstance(raw_ids, Sequence)
+        or isinstance(raw_ids, (str, bytes))
+        or not isinstance(raw_sizes, Sequence)
+        or isinstance(raw_sizes, (str, bytes))
+        or not isinstance(dimensions, Mapping)
+    ):
+        return ()
+    ids: list[str] = [str(value) for value in raw_ids]
+    if not all(isinstance(value, int) and not isinstance(value, bool) for value in raw_sizes):
+        return ()
+    sizes: list[int] = list(raw_sizes)
+    if len(ids) != len(sizes):
+        return ()
+
+    dimension_codes: dict[str, list[str]] = {
+        dimension_id: _eurostat_category_codes(dimensions.get(dimension_id))
+        for dimension_id in ids
+    }
+    varying_ids: list[str] = [
+        dimension_id
+        for dimension_id, size in zip(ids, sizes, strict=True)
+        if size > 1 or dimension_id == "time"
+    ]
+    fixed_context_ids: list[str] = [
+        dimension_id for dimension_id in ("unit", "geo") if dimension_id in ids
+    ]
+    lines: list[str] = []
+    for flat_index, value in _eurostat_values(payload)[-observation_limit:]:
+        coordinates: list[int] = _eurostat_coordinates(flat_index, sizes)
+        if not coordinates:
+            continue
+        labels: list[str] = []
+        for dimension_id in [*varying_ids, *fixed_context_ids]:
+            dimension_index: int = ids.index(dimension_id)
+            codes: list[str] = dimension_codes[dimension_id]
+            coordinate: int = coordinates[dimension_index]
+            if coordinate >= len(codes):
+                continue
+            code: str = codes[coordinate]
+            label: str = _eurostat_category_label(dimensions.get(dimension_id), code)
+            if dimension_id == "time":
+                labels.insert(0, label)
+            elif dimension_id == "unit":
+                labels.append(label)
+            elif dimension_id != "geo":
+                labels.append(label)
+        context: str = ", ".join(dict.fromkeys(labels)) or f"observation {flat_index}"
+        lines.append(f"{context}: {format_number(float(value))}")
+    return tuple(lines)
+
+
+def build_eurostat_summary(
+    spec: EurostatDatasetSpec,
+    payload: object,
+    max_chars: int,
+) -> str:
+    """Build explicit LLM context instead of passing opaque JSON-stat indexes."""
+    lines: list[str] = [
+        "EDITOR NOTES (open dataset, not a news article):",
+        '- Use 1–3 concrete values from "Key figures" in the Russian summary.',
+        "- Do not claim a breakdown that is excluded by the filters.",
+        "- Do not invent statistics.",
+        "",
+        f"Dataset: {spec.title}",
+        f"Dataset code: {spec.code}",
+        f"Filters: {', '.join(f'{key}={value}' for key, value in spec.filters.items())}",
+    ]
+    if isinstance(payload, Mapping):
+        updated: object = payload.get("updated")
+        if isinstance(updated, str) and updated.strip():
+            lines.append(f"Updated: {updated.strip()}")
+    figures: tuple[str, ...] = eurostat_key_figures(payload)
+    if figures:
+        lines.extend(["", "Key figures (decoded from Eurostat JSON-stat):"])
+        lines.extend(f"- {figure}" for figure in figures)
+    else:
+        lines.extend(["", "Key figures could not be decoded.", _payload_text(payload, max_chars)])
+    summary: str = "\n".join(lines)
+    return summary if len(summary) <= max_chars else f"{summary[:max_chars]}…"
+
+
 def _read_http_body_with_limit(response: httpx.Response, max_bytes: int) -> bytes:
     return read_http_body_with_limit(response, max_bytes)
 
@@ -443,18 +597,13 @@ class EurostatIngestionService:
                 ):
                     continue
 
-                label: str = spec.title
-                if isinstance(payload, Mapping):
-                    raw_label: object = payload.get("label")
-                    if isinstance(raw_label, str) and raw_label.strip():
-                        label = raw_label.strip()
-                summary_payload: object = eurostat_stable_payload(payload)
                 self._repository.create_raw_item(
                     source_id=source.id,
                     guid=revision,
-                    title=f"Eurostat: {label}",
-                    summary=_payload_text(
-                        summary_payload,
+                    title=f"Eurostat: {spec.title}",
+                    summary=build_eurostat_summary(
+                        spec,
+                        payload,
                         self._settings.official_data_max_summary_chars,
                     ),
                     url=f"https://ec.europa.eu/eurostat/databrowser/view/{code}/default/table?lang=en",

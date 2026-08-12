@@ -15,7 +15,9 @@ from app.services.official_data_ingestion import (
     EurostatIngestionService,
     EurostatResponseTooLargeError,
     GenesisIngestionService,
+    build_eurostat_summary,
     build_eurostat_query_params,
+    eurostat_key_figures,
     eurostat_payload_revision,
     genesis_item_revision,
     genesis_payload_revision,
@@ -78,6 +80,44 @@ def test_eurostat_query_params_are_germany_scoped_and_bounded() -> None:
     assert demo["sex"] == "T"
 
 
+def test_eurostat_json_stat_values_are_decoded_for_llm_context() -> None:
+    payload: dict[str, object] = {
+        "label": "Population on 1 January by age and sex",
+        "updated": "2026-02-01",
+        "id": ["age", "sex", "geo", "time"],
+        "size": [1, 1, 1, 2],
+        "dimension": {
+            "age": {"category": {"index": {"TOTAL": 0}, "label": {"TOTAL": "Total"}}},
+            "sex": {"category": {"index": {"T": 0}, "label": {"T": "Total"}}},
+            "geo": {"category": {"index": {"DE": 0}, "label": {"DE": "Germany"}}},
+            "time": {
+                "category": {
+                    "index": {"2024": 0, "2025": 1},
+                    "label": {"2024": "2024", "2025": "2025"},
+                }
+            },
+        },
+        "value": {"0": 83_456_045, "1": 83_577_140},
+    }
+
+    figures: tuple[str, ...] = eurostat_key_figures(payload)
+    summary: str = build_eurostat_summary(
+        EUROSTAT_DATASET_SPECS["demo_pjan"],
+        payload,
+        6000,
+    )
+
+    assert figures == (
+        "2024: 83 456 045",
+        "2025: 83 577 140",
+    )
+    assert "Key figures (decoded from Eurostat JSON-stat):" in summary
+    assert "- 2025: 83 577 140" in summary
+    assert "age=TOTAL" in summary
+    assert "sex=T" in summary
+    assert "Do not claim a breakdown that is excluded by the filters." in summary
+
+
 def test_eurostat_fetches_allowlisted_datasets_sequentially_with_filters() -> None:
     session, repository = _repository()
     client_instance: MagicMock = MagicMock()
@@ -116,6 +156,8 @@ def test_eurostat_fetches_allowlisted_datasets_sequentially_with_filters() -> No
         assert all(row.rights_verified for row in rows)
         assert all(row.licence_url for row in rows)
         assert all(row.image_url is None for row in rows)
+        assert all("EDITOR NOTES (open dataset" in row.summary for row in rows)
+        assert rows[0].title == "Eurostat: HICP monthly index Germany (all-items)"
     finally:
         session.close()
 

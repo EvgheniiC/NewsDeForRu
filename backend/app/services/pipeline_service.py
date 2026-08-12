@@ -1,4 +1,5 @@
 import logging
+import re
 import threading
 from dataclasses import dataclass
 from datetime import timedelta
@@ -32,6 +33,25 @@ from app.utils.url_fingerprint import url_fingerprint
 logger: logging.Logger = logging.getLogger(__name__)
 
 _MAX_ITEM_ERROR_DETAILS: int = 100
+_STATISTIC_NUMBER_RE: re.Pattern[str] = re.compile(
+    r"(?<![\w])(?P<number>\d[\d \u00a0]*(?:[.,]\d+)?)\s*(?P<percent>%?)"
+)
+
+
+def has_concrete_statistic(*texts: str) -> bool:
+    """Reject date-only Eurostat copy while accepting values, indexes, and percentages."""
+    for text in texts:
+        for match in _STATISTIC_NUMBER_RE.finditer(text):
+            raw_number: str = match.group("number").replace(" ", "").replace("\u00a0", "")
+            if match.group("percent") or "," in raw_number or "." in raw_number:
+                return True
+            try:
+                value: int = int(raw_number)
+            except ValueError:
+                continue
+            if value > 31 and not 1900 <= value <= 2100:
+                return True
+    return False
 
 
 @dataclass(frozen=True)
@@ -243,6 +263,19 @@ class PipelineService:
                 rights_verified=raw_item.rights_verified,
             )
             publication_status, _ = self.context.publication.decide_status(decision_inp)
+            if (
+                source_key == "eurostat"
+                and publication_status == PipelineStatus.PUBLISHED
+                and not has_concrete_statistic(
+                    llm_output.one_sentence_summary,
+                    llm_output.plain_language,
+                )
+            ):
+                logger.warning(
+                    "Eurostat card held for review: no concrete statistic raw_item_id=%s",
+                    raw_item.id,
+                )
+                publication_status = PipelineStatus.NEEDS_REVIEW
             if publication_status == PipelineStatus.PUBLISHED:
                 published += 1
             else:
