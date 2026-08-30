@@ -15,7 +15,8 @@ export function ImpressumContentRu(): JSX.Element {
       <h2>Оператор сервиса</h2>
       <LegalOperatorBlock locale="ru" />
       <p>
-        Физическое лицо (частный оператор). USt-IdNr. не указана, если нет обязанности по НДС.
+        Индивидуальный предприниматель (Einzelunternehmen). USt-IdNr. не указана, если нет
+        обязанности по НДС.
       </p>
 
       <h2>Контакт</h2>

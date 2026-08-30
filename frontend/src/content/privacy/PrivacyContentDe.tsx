@@ -9,11 +9,8 @@ export function PrivacyContentDe(): JSX.Element {
     <>
       <h1>Datenschutzerklärung</h1>
       <p className="muted">
-        Stand: Juni 2026 · DSGVO, TTDSG · Dienst:{" "}
+        Stand: August 2026 · DSGVO, TTDSG · Dienst:{" "}
         <a href={legal.publicAppBaseUrl}>{legal.publicAppBaseUrl}</a>
-      </p>
-      <p className="legal-disclaimer">
-        Technischer Entwurf für einen privaten Betreiber in Deutschland. Keine Rechtsberatung.
       </p>
 
       <h2>1. Verantwortlicher</h2>

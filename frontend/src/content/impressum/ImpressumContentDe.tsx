@@ -15,8 +15,7 @@ export function ImpressumContentDe(): JSX.Element {
       <h2>Diensteanbieter</h2>
       <LegalOperatorBlock locale="de" />
       <p>
-        Natürliche Person (privater Betreiber), keine Umsatzsteuer-ID, sofern nicht
-        umsatzsteuerpflichtig.
+        Einzelunternehmerin. Keine Umsatzsteuer-ID, sofern nicht umsatzsteuerpflichtig.
       </p>
 
       <h2>Kontakt</h2>

@@ -9,11 +9,8 @@ export function PrivacyContentRu(): JSX.Element {
     <>
       <h1>Политика конфиденциальности</h1>
       <p className="muted">
-        Версия: июнь 2026 · GDPR (DSGVO), TTDSG · Сервис:{" "}
+        Версия: август 2026 · GDPR (DSGVO), TTDSG · Сервис:{" "}
         <a href={legal.publicAppBaseUrl}>{legal.publicAppBaseUrl}</a>
-      </p>
-      <p className="legal-disclaimer">
-        Технический черновик для частного оператора в Германии. Не является юридической консультацией.
       </p>
 
       <h2>1. Оператор персональных данных</h2>
