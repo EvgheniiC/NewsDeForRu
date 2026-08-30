@@ -14,6 +14,7 @@ def _inp(
     new_cluster: bool = True,
     title: str = "Titel",
     summary: str = "Kurz",
+    source_key: str | None = None,
 ) -> PublicationDecisionInput:
     return PublicationDecisionInput(
         confidence_score=confidence,
@@ -24,6 +25,7 @@ def _inp(
         licence="CC BY 4.0",
         licence_url="https://creativecommons.org/licenses/by/4.0/",
         rights_verified=True,
+        source_key=source_key,
     )
 
 
@@ -110,9 +112,26 @@ def test_publication_service_fails_closed_without_verified_licence() -> None:
         licence=None,
         licence_url=None,
         rights_verified=False,
+        source_key="welt",
     )
 
     status, reason = service.decide_status(unsafe)
 
     assert status == PipelineStatus.NEEDS_REVIEW
     assert reason == PublicationReviewReason.LICENCE
+
+
+def test_publisher_sources_always_require_moderation_during_testing() -> None:
+    service: PublicationService = PublicationService(
+        app_settings=Settings(
+            auto_publish_threshold=0.1,
+            auto_publish_min_relevance=0.1,
+            auto_publish_review_on_duplicate_cluster=False,
+        )
+    )
+
+    for source_key in ("die_zeit", "spiegel", "welt", "zdf"):
+        status, reason = service.decide_status(_inp(source_key=source_key))
+
+        assert status == PipelineStatus.NEEDS_REVIEW
+        assert reason == PublicationReviewReason.PUBLISHER_TESTING

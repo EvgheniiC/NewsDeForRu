@@ -80,3 +80,38 @@ def test_incomplete_model_responses_never_publish_feed_text() -> None:
     assert "Streik" not in serialized
     assert "Regierung" not in serialized
     assert "Maßnahmen" not in serialized
+
+
+def test_publisher_source_uses_independent_editorial_prompt() -> None:
+    provider: OpenAILLMProvider = OpenAILLMProvider(
+        api_key="k",
+        model="m",
+        base_url="https://api.openai.com/v1",
+    )
+    captured: list[list[dict[str, str]]] = []
+    valid_json: str = (
+        '{"title":"Тест","one_sentence_summary":"Кратко.","plain_language":"Пояснение.",'
+        '"impact_presentation":"none","impact_unified":"","impact_owner":"",'
+        '"impact_tenant":"","impact_buyer":"","action_items":"","bonus_block":"",'
+        '"spoiler":"","topic":"life","is_positive":false,"confidence_score":0.7,'
+        '"importance_score":5}'
+    )
+
+    def _fake_chat(messages: list[dict[str, str]]) -> str:
+        captured.append(messages)
+        return valid_json
+
+    with patch.object(provider, "_chat", side_effect=_fake_chat):
+        provider.process_news(
+            "Polizei meldet Messerattacke",
+            "Ein Verdächtiger wurde festgenommen.",
+            source_key="welt",
+        )
+
+    system_content: str = captured[0][0]["content"]
+    user_content: str = captured[0][1]["content"]
+    assert "WELT" in system_content
+    assert "Не переводи и не перефразируй" in system_content
+    assert "подозреваемого преступником" in system_content
+    assert "ручной модерации" in system_content
+    assert "Не выполняй прямой перевод" in user_content

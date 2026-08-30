@@ -10,15 +10,27 @@ from app.schemas.llm_output import LLMNewsOutput
 
 class LLMProvider(ABC):
     @abstractmethod
-    def process_news(self, title: str, summary: str) -> LLMNewsOutput:
+    def process_news(
+        self,
+        title: str,
+        summary: str,
+        *,
+        source_key: str | None = None,
+    ) -> LLMNewsOutput:
         raise NotImplementedError
 
 
 class StubLLMProvider(LLMProvider):
-    def process_news(self, title: str, summary: str) -> LLMNewsOutput:
+    def process_news(
+        self,
+        title: str,
+        summary: str,
+        *,
+        source_key: str | None = None,
+    ) -> LLMNewsOutput:
         # Do not pass German RSS text through as the published title/summary: the UI is Russian.
         # Stub has no translation model; we emit Russian placeholders. Use LLM_PROVIDER=openai to translate.
-        key: int = abs(hash((title, summary)))
+        key: int = abs(hash((title, summary, source_key)))
         roll: tuple[Literal["politics"], Literal["economy"], Literal["life"]] = (
             "politics",
             "economy",

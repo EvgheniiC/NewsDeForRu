@@ -12,6 +12,11 @@ from app.core.http_tls import httpx_verify_arg
 from app.schemas.llm_output import LLMNewsOutput, fallback_after_validation_failure
 from app.services.llm_json import build_repair_user_message, parse_llm_news_json
 from app.services.llm_provider import LLMProvider
+from app.services.publisher_editorial import (
+    is_publisher_editorial_source,
+    is_sensitive_incident,
+    publisher_editorial_instructions,
+)
 from app.services.tabular_digest import (
     ensure_open_dataset_key_figures,
     is_open_dataset_summary,
@@ -76,12 +81,27 @@ class OpenAILLMProvider(LLMProvider):
                 raise
         raise RuntimeError("OpenAI: chat request could not be completed")
 
-    def _process_news_inner(self, title: str, summary: str) -> LLMNewsOutput:
+    def _process_news_inner(
+        self,
+        title: str,
+        summary: str,
+        *,
+        source_key: str | None,
+    ) -> LLMNewsOutput:
+        is_publisher: bool = is_publisher_editorial_source(source_key)
+        editorial_rules: str = ""
+        if is_publisher:
+            editorial_rules = publisher_editorial_instructions(
+                source_key,
+                sensitive=is_sensitive_incident(title, summary),
+            )
         system: str = (
-            "You are an editor. Rewrite German news for Russian-speaking readers in Germany. "
+            "You are an editor preparing Russian-language news drafts for readers in Germany. "
             "The fields title, one_sentence_summary, and all other string fields in the JSON "
             "MUST be written in Russian (Cyrillic), never in German. "
-            "Output only valid JSON, no surrounding prose. " + LLMNewsOutput.system_prompt_addendum()
+            "Output only valid JSON, no surrounding prose. "
+            f"{editorial_rules} "
+            + LLMNewsOutput.system_prompt_addendum()
         )
         summary_for_llm: str = ensure_open_dataset_key_figures(summary)
         open_data_hint: str = ""
@@ -93,12 +113,20 @@ class OpenAILLMProvider(LLMProvider):
                 "если они есть. Не выдумывай статистику. "
                 "impact_presentation обычно none или single.\n\n"
             )
-        user: str = (
-            f"{open_data_hint}"
-            f"Оригинальный заголовок (на немецком, переведи для полей в JSON):\n{title}\n\n"
-            f"Оригинальное краткое описание (на немецком, переведи для полей в JSON):\n"
-            f"{summary_for_llm}\n"
-        )
+        if is_publisher:
+            user = (
+                "Используй следующий RSS-анонс только как набор заявленных фактов для "
+                "самостоятельного черновика. Не выполняй прямой перевод или близкий рерайт.\n\n"
+                f"Заголовок RSS:\n{title}\n\n"
+                f"Краткое описание RSS:\n{summary_for_llm}\n"
+            )
+        else:
+            user = (
+                f"{open_data_hint}"
+                f"Оригинальный заголовок (на немецком, переведи для полей в JSON):\n{title}\n\n"
+                f"Оригинальное краткое описание (на немецком, переведи для полей в JSON):\n"
+                f"{summary_for_llm}\n"
+            )
         first_messages: list[dict[str, str]] = [
             {"role": "system", "content": system},
             {"role": "user", "content": user},
@@ -121,9 +149,15 @@ class OpenAILLMProvider(LLMProvider):
                 logger.error("LLM failed after repair: %s", e2)
                 return fallback_after_validation_failure()
 
-    def process_news(self, title: str, summary: str) -> LLMNewsOutput:
+    def process_news(
+        self,
+        title: str,
+        summary: str,
+        *,
+        source_key: str | None = None,
+    ) -> LLMNewsOutput:
         try:
-            return self._process_news_inner(title, summary)
+            return self._process_news_inner(title, summary, source_key=source_key)
         except (httpx.HTTPError, httpx.RequestError) as e:
             logger.warning("OpenAI transport error, using validation fallback: %s", e)
             return fallback_after_validation_failure()

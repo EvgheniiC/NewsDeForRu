@@ -3,6 +3,7 @@ from enum import StrEnum
 
 from app.core.config import Settings, settings
 from app.models.news import PipelineStatus
+from app.services.publisher_editorial import is_publisher_editorial_source
 
 
 @dataclass(frozen=True)
@@ -17,6 +18,7 @@ class PublicationDecisionInput:
     licence: str | None
     licence_url: str | None
     rights_verified: bool
+    source_key: str | None = None
 
 
 class PublicationReviewReason(StrEnum):
@@ -27,6 +29,7 @@ class PublicationReviewReason(StrEnum):
     DUPLICATE_CLUSTER = "duplicate_cluster"
     KEYWORD = "keyword"
     LICENCE = "licence"
+    PUBLISHER_TESTING = "publisher_testing"
 
 
 def _parse_review_keywords(raw: str) -> tuple[str, ...]:
@@ -44,6 +47,9 @@ class PublicationService:
         """
         if not inp.rights_verified or not (inp.licence or "").strip() or not (inp.licence_url or "").strip():
             return PipelineStatus.NEEDS_REVIEW, PublicationReviewReason.LICENCE
+
+        if is_publisher_editorial_source(inp.source_key):
+            return PipelineStatus.NEEDS_REVIEW, PublicationReviewReason.PUBLISHER_TESTING
 
         text_lower: str = f"{inp.title}\n{inp.summary}".lower()
         for kw in _parse_review_keywords(self._s.moderation_extra_review_keywords):

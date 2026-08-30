@@ -184,7 +184,11 @@ class PipelineService:
                 )
 
             try:
-                llm_output = self.context.llm_provider.process_news(raw_item.title, raw_item.summary)
+                llm_output = self.context.llm_provider.process_news(
+                    raw_item.title,
+                    raw_item.summary,
+                    source_key=source_key,
+                )
             except Exception as e:
                 source_key: str = raw_item.source.source_key if raw_item.source is not None else ""
                 fp: str = url_fingerprint(raw_item.url)
@@ -261,6 +265,7 @@ class PipelineService:
                 licence=raw_item.licence,
                 licence_url=raw_item.licence_url,
                 rights_verified=raw_item.rights_verified,
+                source_key=source_key,
             )
             publication_status, _ = self.context.publication.decide_status(decision_inp)
             if (
