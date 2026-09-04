@@ -140,4 +140,14 @@ def test_open_rss_sources_have_verified_text_only_policies() -> None:
 
 
 def test_unverified_rss_sources_remain_disabled_even_when_requested() -> None:
-    assert enabled_rss_sources("tagesschau,spiegel,welt") == ()
+    assert enabled_rss_sources("tagesschau,spiegel,welt,bild") == ()
+
+
+def test_unverified_rss_sources_enabled_for_google_test() -> None:
+    sources = enabled_rss_sources(
+        "tagesschau,spiegel,welt,bild",
+        allow_unverified=True,
+    )
+    assert {source.key for source in sources} == {"tagesschau", "spiegel", "welt", "bild"}
+    assert all(source.text_only for source in sources)
+    assert all(not source.rights_verified for source in sources)

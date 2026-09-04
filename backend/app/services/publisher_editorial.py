@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 PUBLISHER_EDITORIAL_SOURCE_NAMES: dict[str, str] = {
+    "bild": "BILD",
     "die_zeit": "ZEIT",
     "spiegel": "SPIEGEL",
+    "tagesschau": "Tagesschau",
     "welt": "WELT",
     "zdf": "ZDF heute",
 }

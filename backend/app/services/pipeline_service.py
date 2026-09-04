@@ -125,6 +125,7 @@ class PipelineService:
                 source_key,
                 rights_verified=raw_item.rights_verified,
                 enabled_source_keys=app_settings.rss_enabled_source_keys,
+                allow_unverified=app_settings.rss_allow_unverified_catalog_sources,
             ):
                 filtered_out += 1
                 self.repository.update_raw_status(

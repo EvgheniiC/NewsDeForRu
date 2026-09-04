@@ -52,6 +52,7 @@ def _disabled_published_items(db_session: Session, limit: int) -> list[Processed
             source_key,
             rights_verified=item.rights_verified,
             enabled_source_keys=settings.rss_enabled_source_keys,
+            allow_unverified=settings.rss_allow_unverified_catalog_sources,
         ):
             continue
         disabled.append(item)
@@ -76,6 +77,7 @@ def _disabled_ingested_raw_items(db_session: Session, limit: int) -> list[RawNew
             source_key,
             rights_verified=raw_item.rights_verified,
             enabled_source_keys=settings.rss_enabled_source_keys,
+            allow_unverified=settings.rss_allow_unverified_catalog_sources,
         ):
             continue
         disabled.append(raw_item)

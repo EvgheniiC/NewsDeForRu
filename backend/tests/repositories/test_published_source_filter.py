@@ -58,6 +58,7 @@ def _make_published(
 
 def test_list_published_hides_disabled_catalog_sources(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "rss_enabled_source_keys", "destatis")
+    monkeypatch.setattr(settings, "rss_allow_unverified_catalog_sources", False)
     with SessionLocal() as db:
         repo: NewsRepository = NewsRepository(db)
         _make_published(
@@ -85,6 +86,7 @@ def test_list_telegram_digest_hides_disabled_catalog_sources(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(settings, "rss_enabled_source_keys", "")
+    monkeypatch.setattr(settings, "rss_allow_unverified_catalog_sources", False)
     with SessionLocal() as db:
         repo: NewsRepository = NewsRepository(db)
         _make_published(

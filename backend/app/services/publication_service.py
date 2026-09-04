@@ -45,11 +45,20 @@ class PublicationService:
         """
         Return publication status and, when not auto-published, the primary reason for review.
         """
-        if not inp.rights_verified or not (inp.licence or "").strip() or not (inp.licence_url or "").strip():
-            return PipelineStatus.NEEDS_REVIEW, PublicationReviewReason.LICENCE
+        google_test_publisher: bool = (
+            self._s.rss_allow_unverified_catalog_sources
+            and is_publisher_editorial_source(inp.source_key)
+        )
+        if not google_test_publisher:
+            if (
+                not inp.rights_verified
+                or not (inp.licence or "").strip()
+                or not (inp.licence_url or "").strip()
+            ):
+                return PipelineStatus.NEEDS_REVIEW, PublicationReviewReason.LICENCE
 
-        if is_publisher_editorial_source(inp.source_key):
-            return PipelineStatus.NEEDS_REVIEW, PublicationReviewReason.PUBLISHER_TESTING
+            if is_publisher_editorial_source(inp.source_key):
+                return PipelineStatus.NEEDS_REVIEW, PublicationReviewReason.PUBLISHER_TESTING
 
         text_lower: str = f"{inp.title}\n{inp.summary}".lower()
         for kw in _parse_review_keywords(self._s.moderation_extra_review_keywords):

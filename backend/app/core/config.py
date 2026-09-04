@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     rss_user_agent: str = "newsForGermanyRU/1.0 (+https://example.local)"
     # Fail closed: add a source key only after its production usage is approved.
     rss_enabled_source_keys: str = ""
+    # Google Play closed testing: ingest listed catalog publishers even without rights_verified.
+    # Keep false for production. Images stay app topic covers (text_only / OG fetch off).
+    rss_allow_unverified_catalog_sources: bool = False
     genesis_base_url: str = "https://genesis.destatis.de/genesisWS/rest/2020"
     genesis_api_token: str = ""
     genesis_dataset_codes: str = ""

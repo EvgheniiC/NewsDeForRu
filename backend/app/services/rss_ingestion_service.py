@@ -53,7 +53,10 @@ class RSSIngestionService:
     def run(self) -> IngestionStats:
         fetched: int = 0
         feeds_failed: int = 0
-        sources: tuple[RSSSource, ...] = enabled_rss_sources(settings.rss_enabled_source_keys)
+        sources: tuple[RSSSource, ...] = enabled_rss_sources(
+            settings.rss_enabled_source_keys,
+            allow_unverified=settings.rss_allow_unverified_catalog_sources,
+        )
         if not sources:
             logger.warning(
                 "RSS ingestion skipped: RSS_ENABLED_SOURCE_KEYS has no approved source keys"

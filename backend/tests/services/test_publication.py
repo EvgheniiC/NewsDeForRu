@@ -101,7 +101,9 @@ def test_publication_service_keyword_forces_review() -> None:
 
 
 def test_publication_service_fails_closed_without_verified_licence() -> None:
-    service: PublicationService = PublicationService()
+    service: PublicationService = PublicationService(
+        app_settings=Settings(rss_allow_unverified_catalog_sources=False)
+    )
     inp: PublicationDecisionInput = _inp()
     unsafe: PublicationDecisionInput = PublicationDecisionInput(
         confidence_score=inp.confidence_score,
@@ -127,11 +129,39 @@ def test_publisher_sources_always_require_moderation_during_testing() -> None:
             auto_publish_threshold=0.1,
             auto_publish_min_relevance=0.1,
             auto_publish_review_on_duplicate_cluster=False,
+            rss_allow_unverified_catalog_sources=False,
         )
     )
 
-    for source_key in ("die_zeit", "spiegel", "welt", "zdf"):
+    for source_key in ("bild", "die_zeit", "spiegel", "tagesschau", "welt", "zdf"):
         status, reason = service.decide_status(_inp(source_key=source_key))
 
         assert status == PipelineStatus.NEEDS_REVIEW
         assert reason == PublicationReviewReason.PUBLISHER_TESTING
+
+
+def test_google_test_publisher_sources_can_auto_publish() -> None:
+    service: PublicationService = PublicationService(
+        app_settings=Settings(
+            auto_publish_threshold=0.85,
+            auto_publish_min_relevance=0.5,
+            auto_publish_review_on_duplicate_cluster=False,
+            rss_allow_unverified_catalog_sources=True,
+        )
+    )
+    unsafe: PublicationDecisionInput = PublicationDecisionInput(
+        confidence_score=0.99,
+        relevance_score=0.75,
+        is_new_cluster=True,
+        title="Titel",
+        summary="Kurz",
+        licence=None,
+        licence_url=None,
+        rights_verified=False,
+        source_key="die_zeit",
+    )
+
+    status, reason = service.decide_status(unsafe)
+
+    assert status == PipelineStatus.PUBLISHED
+    assert reason is None

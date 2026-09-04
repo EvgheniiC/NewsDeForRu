@@ -31,7 +31,10 @@ class NewsRepository:
         self.db_session: Session = db_session
 
     def _publication_source_filter(self) -> Any:
-        return publication_allowed_sql_filter(settings.rss_enabled_source_keys)
+        return publication_allowed_sql_filter(
+            settings.rss_enabled_source_keys,
+            allow_unverified=settings.rss_allow_unverified_catalog_sources,
+        )
 
     def upsert_source(
         self,
@@ -305,6 +308,7 @@ class NewsRepository:
                 source_key,
                 rights_verified=raw_item.rights_verified,
                 enabled_source_keys=settings.rss_enabled_source_keys,
+                allow_unverified=settings.rss_allow_unverified_catalog_sources,
             ):
                 continue
             raw_item.pipeline_status = PipelineStatus.INGESTED
@@ -480,6 +484,7 @@ class NewsRepository:
             source_key,
             rights_verified=item.rights_verified,
             enabled_source_keys=settings.rss_enabled_source_keys,
+            allow_unverified=settings.rss_allow_unverified_catalog_sources,
         )
 
     def list_needs_review(self) -> list[ProcessedNews]:
