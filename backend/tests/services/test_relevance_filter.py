@@ -1,3 +1,6 @@
+import pytest
+
+from app.core.config import settings
 from app.services.relevance_filter_service import RelevanceFilterService
 
 
@@ -65,3 +68,31 @@ def test_relevance_filter_bypasses_official_statistics_sources() -> None:
     )
     assert europa.is_relevant is True
     assert europa.reason == "Official statistics source bypass."
+
+
+def test_relevance_filter_rejects_publisher_news_when_google_test_off(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "rss_allow_unverified_catalog_sources", False)
+    service = RelevanceFilterService()
+    result = service.evaluate(
+        title="Bundesliga Spieltag",
+        summary="Sportnachrichten ohne direkten Alltagsnutzen.",
+        source_key="die_zeit",
+    )
+    assert result.is_relevant is False
+
+
+def test_relevance_filter_bypasses_publisher_sources_during_google_test(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "rss_allow_unverified_catalog_sources", True)
+    service = RelevanceFilterService()
+    result = service.evaluate(
+        title="Bundesliga Spieltag",
+        summary="Sportnachrichten ohne direkten Alltagsnutzen.",
+        source_key="bild",
+    )
+    assert result.is_relevant is True
+    assert result.score == 1.0
+    assert result.reason == "Google test publisher source bypass."

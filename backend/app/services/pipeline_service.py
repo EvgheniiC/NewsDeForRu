@@ -107,6 +107,15 @@ class PipelineService:
                 requeued_official,
                 run_id,
             )
+        requeued_publishers: int = self.repository.requeue_filtered_publisher_sources(
+            lookback=timedelta(hours=48),
+        )
+        if requeued_publishers:
+            logger.info(
+                "requeued filtered publisher rss count=%s run_id=%s",
+                requeued_publishers,
+                run_id,
+            )
         filtered_out: int = 0
         clustered: int = 0
         processed_count: int = 0

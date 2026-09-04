@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from app.core.config import settings
 from app.services.embedding_service import EmbeddingEncoder, create_embedding_encoder, cosine_similarity
+from app.services.publisher_editorial import is_publisher_editorial_source
 from app.services.urgent_news import is_breaking_news
 
 # Official statistics are curated allowlists; skip life-impact semantic filtering.
@@ -61,6 +62,15 @@ class RelevanceFilterService:
                 is_relevant=True,
                 score=1.0,
                 reason="Official statistics source bypass.",
+            )
+
+        if settings.rss_allow_unverified_catalog_sources and is_publisher_editorial_source(
+            source_key
+        ):
+            return RelevanceResult(
+                is_relevant=True,
+                score=1.0,
+                reason="Google test publisher source bypass.",
             )
 
         if is_breaking_news(title, summary):

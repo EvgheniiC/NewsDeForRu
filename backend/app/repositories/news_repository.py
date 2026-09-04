@@ -18,6 +18,7 @@ from app.models.news import (
     RawNewsItem,
     Source,
 )
+from app.services.publisher_editorial import PUBLISHER_EDITORIAL_SOURCE_KEYS
 from app.services.relevance_filter_service import OFFICIAL_DATA_SOURCE_KEYS
 from app.services.rss_sources import (
     is_source_allowed_for_publication,
@@ -336,6 +337,37 @@ class NewsRepository:
         requeued: int = 0
         for raw_item in self.db_session.execute(query).scalars().all():
             # Do not re-open items dropped because LLM produced an empty fallback card.
+            if (raw_item.relevance_reason or "").startswith("llm_validation_fallback"):
+                continue
+            raw_item.pipeline_status = PipelineStatus.INGESTED
+            raw_item.relevance_score = 0.0
+            raw_item.relevance_reason = ""
+            self.db_session.add(raw_item)
+            requeued += 1
+        if requeued:
+            self.db_session.commit()
+        return requeued
+
+    def requeue_filtered_publisher_sources(self, *, lookback: timedelta) -> int:
+        """Re-open recently filtered publisher RSS after Google Test bypass is enabled."""
+        if not settings.rss_allow_unverified_catalog_sources:
+            return 0
+        publisher_keys: tuple[str, ...] = tuple(PUBLISHER_EDITORIAL_SOURCE_KEYS)
+        if not publisher_keys:
+            return 0
+        since: datetime = datetime.now(timezone.utc) - lookback
+        query: Select[tuple[RawNewsItem]] = (
+            select(RawNewsItem)
+            .join(Source, Source.id == RawNewsItem.source_id)
+            .where(
+                RawNewsItem.pipeline_status == PipelineStatus.FILTERED_OUT,
+                RawNewsItem.created_at >= since,
+                Source.source_key.in_(publisher_keys),
+            )
+            .options(selectinload(RawNewsItem.source))
+        )
+        requeued: int = 0
+        for raw_item in self.db_session.execute(query).scalars().all():
             if (raw_item.relevance_reason or "").startswith("llm_validation_fallback"):
                 continue
             raw_item.pipeline_status = PipelineStatus.INGESTED
