@@ -1,5 +1,6 @@
 import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
+import { isMaintenanceExemptPath, isMaintenanceMode } from "./lib/maintenanceMode";
 import { AndroidBackButtonListener } from "./mobile/AndroidBackButtonListener";
 import { DeepLinkListener } from "./mobile/DeepLinkListener";
 import { PushNotificationListener } from "./mobile/PushNotificationListener";
@@ -16,6 +17,7 @@ import { AnalyticsConsentBanner } from "./components/AnalyticsConsentBanner";
 import { AppHeader } from "./components/AppHeader";
 import { ImpressumPage } from "./pages/ImpressumPage";
 import { ContactPage } from "./pages/ContactPage";
+import { MaintenancePage } from "./pages/MaintenancePage";
 import { PrivacyPage } from "./pages/PrivacyPage";
 
 /** Renders child routes only when the user can moderate (after session is hydrated). */
@@ -39,6 +41,20 @@ function ModeratorRoute(): JSX.Element {
 }
 
 function App(): JSX.Element {
+  const location = useLocation();
+  const maintenance: boolean = isMaintenanceMode();
+  const showPublicApp: boolean = !maintenance || isMaintenanceExemptPath(location.pathname);
+
+  if (!showPublicApp) {
+    return (
+      <main className="container">
+        <Routes>
+          <Route element={<MaintenancePage />} path="*" />
+        </Routes>
+      </main>
+    );
+  }
+
   return (
     <main className="container">
       <DeepLinkListener />

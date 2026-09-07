@@ -1823,6 +1823,48 @@ a:visited {
   font-size: 0.95rem;
 }
 
+.maintenance-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 32px);
+}
+
+.maintenance-card {
+  width: 100%;
+  max-width: 32rem;
+  padding: 28px 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+}
+
+.maintenance-card h1 {
+  margin: 0 0 12px;
+  font-size: clamp(1.35rem, 4vw, 1.75rem);
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.maintenance-lead {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.maintenance-card p {
+  margin: 0 0 10px;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.maintenance-links {
+  margin: 18px 0 0;
+  font-size: 0.9rem;
+}
+
 .legal-page h2 {
   margin-top: 1.5rem;
   font-size: 1.15rem;

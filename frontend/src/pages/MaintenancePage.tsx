@@ -1,0 +1,83 @@
+import { useEffect } from "react";
+import { Link } from "react-router-dom";
+import { LegalLanguageSwitch } from "../components/LegalLanguageSwitch";
+import { useLegalLocale } from "../hooks/useLegalLocale";
+import type { LegalLocale } from "../lib/legalLocale";
+
+interface MaintenanceCopy {
+  readonly title: string;
+  readonly documentTitle: string;
+  readonly lead: string;
+  readonly body: string;
+  readonly impressum: string;
+  readonly privacy: string;
+  readonly contact: string;
+}
+
+const COPY: Record<LegalLocale, MaintenanceCopy> = {
+  de: {
+    title: "Website in Überarbeitung",
+    documentTitle: "Überarbeitung — newsForGermanyRU",
+    lead: "Die öffentliche Version ist vorübergehend nicht erreichbar.",
+    body: "Wir arbeiten an der Seite und öffnen sie wieder, sobald alles bereit ist. Bitte schauen Sie später noch einmal vorbei.",
+    impressum: "Impressum",
+    privacy: "Datenschutz",
+    contact: "Kontakt",
+  },
+  ru: {
+    title: "Сайт на реконструкции",
+    documentTitle: "Реконструкция — newsForGermanyRU",
+    lead: "Публичная версия временно закрыта.",
+    body: "Мы дорабатываем сайт и откроем его снова, когда всё будет готово. Загляните позже.",
+    impressum: "Impressum",
+    privacy: "Конфиденциальность",
+    contact: "Контакты",
+  },
+};
+
+export function MaintenancePage(): JSX.Element {
+  const [locale] = useLegalLocale();
+  const copy: MaintenanceCopy = COPY[locale];
+
+  useEffect((): (() => void) => {
+    const previousTitle: string = document.title;
+    const previousRobots: HTMLMetaElement | null = document.querySelector('meta[name="robots"]');
+    const createdRobots: boolean = previousRobots === null;
+    const robots: HTMLMetaElement = previousRobots ?? document.createElement("meta");
+    const previousRobotsContent: string = previousRobots?.getAttribute("content") ?? "";
+
+    document.title = copy.documentTitle;
+    robots.setAttribute("name", "robots");
+    robots.setAttribute("content", "noindex, nofollow");
+    if (createdRobots) {
+      document.head.appendChild(robots);
+    }
+
+    return (): void => {
+      document.title = previousTitle;
+      if (createdRobots) {
+        robots.remove();
+        return;
+      }
+      robots.setAttribute("content", previousRobotsContent);
+    };
+  }, [copy.documentTitle]);
+
+  return (
+    <section className="maintenance-page">
+      <article className="maintenance-card">
+        <LegalLanguageSwitch />
+        <h1>{copy.title}</h1>
+        <p className="maintenance-lead">{copy.lead}</p>
+        <p>{copy.body}</p>
+        <p className="muted maintenance-links">
+          <Link to="/impressum">{copy.impressum}</Link>
+          {" · "}
+          <Link to="/privacy">{copy.privacy}</Link>
+          {" · "}
+          <Link to="/contact">{copy.contact}</Link>
+        </p>
+      </article>
+    </section>
+  );
+}

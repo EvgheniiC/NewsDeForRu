@@ -25,7 +25,8 @@ export default defineConfig({
     env: {
       ...process.env,
       // Override local `.env` (e.g. Android emulator host) so apiMock matches installApiMock's base URL.
-      VITE_API_BASE_URL: "http://127.0.0.1:8000"
+      VITE_API_BASE_URL: "http://127.0.0.1:8000",
+      VITE_MAINTENANCE_MODE: "false"
     }
   }
 });
