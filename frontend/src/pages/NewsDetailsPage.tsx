@@ -6,6 +6,7 @@ import { markNewsAsRead } from "../lib/readStateStorage";
 import { NewsArticleBody } from "../components/NewsArticleBody";
 import { NewsTopicCover } from "../components/NewsTopicCover";
 import { newsTopicChipClass } from "../lib/newsUi";
+import { SITE_NAME } from "../lib/seo";
 import { newsTopicLabelRu, type ProcessedNews } from "../types/news";
 
 const READ_ARTICLE_RATIO: number = 0.91;
@@ -104,6 +105,35 @@ export function NewsDetailsPage(): JSX.Element {
       window.removeEventListener("scroll", onScroll);
     };
   }, [news, newsId]);
+
+  useEffect((): void => {
+    if (news === null) {
+      return;
+    }
+    document.title = `${news.title} — ${SITE_NAME}`;
+    const description: HTMLMetaElement | null = document.head.querySelector('meta[name="description"]');
+    if (description !== null) {
+      description.setAttribute("content", news.one_sentence_summary);
+    }
+    const ogTitle: HTMLMetaElement | null = document.head.querySelector('meta[property="og:title"]');
+    if (ogTitle !== null) {
+      ogTitle.setAttribute("content", news.title);
+    }
+    const ogDescription: HTMLMetaElement | null = document.head.querySelector('meta[property="og:description"]');
+    if (ogDescription !== null) {
+      ogDescription.setAttribute("content", news.one_sentence_summary);
+    }
+  }, [news]);
+
+  useEffect((): void => {
+    if (!notFound) {
+      return;
+    }
+    const robots: HTMLMetaElement | null = document.head.querySelector('meta[name="robots"]');
+    if (robots !== null) {
+      robots.setAttribute("content", "noindex, nofollow");
+    }
+  }, [notFound]);
 
   if (loadingNews) {
     return <p>Загрузка деталей...</p>;

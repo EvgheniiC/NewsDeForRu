@@ -1,6 +1,8 @@
 import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
+import { useDocumentHead } from "./hooks/useDocumentHead";
 import { isMaintenanceExemptPath, isMaintenanceMode } from "./lib/maintenanceMode";
+import { resolveDocumentHead, type DocumentHeadSpec } from "./lib/seo";
 import { AndroidBackButtonListener } from "./mobile/AndroidBackButtonListener";
 import { DeepLinkListener } from "./mobile/DeepLinkListener";
 import { PushNotificationListener } from "./mobile/PushNotificationListener";
@@ -19,6 +21,14 @@ import { ImpressumPage } from "./pages/ImpressumPage";
 import { ContactPage } from "./pages/ContactPage";
 import { MaintenancePage } from "./pages/MaintenancePage";
 import { PrivacyPage } from "./pages/PrivacyPage";
+
+/** Keeps crawlable title/robots tags aligned with the current public or private route. */
+function RouteDocumentHead(): null {
+  const location = useLocation();
+  const spec: DocumentHeadSpec = resolveDocumentHead(location.pathname);
+  useDocumentHead(spec);
+  return null;
+}
 
 /** Renders child routes only when the user can moderate (after session is hydrated). */
 function ModeratorRoute(): JSX.Element {
@@ -57,6 +67,7 @@ function App(): JSX.Element {
 
   return (
     <main className="container">
+      <RouteDocumentHead />
       <DeepLinkListener />
       <AndroidBackButtonListener />
       <PushNotificationListener />

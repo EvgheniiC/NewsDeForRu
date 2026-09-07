@@ -1,8 +1,9 @@
-import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { LegalLanguageSwitch } from "../components/LegalLanguageSwitch";
+import { useDocumentHead } from "../hooks/useDocumentHead";
 import { useLegalLocale } from "../hooks/useLegalLocale";
 import type { LegalLocale } from "../lib/legalLocale";
+import { SITE_DESCRIPTION } from "../lib/seo";
 
 interface MaintenanceCopy {
   readonly title: string;
@@ -39,29 +40,12 @@ export function MaintenancePage(): JSX.Element {
   const [locale] = useLegalLocale();
   const copy: MaintenanceCopy = COPY[locale];
 
-  useEffect((): (() => void) => {
-    const previousTitle: string = document.title;
-    const previousRobots: HTMLMetaElement | null = document.querySelector('meta[name="robots"]');
-    const createdRobots: boolean = previousRobots === null;
-    const robots: HTMLMetaElement = previousRobots ?? document.createElement("meta");
-    const previousRobotsContent: string = previousRobots?.getAttribute("content") ?? "";
-
-    document.title = copy.documentTitle;
-    robots.setAttribute("name", "robots");
-    robots.setAttribute("content", "noindex, nofollow");
-    if (createdRobots) {
-      document.head.appendChild(robots);
-    }
-
-    return (): void => {
-      document.title = previousTitle;
-      if (createdRobots) {
-        robots.remove();
-        return;
-      }
-      robots.setAttribute("content", previousRobotsContent);
-    };
-  }, [copy.documentTitle]);
+  useDocumentHead({
+    title: copy.documentTitle,
+    description: SITE_DESCRIPTION,
+    canonicalPath: "/",
+    robots: "noindex, nofollow",
+  });
 
   return (
     <section className="maintenance-page">

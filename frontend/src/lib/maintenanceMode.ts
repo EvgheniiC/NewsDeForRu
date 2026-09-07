@@ -1,7 +1,6 @@
 import { Capacitor } from "@capacitor/core";
 
-const TRUTHY_VALUES: ReadonlySet<string> = new Set(["true", "1", "yes"]);
-const FALSY_VALUES: ReadonlySet<string> = new Set(["false", "0", "no"]);
+import { parseOptionalBooleanEnv } from "./envFlags";
 
 const LEGAL_PATHS: ReadonlySet<string> = new Set(["/privacy", "/contact", "/impressum"]);
 
@@ -17,14 +16,9 @@ export function resolveMaintenanceMode(options: MaintenanceModeOptions): boolean
     return false;
   }
 
-  if (options.envValue !== undefined && options.envValue.trim() !== "") {
-    const normalized: string = options.envValue.trim().toLowerCase();
-    if (FALSY_VALUES.has(normalized)) {
-      return false;
-    }
-    if (TRUTHY_VALUES.has(normalized)) {
-      return true;
-    }
+  const parsed: boolean | undefined = parseOptionalBooleanEnv(options.envValue);
+  if (parsed !== undefined) {
+    return parsed;
   }
 
   return options.isProd;

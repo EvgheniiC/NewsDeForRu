@@ -27,4 +27,8 @@ test("MaintenancePage renders German reconstruction copy", (): void => {
   expect(screen.getByRole("link", { name: "Impressum" })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Datenschutz" })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Kontakt" })).toBeTruthy();
+  expect(document.title).toBe("Überarbeitung — newsForGermanyRU");
+  expect(document.head.querySelector('meta[name="robots"]')?.getAttribute("content")).toBe(
+    "noindex, nofollow",
+  );
 });
