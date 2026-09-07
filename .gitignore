@@ -37,6 +37,8 @@ frontend/playwright-report/
 frontend/blob-report/
 frontend/vite.config.js
 frontend/vite.config.d.ts
+frontend/vite-plugin-seo.js
+frontend/vite-plugin-seo.d.ts
 
 # Local database
 backend/news.db
