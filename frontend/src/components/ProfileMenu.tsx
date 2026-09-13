@@ -1,6 +1,7 @@
 import { useEffect, useState, type MouseEvent } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useAppVersion } from "../hooks/useAppVersion";
 import { registerAndroidBackPressHandler } from "../mobile/androidBackPress";
 import { UrgentPushToggle } from "./UrgentPushToggle";
 
@@ -28,6 +29,7 @@ function GuestAvatarIcon(): JSX.Element {
 
 export function ProfileMenu(): JSX.Element {
   const { initializing, logout, user } = useAuth();
+  const appVersion: string = useAppVersion();
   const [open, setOpen] = useState<boolean>(false);
 
   useEffect(() => {
@@ -131,6 +133,7 @@ export function ProfileMenu(): JSX.Element {
             <Link className="profile-menu-link" onClick={closeMenu} role="menuitem" to="/impressum">
               Impressum
             </Link>
+            <p className="profile-menu-version">Версия {appVersion}</p>
           </div>
         </>
       ) : null}

@@ -1,5 +1,7 @@
 import { Capacitor } from "@capacitor/core";
 
+import { getBundledAppVersion } from "./appVersion";
+
 export interface FeedbackClientContext {
   pageUrl: string;
   platform: string;
@@ -8,13 +10,9 @@ export interface FeedbackClientContext {
 
 export function collectFeedbackClientContext(pageUrl: string): FeedbackClientContext {
   const platform: string = Capacitor.isNativePlatform() ? Capacitor.getPlatform() : "web";
-  const appVersion: string =
-    typeof import.meta.env.VITE_APP_VERSION === "string" && import.meta.env.VITE_APP_VERSION.trim().length > 0
-      ? import.meta.env.VITE_APP_VERSION.trim()
-      : "1.1.9";
   return {
     pageUrl,
     platform,
-    appVersion,
+    appVersion: getBundledAppVersion(),
   };
 }

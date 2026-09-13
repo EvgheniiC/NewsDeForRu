@@ -365,6 +365,14 @@ a:visited {
   border-top: 1px solid var(--border-card);
 }
 
+.profile-menu-version {
+  margin: 4px 0 0;
+  padding: 4px 4px 0;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  color: var(--text-muted);
+}
+
 @media (max-width: 640px) {
   .container {
     padding-top: max(20px, env(safe-area-inset-top, 0px));
@@ -442,6 +450,14 @@ a:visited {
 
   .feed-page > :not(.tiktok-feed) {
     flex-shrink: 0;
+  }
+
+  /* Keep a usable snap viewport if staff expands the admin panels. */
+  .feed-dev-panels[open] .feed-dev-panels-body {
+    max-height: min(36vh, 260px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
 
   .feed-page .tiktok-feed {
@@ -718,6 +734,57 @@ a:visited {
   align-items: center;
   gap: 8px 12px;
   margin: 0 0 12px;
+}
+
+/*
+ * Staff health/pipeline panels used to sit fully expanded above the snap feed.
+ * On phones the leftover height for `.tiktok-feed-scroll` became ~0, so login
+ * with can_run_pipeline looked like "the feed cannot scroll".
+ */
+.feed-dev-panels {
+  margin: 0 0 12px;
+}
+
+.feed-dev-panels-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+  padding: 8px 12px;
+  border: 1px solid var(--border-card);
+  border-radius: 10px;
+  background: var(--bg-card);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.feed-dev-panels-summary::-webkit-details-marker {
+  display: none;
+}
+
+.feed-dev-panels-summary::after {
+  content: "";
+  margin-left: auto;
+  width: 0.45em;
+  height: 0.45em;
+  border-right: 2px solid var(--text-secondary);
+  border-bottom: 2px solid var(--text-secondary);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+
+.feed-dev-panels[open] .feed-dev-panels-summary {
+  margin-bottom: 8px;
+}
+
+.feed-dev-panels[open] .feed-dev-panels-summary::after {
+  transform: rotate(-135deg);
+}
+
+.feed-dev-panels-body .panel:last-child {
+  margin-bottom: 0;
 }
 
 .feed-compact-select {

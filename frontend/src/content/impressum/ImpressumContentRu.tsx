@@ -1,3 +1,4 @@
+import { AppVersionNote } from "../../components/AppVersionNote";
 import { LegalOperatorBlock } from "../../components/LegalOperatorBlock";
 import { getLegalConfig } from "../../config/legal";
 
@@ -40,6 +41,7 @@ export function ImpressumContentRu(): JSX.Element {
       </p>
 
       <p className="muted">Размещение сервера: {legal.hostingCountry}.</p>
+      <AppVersionNote locale="ru" />
     </>
   );
 }
