@@ -47,6 +47,14 @@ class MeResponse(BaseModel):
     can_run_pipeline: bool
 
 
+class DeleteAccountRequest(BaseModel):
+    password: str = Field(min_length=1, max_length=256)
+
+
+class DeleteAccountResponse(BaseModel):
+    detail: str
+
+
 class ForgotPasswordRequest(BaseModel):
     email: str = Field(min_length=3, max_length=254)
 

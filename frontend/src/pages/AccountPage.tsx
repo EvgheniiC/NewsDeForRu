@@ -1,11 +1,13 @@
 import { FormEvent, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
+import { DeleteAccountSection } from "../components/DeleteAccountSection";
 import { PasswordField } from "../components/PasswordField";
 import { useAuth } from "../context/AuthContext";
 
 interface LocationState {
   from?: string;
+  accountDeleted?: boolean;
 }
 
 interface FeedRedirectState {
@@ -138,6 +140,11 @@ export function AccountPage(): JSX.Element {
             Выйти из аккаунта
           </button>
         </div>
+        <DeleteAccountSection
+          onDeleted={() => {
+            navigate("/account", { replace: true, state: { accountDeleted: true } });
+          }}
+        />
         <p className="muted account-editorial-link">
           <Link to="/">На главную</Link>
         </p>
@@ -148,6 +155,11 @@ export function AccountPage(): JSX.Element {
   return (
     <section className="account-page">
       <h1>Аккаунт</h1>
+      {redirectState?.accountDeleted === true ? (
+        <p className="account-deleted-notice" role="status">
+          Аккаунт удалён. Вы можете зарегистрироваться снова тем же email.
+        </p>
+      ) : null}
       <p className="muted">
         Ленту и новости можно читать без регистрации. Аккаунт понадобится для персонализации и дополнительных функций.
       </p>

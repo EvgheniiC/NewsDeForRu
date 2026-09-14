@@ -1,4 +1,4 @@
-"""Register, login, refresh, logout, ``/me`` for unified app accounts."""
+"""Register, login, refresh, logout, ``/me``, and account deletion for unified app accounts."""
 
 from __future__ import annotations
 
@@ -14,6 +14,8 @@ from app.core.database import get_db_session
 from app.models.app_user import AppUser
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import (
+    DeleteAccountRequest,
+    DeleteAccountResponse,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     LoginRequest,
@@ -182,3 +184,18 @@ def me(current: AppUser = Depends(get_current_user)) -> MeResponse:
         can_moderate=current.can_moderate,
         can_run_pipeline=current.can_run_pipeline,
     )
+
+
+@router.post("/delete-account", response_model=DeleteAccountResponse)
+def delete_account(
+    payload: DeleteAccountRequest,
+    current: AppUser = Depends(get_current_user),
+    db_session: Session = Depends(get_db_session),
+) -> DeleteAccountResponse:
+    if not verify_password(payload.password, current.password_hash):
+        raise HTTPException(status_code=400, detail="Incorrect password")
+    user_id: int = current.id
+    repo = UserRepository(db_session)
+    repo.delete_user(current)
+    _logger.info("user_account_deleted user_id=%s", user_id)
+    return DeleteAccountResponse(detail="Account deleted")

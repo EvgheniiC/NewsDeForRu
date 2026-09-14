@@ -4,7 +4,7 @@ const MOCK_API: string = "http://127.0.0.1:8000";
 
 const corsHeaders: Readonly<Record<string, string>> = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS, HEAD",
+  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS, HEAD",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
@@ -168,6 +168,15 @@ export async function installApiMock(
         can_moderate: true,
         can_run_pipeline: true,
       });
+      return;
+    }
+
+    if (path === "/auth/delete-account" && method === "POST") {
+      if (!bearerPresent(route)) {
+        await fulfillJson(route, { detail: "Not authenticated" }, 401);
+        return;
+      }
+      await fulfillJson(route, { detail: "Account deleted" });
       return;
     }
 

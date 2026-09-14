@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import {
   ApiError,
+  authDeleteAccount,
   authLogin,
   authLogout,
   authMe,
@@ -33,6 +34,7 @@ interface AuthState {
   register: (credentials: UserRegisterCredentials) => Promise<RegisterResponse>;
   establishSession: (pair: UserTokenPair) => Promise<UserMe>;
   logout: () => Promise<void>;
+  deleteAccount: (password: string) => Promise<void>;
   withModerationAccess: <T>(run: (accessToken: string) => Promise<T>) => Promise<T>;
   withPipelineAccess: <T>(run: (accessToken: string) => Promise<T>) => Promise<T>;
 }
@@ -174,6 +176,16 @@ export function AuthProvider(props: Readonly<{ children: React.ReactNode }>): JS
     [runWithTokenRetry, user],
   );
 
+  const deleteAccount = useCallback(
+    async (password: string): Promise<void> => {
+      await runWithTokenRetry(async (accessToken: string): Promise<void> => {
+        await authDeleteAccount(accessToken, password);
+      });
+      applyPairState(null, null);
+    },
+    [applyPairState, runWithTokenRetry],
+  );
+
   useEffect(() => {
     const hydrate = async (): Promise<void> => {
       const stored: UserTokenPair | null = readStoredPair();
@@ -210,10 +222,21 @@ export function AuthProvider(props: Readonly<{ children: React.ReactNode }>): JS
       register,
       establishSession,
       logout,
+      deleteAccount,
       withModerationAccess,
       withPipelineAccess,
     }),
-    [establishSession, initializing, login, logout, register, user, withModerationAccess, withPipelineAccess],
+    [
+      deleteAccount,
+      establishSession,
+      initializing,
+      login,
+      logout,
+      register,
+      user,
+      withModerationAccess,
+      withPipelineAccess,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

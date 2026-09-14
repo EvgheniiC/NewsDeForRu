@@ -35,6 +35,7 @@ test("ContactPage renders feedback form section", () => {
   renderContact();
   expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Контакты");
   expect(screen.getByRole("heading", { level: 2, name: "Обратная связь" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Аккаунт" })).toBeTruthy();
   expect(screen.getByLabelText("Сообщение")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Отправить" })).toBeTruthy();
 });

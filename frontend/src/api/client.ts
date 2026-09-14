@@ -220,6 +220,17 @@ export async function authMe(accessToken: string): Promise<UserMe> {
   return fetchJsonAuthorized<UserMe>("/auth/me", accessToken, { method: "GET" });
 }
 
+export async function authDeleteAccount(
+  accessToken: string,
+  password: string,
+): Promise<{ detail: string }> {
+  return fetchJsonAuthorized<{ detail: string }>("/auth/delete-account", accessToken, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+}
+
 export interface ForgotPasswordResponse {
   detail: string;
   dev_reset_link?: string | null;

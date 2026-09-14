@@ -208,3 +208,49 @@ def test_staff_me_ok(api_client: TestClient, bearer_ops_headers: dict[str, str])
     assert payload["can_moderate"] is True
     assert payload["can_run_pipeline"] is True
     assert payload["role"] == "admin"
+
+
+def test_delete_account_requires_auth(api_client: TestClient) -> None:
+    assert api_client.post("/auth/delete-account", json={"password": "anything-long"}).status_code == 401
+
+
+def test_delete_account_rejects_wrong_password(
+    api_client: TestClient,
+    reader_credentials: tuple[str, str],
+) -> None:
+    email, password = reader_credentials
+    _ensure_no_reader(email)
+    tokens: dict[str, Any] = _verify_reader(api_client, email, password)
+    headers: dict[str, str] = {"Authorization": f"Bearer {tokens['access_token']}"}
+
+    wrong = api_client.post("/auth/delete-account", json={"password": "not-the-password"}, headers=headers)
+    assert wrong.status_code == 400
+    assert wrong.json()["detail"] == "Incorrect password"
+
+    me = api_client.get("/auth/me", headers=headers)
+    assert me.status_code == 200
+    assert me.json()["email"] == email.lower()
+
+
+def test_delete_account_removes_user_and_tokens(
+    api_client: TestClient,
+    reader_credentials: tuple[str, str],
+) -> None:
+    email, password = reader_credentials
+    _ensure_no_reader(email)
+    tokens: dict[str, Any] = _verify_reader(api_client, email, password)
+    access_token: str = tokens["access_token"]
+    refresh_token: str = tokens["refresh_token"]
+    headers: dict[str, str] = {"Authorization": f"Bearer {access_token}"}
+
+    deleted = api_client.post("/auth/delete-account", json={"password": password}, headers=headers)
+    assert deleted.status_code == 200
+    assert deleted.json()["detail"] == "Account deleted"
+
+    assert api_client.get("/auth/me", headers=headers).status_code == 401
+    assert api_client.post("/auth/refresh", json={"refresh_token": refresh_token}).status_code == 401
+    login = api_client.post("/auth/login", json={"email": email, "password": password})
+    assert login.status_code == 401
+
+    reregister = api_client.post("/auth/register", json={"email": email, "password": password})
+    assert reregister.status_code == 200

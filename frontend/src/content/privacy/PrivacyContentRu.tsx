@@ -9,7 +9,7 @@ export function PrivacyContentRu(): JSX.Element {
     <>
       <h1>Политика конфиденциальности</h1>
       <p className="muted">
-        Версия: август 2026 · GDPR (DSGVO), TTDSG · Сервис:{" "}
+        Версия: сентябрь 2026 · GDPR (DSGVO), TTDSG · Сервис:{" "}
         <a href={legal.publicAppBaseUrl}>{legal.publicAppBaseUrl}</a>
       </p>
 
@@ -116,7 +116,7 @@ export function PrivacyContentRu(): JSX.Element {
       <ul>
         <li>Логи сервера: до ~90 дней.</li>
         <li>События engagement: 12 месяцев.</li>
-        <li>Аккаунт: до удаления; refresh-токен до 14 дней.</li>
+        <li>Аккаунт: до удаления в разделе «Аккаунт»; refresh-токен до 14 дней.</li>
         <li>Токен сброса пароля: 60 минут.</li>
       </ul>
 
@@ -129,7 +129,8 @@ export function PrivacyContentRu(): JSX.Element {
 
       <h2>7. Ваши права</h2>
       <p>
-        Доступ, исправление, удаление, ограничение, возражение, отзыв согласия. Жалоба в надзорный орган
+        Доступ, исправление, удаление, ограничение, возражение, отзыв согласия. Аккаунт можно удалить
+        самостоятельно: раздел «Аккаунт» → «Удалить аккаунт» (нужен пароль). Жалоба в надзорный орган
         (для Германии — земельный орган, например{" "}
         <a
           href="https://lfd.niedersachsen.de/startseite/themen/datenschutz/"

@@ -1851,6 +1851,50 @@ a:visited {
   font-size: 0.95rem;
 }
 
+.account-deleted-notice {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  max-width: 36rem;
+  line-height: 1.5;
+  border-radius: 8px;
+  border: 1px solid var(--border-card);
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.account-danger-zone h2 {
+  color: var(--text-primary);
+}
+
+.account-danger-zone > .muted {
+  margin: 0 0 8px;
+}
+
+.account-danger-zone button.account-delete-open,
+.account-page .account-danger-zone form button.account-delete-confirm {
+  border: 1px solid var(--btn-danger-border);
+  background: var(--btn-danger-bg);
+  color: var(--btn-danger-fg);
+}
+
+.account-delete-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.account-danger-zone .account-delete-actions button {
+  margin-top: 0;
+}
+
+.account-page .account-danger-zone .account-delete-actions button.account-delete-cancel {
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-primary);
+}
+
 .maintenance-page {
   display: flex;
   align-items: center;

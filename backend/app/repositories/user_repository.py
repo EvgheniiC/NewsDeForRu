@@ -4,10 +4,13 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from app.models.app_user import ADMIN_ROLE, READER_ROLE, AppRefreshToken, AppUser
+from app.models.email_verification_token import EmailVerificationToken
+from app.models.news import ModerationEvent
+from app.models.password_reset_token import PasswordResetToken
 
 
 class UserRepository:
@@ -112,4 +115,17 @@ class UserRepository:
             return
         row.revoked_at = datetime.utcnow()
         self._db.add(row)
+        self._db.commit()
+
+    def delete_user(self, user: AppUser) -> None:
+        """Remove the account and related auth rows; anonymize moderation audit."""
+        user_id: int = user.id
+        self._db.execute(delete(AppRefreshToken).where(AppRefreshToken.user_id == user_id))
+        self._db.execute(delete(EmailVerificationToken).where(EmailVerificationToken.user_id == user_id))
+        self._db.execute(delete(PasswordResetToken).where(PasswordResetToken.user_id == user_id))
+        self._db.execute(
+            update(ModerationEvent).where(ModerationEvent.user_id == user_id).values(user_id=None)
+        )
+        self._db.expire(user, ["refresh_tokens"])
+        self._db.delete(user)
         self._db.commit()

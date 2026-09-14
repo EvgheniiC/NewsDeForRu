@@ -9,7 +9,7 @@ export function PrivacyContentDe(): JSX.Element {
     <>
       <h1>Datenschutzerklärung</h1>
       <p className="muted">
-        Stand: August 2026 · DSGVO, TTDSG · Dienst:{" "}
+        Stand: September 2026 · DSGVO, TTDSG · Dienst:{" "}
         <a href={legal.publicAppBaseUrl}>{legal.publicAppBaseUrl}</a>
       </p>
 
@@ -116,7 +116,7 @@ export function PrivacyContentDe(): JSX.Element {
       <ul>
         <li>Server-Logs: bis ca. 90 Tage.</li>
         <li>Engagement-Events: 12 Monate.</li>
-        <li>Konto: bis Löschung; Refresh-Token max. 14 Tage.</li>
+        <li>Konto: bis zur Selbstlöschung in der App (Seite „Konto“); Refresh-Token max. 14 Tage.</li>
         <li>Passwort-Reset-Token: 60 Minuten.</li>
       </ul>
 
@@ -130,6 +130,7 @@ export function PrivacyContentDe(): JSX.Element {
       <h2>7. Ihre Rechte</h2>
       <p>
         Auskunft, Berichtigung, Löschung, Einschränkung, Widerspruch, Widerruf der Einwilligung.
+        Das Konto können Sie selbst in der App löschen (Seite „Konto“, Passwortbestätigung).
         Beschwerde bei der zuständigen Landesbehörde (z. B. Niedersachsen:{" "}
         <a
           href="https://lfd.niedersachsen.de/startseite/themen/datenschutz/"
