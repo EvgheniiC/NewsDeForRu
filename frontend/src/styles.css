@@ -507,29 +507,29 @@ a:visited {
   .tiktok-feed-snap .news-card-immersive h3 {
     display: -webkit-box;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 2;
     overflow: hidden;
-    flex: 0 1 auto;
-    min-height: 0;
+    flex: 0 0 auto;
   }
 
   .tiktok-feed-snap .news-card-image {
-    flex: 1 1 0;
-    min-height: 0;
+    flex: 1 1 auto;
+    min-height: 100px;
     width: 100%;
-    height: auto;
+    height: 100%;
     max-height: none;
-    aspect-ratio: auto;
+    aspect-ratio: unset;
     object-fit: cover;
   }
 
   .tiktok-feed-snap .news-topic-cover {
     display: flex;
-    flex: 1 1 0;
+    flex: 1 0 128px;
     flex-direction: column;
     justify-content: flex-start;
-    min-height: 0;
-    max-height: min(22vh, 140px);
+    min-height: 128px;
+    max-height: min(30vh, 180px);
+    margin: 6px 0 8px;
     overflow: hidden;
   }
 
@@ -537,10 +537,6 @@ a:visited {
     flex-shrink: 0;
   }
 
-  /*
-   * Never flex-shrink the lead below a readable clamp: parent overflow:hidden
-   * was clipping mid-sentence without ellipsis. Cover yields height first.
-   */
   .tiktok-feed-snap .news-card-body-immersive {
     flex: 0 1 auto;
     min-height: 0;
@@ -550,7 +546,7 @@ a:visited {
   .tiktok-feed-snap .news-card-body-immersive .news-card-subtitle-immersive {
     display: -webkit-box;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 2;
     text-overflow: ellipsis;
     overflow: hidden;
   }
