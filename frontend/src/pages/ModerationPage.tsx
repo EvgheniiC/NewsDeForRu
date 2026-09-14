@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ApiError, getModerationQueue, moderate, patchNewsMetadata } from "../api/client";
+import { ApiError, getHealth, getModerationQueue, moderate, NetworkError, patchNewsMetadata, runPipeline } from "../api/client";
 import {
   ModerationMetadataForm,
   type NewsMetadataDraft,
 } from "../components/ModerationMetadataForm";
+import { ServerPipelinePanels } from "../components/ServerPipelinePanels";
 import { useAuth } from "../context/AuthContext";
 import { formatDateTimeRuBerlin } from "../lib/dateTimeBerlin";
+import { describePipelinePartialFailure } from "../lib/pipelineUi";
+import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
 import {
   countModerationQueueByPeriod,
   filterModerationQueueByPeriod,
@@ -63,13 +66,20 @@ function ModerationNewsCard({
 
 export function ModerationPage(): JSX.Element {
   const navigate = useNavigate();
-  const { user, withModerationAccess, logout } = useAuth();
+  const { user, withModerationAccess, withPipelineAccess, logout } = useAuth();
   const [queue, setQueue] = useState<ProcessedNews[]>([]);
   const [period, setPeriod] = useState<ModerationPeriodKey>("today");
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [actionError, setActionError] = useState<string>("");
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [health, setHealth] = useState<HealthResponse | null>(null);
+  const [healthError, setHealthError] = useState<string>("");
+  const [pipelineRunning, setPipelineRunning] = useState<boolean>(false);
+  const [lastManualRun, setLastManualRun] = useState<PipelineRunResponse | null>(null);
+  const [pipelineNetworkError, setPipelineNetworkError] = useState<string>("");
+  const [pipelineHttpError, setPipelineHttpError] = useState<string>("");
+  const canRunPipeline: boolean = user?.can_run_pipeline === true;
 
   const periodCounts: Record<ModerationPeriodKey, number> = useMemo(
     () => countModerationQueueByPeriod(queue),
@@ -109,12 +119,56 @@ export function ModerationPage(): JSX.Element {
     [logout, navigate, withModerationAccess],
   );
 
+  const loadHealth = useCallback(async (): Promise<void> => {
+    try {
+      const h: HealthResponse = await getHealth();
+      setHealth(h);
+      setHealthError("");
+    } catch (e: unknown) {
+      const msg: string =
+        e instanceof NetworkError
+          ? `Сеть: ${e.message}`
+          : e instanceof ApiError
+            ? `Сервер: ${e.message}`
+            : e instanceof Error
+              ? e.message
+              : "Не удалось загрузить /health.";
+      setHealthError(msg);
+    }
+  }, []);
+
   useEffect(() => {
     if (!user?.can_moderate) {
       return;
     }
     void loadQueue();
-  }, [loadQueue, user?.can_moderate]);
+    void loadHealth();
+  }, [loadHealth, loadQueue, user?.can_moderate]);
+
+  const handlePipelineRefresh = async (): Promise<void> => {
+    setPipelineNetworkError("");
+    setPipelineHttpError("");
+    setPipelineRunning(true);
+    try {
+      const result: PipelineRunResponse = await withPipelineAccess((token: string) => runPipeline(token));
+      setLastManualRun(result);
+      await loadQueue({ silent: true });
+      await loadHealth();
+    } catch (e: unknown) {
+      if (e instanceof NetworkError) {
+        setPipelineNetworkError(e.message);
+      } else if (e instanceof ApiError) {
+        setPipelineHttpError(`${e.message} (HTTP ${e.status})`);
+      } else {
+        setPipelineHttpError(e instanceof Error ? e.message : "Неизвестная ошибка.");
+      }
+    } finally {
+      setPipelineRunning(false);
+    }
+  };
+
+  const pipelineOkMessage: string | null =
+    lastManualRun !== null ? describePipelinePartialFailure(lastManualRun) : null;
 
   const handleAction = async (newsId: number, action: "approve" | "reject"): Promise<void> => {
     setActionError("");
@@ -171,6 +225,20 @@ export function ModerationPage(): JSX.Element {
       <p className="moderation-queue-hint">
         Показаны новости за последние 7 дней. Старше недели в очереди не отображаются.
       </p>
+
+      <ServerPipelinePanels
+        canRunPipeline={canRunPipeline}
+        health={health}
+        healthError={healthError}
+        lastManualRun={lastManualRun}
+        pipelineHttpError={pipelineHttpError}
+        pipelineNetworkError={pipelineNetworkError}
+        pipelineOkMessage={pipelineOkMessage}
+        pipelineRunning={pipelineRunning}
+        onRefresh={() => {
+          void handlePipelineRefresh();
+        }}
+      />
 
       <div className="feed-period-bar moderation-period-bar" role="tablist" aria-label="Период модерации">
         {MODERATION_PERIOD_OPTIONS.map((opt: ModerationPeriodOption) => (

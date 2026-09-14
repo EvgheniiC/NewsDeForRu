@@ -1,7 +1,8 @@
 import { formatHealthTime } from "../lib/pipelineUi";
 import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
 
-interface FeedDevPanelsProps {
+interface ServerPipelinePanelsProps {
+  canRunPipeline: boolean;
   health: HealthResponse | null;
   healthError: string;
   lastManualRun: PipelineRunResponse | null;
@@ -12,7 +13,8 @@ interface FeedDevPanelsProps {
   onRefresh: () => void;
 }
 
-export function FeedDevPanels({
+export function ServerPipelinePanels({
+  canRunPipeline,
   health,
   healthError,
   lastManualRun,
@@ -21,51 +23,43 @@ export function FeedDevPanels({
   pipelineOkMessage,
   pipelineRunning,
   onRefresh
-}: FeedDevPanelsProps): JSX.Element {
-  const healthStatus: string | null = health?.status ?? null;
-
+}: ServerPipelinePanelsProps): JSX.Element {
   return (
-    <details className="feed-dev-panels">
-      <summary className="feed-dev-panels-summary">
-        Сервер и pipeline
-        {healthStatus !== null ? (
-          <span className={healthStatus === "ok" ? "health-ok" : "health-warn"}>{healthStatus}</span>
+    <div className="moderation-pipeline-panels">
+      <div className="panel health-panel">
+        <h2 className="panel-title">Состояние сервера</h2>
+        {healthError ? <p className="error">{healthError}</p> : null}
+        {health ? (
+          <ul className="health-list">
+            <li>
+              <span className="health-label">Общий статус:</span>{" "}
+              <span className={health.status === "ok" ? "health-ok" : "health-warn"}>{health.status}</span>
+            </li>
+            <li>
+              <span className="health-label">База данных:</span>{" "}
+              <span className={health.database === "ok" ? "health-ok" : "health-warn"}>{health.database}</span>
+            </li>
+            <li>
+              <span className="health-label">Последний прогон пайплайна:</span>{" "}
+              {formatHealthTime(health.last_pipeline_run_at)}
+            </li>
+            <li>
+              <span className="health-label">Последний прогон успешен:</span>{" "}
+              {health.last_pipeline_ok === null ? "—" : health.last_pipeline_ok ? "да" : "нет"}
+            </li>
+            <li>
+              <span className="health-label">Run ID последнего прогона:</span>{" "}
+              <code className="health-code">{health.last_pipeline_run_id ?? "—"}</code>
+            </li>
+            <li>
+              <span className="health-label">Планировщик:</span> {health.pipeline_scheduler}
+            </li>
+          </ul>
         ) : null}
-      </summary>
-      <div className="feed-dev-panels-body">
-        <div className="panel health-panel">
-          <h2 className="panel-title">Состояние сервера</h2>
-          {healthError ? <p className="error">{healthError}</p> : null}
-          {health ? (
-            <ul className="health-list">
-              <li>
-                <span className="health-label">Общий статус:</span>{" "}
-                <span className={health.status === "ok" ? "health-ok" : "health-warn"}>{health.status}</span>
-              </li>
-              <li>
-                <span className="health-label">База данных:</span>{" "}
-                <span className={health.database === "ok" ? "health-ok" : "health-warn"}>{health.database}</span>
-              </li>
-              <li>
-                <span className="health-label">Последний прогон пайплайна:</span>{" "}
-                {formatHealthTime(health.last_pipeline_run_at)}
-              </li>
-              <li>
-                <span className="health-label">Последний прогон успешен:</span>{" "}
-                {health.last_pipeline_ok === null ? "—" : health.last_pipeline_ok ? "да" : "нет"}
-              </li>
-              <li>
-                <span className="health-label">Run ID последнего прогона:</span>{" "}
-                <code className="health-code">{health.last_pipeline_run_id ?? "—"}</code>
-              </li>
-              <li>
-                <span className="health-label">Планировщик:</span> {health.pipeline_scheduler}
-              </li>
-            </ul>
-          ) : null}
-          {!health && !healthError ? <p className="muted">Загрузка…</p> : null}
-        </div>
+        {!health && !healthError ? <p className="muted">Загрузка…</p> : null}
+      </div>
 
+      {canRunPipeline ? (
         <div className="panel pipeline-panel">
           <h2 className="panel-title">Последний ручной запуск pipeline</h2>
           <button disabled={pipelineRunning} onClick={onRefresh} type="button">
@@ -139,7 +133,7 @@ export function FeedDevPanels({
             </dl>
           ) : null}
         </div>
-      </div>
-    </details>
+      ) : null}
+    </div>
   );
 }

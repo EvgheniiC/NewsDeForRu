@@ -1,22 +1,17 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import { CompactSelect } from "../components/CompactSelect";
-import { FeedDevPanels } from "../components/FeedDevPanels";
 import { TikTokFeed } from "../components/TikTokFeed";
-import { ApiError, getHealth, NetworkError, runPipeline } from "../api/client";
-import { useAuth } from "../context/AuthContext";
 import { useInfiniteFeed } from "../hooks/useInfiniteFeed";
 import { useReadSavedFeed } from "../hooks/useReadSavedFeed";
 import { useUsefulSavedFeed } from "../hooks/useUsefulSavedFeed";
 import { filterActiveFeedItems, isFeedCaughtUp } from "../lib/feedVisibility";
 import { feedFilterPillClass } from "../lib/newsUi";
-import { describePipelinePartialFailure } from "../lib/pipelineUi";
 import { READ_STATE_CHANGED_EVENT } from "../lib/readStateStorage";
 import { flushPendingScrollRead, isWebScrollToReadEnabled } from "../lib/scrollToRead";
 import { USEFUL_STORAGE_CHANGED_EVENT } from "../lib/usefulStorage";
 import type { FeedFilterKey, FeedPeriodKey } from "../types/news";
-import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
 
 const FEED_TOPIC_ROWS: readonly (readonly { key: FeedFilterKey; label: string }[])[] = [
   [
@@ -54,7 +49,6 @@ export function FeedPage(): JSX.Element {
     typeof feedLocationState?.devVerificationLink === "string" && feedLocationState.devVerificationLink.length > 0
       ? feedLocationState.devVerificationLink
       : null;
-  const { initializing: sessionLoading, user, withPipelineAccess } = useAuth();
   const [feedFilter, setFeedFilter] = useState<FeedFilterKey>("life");
   const [feedPeriod, setFeedPeriod] = useState<FeedPeriodKey>("all");
   /** Bumped on read/useful storage changes so visibleItems re-filters; must not be in TikTokFeed key. */
@@ -67,21 +61,19 @@ export function FeedPage(): JSX.Element {
   const infiniteFeedFilter: Exclude<FeedFilterKey, "saved_useful" | "read_saved"> =
     isArchiveTab ? "life" : feedFilter;
 
-  const { items: infiniteItems, loading: infiniteLoading, loadingMore, feedError: infiniteFeedError, nextCursor, reload, loadMore } =
+  const { items: infiniteItems, loading: infiniteLoading, loadingMore, feedError: infiniteFeedError, nextCursor, loadMore } =
     useInfiniteFeed(infiniteFeedFilter, feedPeriod, { enabled: !isArchiveTab });
 
   const {
     items: savedItems,
     loading: savedLoading,
-    feedError: savedFeedError,
-    refresh: refreshSavedUseful
+    feedError: savedFeedError
   } = useUsefulSavedFeed(isSavedUsefulTab);
 
   const {
     items: readItems,
     loading: readLoading,
-    feedError: readFeedError,
-    refresh: refreshReadSaved
+    feedError: readFeedError
   } = useReadSavedFeed(isReadSavedTab);
 
   const rawItems = isSavedUsefulTab ? savedItems : isReadSavedTab ? readItems : infiniteItems;
@@ -128,76 +120,6 @@ export function FeedPage(): JSX.Element {
       flushPendingScrollRead();
     };
   }, [scrollToRead, feedFilter, feedPeriod]);
-
-  const [health, setHealth] = useState<HealthResponse | null>(null);
-  const [healthError, setHealthError] = useState<string>("");
-
-  const [pipelineRunning, setPipelineRunning] = useState<boolean>(false);
-  const [lastManualRun, setLastManualRun] = useState<PipelineRunResponse | null>(null);
-  const [pipelineNetworkError, setPipelineNetworkError] = useState<string>("");
-  const [pipelineHttpError, setPipelineHttpError] = useState<string>("");
-
-  const canRunPipeline: boolean = !sessionLoading && user?.can_run_pipeline === true;
-
-  const loadHealth = useCallback(async (): Promise<void> => {
-    try {
-      const h: HealthResponse = await getHealth();
-      setHealth(h);
-      setHealthError("");
-    } catch (e: unknown) {
-      const msg: string =
-        e instanceof NetworkError
-          ? `Сеть: ${e.message}`
-          : e instanceof ApiError
-            ? `Сервер: ${e.message}`
-            : e instanceof Error
-              ? e.message
-              : "Не удалось загрузить /health.";
-      setHealthError(msg);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!canRunPipeline) {
-      setHealth(null);
-      setHealthError("");
-      return;
-    }
-    void loadHealth();
-  }, [loadHealth, canRunPipeline]);
-
-  const handleRefresh = async (): Promise<void> => {
-    setPipelineNetworkError("");
-    setPipelineHttpError("");
-    setPipelineRunning(true);
-    try {
-      const result: PipelineRunResponse = await withPipelineAccess((token: string) => runPipeline(token));
-      setLastManualRun(result);
-      await reload();
-      if (feedFilter === "saved_useful") {
-        await refreshSavedUseful();
-      }
-      if (feedFilter === "read_saved") {
-        await refreshReadSaved();
-      }
-      await loadHealth();
-    } catch (e: unknown) {
-      if (e instanceof NetworkError) {
-        setPipelineNetworkError(e.message);
-      } else if (e instanceof ApiError) {
-        setPipelineHttpError(`${e.message} (HTTP ${e.status})`);
-      } else {
-        setPipelineHttpError(e instanceof Error ? e.message : "Неизвестная ошибка.");
-      }
-    } finally {
-      setPipelineRunning(false);
-    }
-  };
-
-  const pipelineOkMessage: string | null =
-    lastManualRun !== null ? describePipelinePartialFailure(lastManualRun) : null;
-
-  const showDevPanels: boolean = !isArchiveTab && canRunPipeline;
 
   const dismissVerificationNotice = (): void => {
     navigate(location.pathname, { replace: true, state: null });
@@ -265,21 +187,6 @@ export function FeedPage(): JSX.Element {
             value={feedPeriod}
           />
         </div>
-      ) : null}
-
-      {showDevPanels ? (
-        <FeedDevPanels
-          health={health}
-          healthError={healthError}
-          lastManualRun={lastManualRun}
-          pipelineHttpError={pipelineHttpError}
-          pipelineNetworkError={pipelineNetworkError}
-          pipelineOkMessage={pipelineOkMessage}
-          pipelineRunning={pipelineRunning}
-          onRefresh={() => {
-            void handleRefresh();
-          }}
-        />
       ) : null}
 
       {feedFilter === "positive" ? (
