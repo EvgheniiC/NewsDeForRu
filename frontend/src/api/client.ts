@@ -7,6 +7,11 @@ import type {
 } from "../types/userAuth";
 import type { EngagementBatchRequestBody, EngagementBatchResponseBody } from "../types/engagement";
 import type { FeedbackSubmitRequestBody, FeedbackSubmitResponseBody } from "../types/feedback";
+import type {
+  UserLibraryPutRequest,
+  UserLibraryPutResponse,
+  UserLibrarySnapshot,
+} from "../types/userLibrary";
 import type { FeedPeriodKey, NewsFeedItem, NewsTopic, ProcessedNews } from "../types/news";
 import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
 
@@ -228,6 +233,21 @@ export async function authDeleteAccount(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ password }),
+  });
+}
+
+export async function getUserLibrary(accessToken: string): Promise<UserLibrarySnapshot> {
+  return fetchJsonAuthorized<UserLibrarySnapshot>("/users/me/library", accessToken, { method: "GET" });
+}
+
+export async function putUserLibrary(
+  accessToken: string,
+  payload: UserLibraryPutRequest,
+): Promise<UserLibraryPutResponse> {
+  return fetchJsonAuthorized<UserLibraryPutResponse>("/users/me/library", accessToken, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
   });
 }
 

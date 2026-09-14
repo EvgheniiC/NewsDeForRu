@@ -1,10 +1,17 @@
 /** localStorage map of read news IDs with timestamps (retention: 30 days). */
 
+import { scheduleLibrarySyncFlush } from "./librarySyncQueue";
+
 export const READ_STATE_STORAGE_KEY: string = "nga_read_state_v1";
 
 export const READ_STATE_CHANGED_EVENT: string = "nga:read-state-changed";
 
 export const READ_RETENTION_MS: number = 30 * 24 * 60 * 60 * 1000;
+
+export interface ReadStorageEntry {
+  newsId: number;
+  readAt: number;
+}
 
 interface ReadStateEntry {
   readAt: number;
@@ -79,6 +86,37 @@ export function markNewsAsReadBatch(newsIds: readonly number[]): void {
   }
   writeStateMap(map);
   notifyReadStateChanged();
+  scheduleLibrarySyncFlush();
+}
+
+export function applyReadSnapshot(entries: readonly ReadStorageEntry[]): void {
+  const map: ReadStateMap = {};
+  const cutoff: number = Date.now() - READ_RETENTION_MS;
+  for (const entry of entries) {
+    if (!Number.isFinite(entry.newsId) || !Number.isFinite(entry.readAt)) {
+      continue;
+    }
+    if (entry.readAt < cutoff) {
+      continue;
+    }
+    map[String(entry.newsId)] = { readAt: entry.readAt };
+  }
+  writeStateMap(map);
+  notifyReadStateChanged();
+}
+
+export function listReadEntries(): ReadStorageEntry[] {
+  const map: ReadStateMap = purgeExpiredEntries(readStateMap());
+  const entries: ReadStorageEntry[] = [];
+  for (const [key, entry] of Object.entries(map)) {
+    const newsId: number = Number.parseInt(key, 10);
+    if (!Number.isFinite(newsId)) {
+      continue;
+    }
+    entries.push({ newsId, readAt: entry.readAt });
+  }
+  entries.sort((a: ReadStorageEntry, b: ReadStorageEntry) => b.readAt - a.readAt);
+  return entries;
 }
 
 export function isNewsRead(newsId: number): boolean {
@@ -103,7 +141,7 @@ export function getNewsReadAt(newsId: number): number | null {
 export function listReadNewsIds(): number[] {
   const map: ReadStateMap = purgeExpiredEntries(readStateMap());
   const ids: number[] = [];
-  for (const [key, entry] of Object.entries(map)) {
+  for (const key of Object.keys(map)) {
     const id: number = Number.parseInt(key, 10);
     if (!Number.isFinite(id)) {
       continue;

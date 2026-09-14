@@ -1,5 +1,7 @@
 /** localStorage map of useful news IDs with timestamps (retention: 60 days). */
 
+import { enqueueLibraryOp, scheduleLibrarySyncFlush } from "./librarySyncQueue";
+
 export const USEFUL_STATE_STORAGE_KEY: string = "nga_useful_state_v1";
 
 /** Legacy per-id keys ``nga_useful_<newsId>`` → ``"1"`` / ``"0"``. */
@@ -104,6 +106,11 @@ export function notifyUsefulStorageChanged(): void {
   }
 }
 
+export interface UsefulStorageEntry {
+  newsId: number;
+  markedAt: number;
+}
+
 export function setStoredUseful(newsId: number, useful: boolean): void {
   if (!Number.isFinite(newsId)) {
     return;
@@ -117,6 +124,41 @@ export function setStoredUseful(newsId: number, useful: boolean): void {
   }
   writeStateMap(purgeExpiredEntries(map));
   notifyUsefulStorageChanged();
+  if (useful) {
+    scheduleLibrarySyncFlush();
+    return;
+  }
+  enqueueLibraryOp({ kind: "saved_remove", newsId, at: Date.now() });
+}
+
+export function applyUsefulSnapshot(entries: readonly UsefulStorageEntry[]): void {
+  const map: UsefulStateMap = {};
+  const cutoff: number = Date.now() - USEFUL_RETENTION_MS;
+  for (const entry of entries) {
+    if (!Number.isFinite(entry.newsId) || !Number.isFinite(entry.markedAt)) {
+      continue;
+    }
+    if (entry.markedAt < cutoff) {
+      continue;
+    }
+    map[String(entry.newsId)] = { markedAt: entry.markedAt };
+  }
+  writeStateMap(map);
+  notifyUsefulStorageChanged();
+}
+
+export function listUsefulEntries(): UsefulStorageEntry[] {
+  const map: UsefulStateMap = loadActiveMap();
+  const entries: UsefulStorageEntry[] = [];
+  for (const [key, entry] of Object.entries(map)) {
+    const newsId: number = Number.parseInt(key, 10);
+    if (!Number.isFinite(newsId)) {
+      continue;
+    }
+    entries.push({ newsId, markedAt: entry.markedAt });
+  }
+  entries.sort((a: UsefulStorageEntry, b: UsefulStorageEntry) => b.markedAt - a.markedAt);
+  return entries;
 }
 
 export function readStoredUseful(newsId: number): boolean {

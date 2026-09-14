@@ -81,9 +81,9 @@ export function PrivacyContentDe(): JSX.Element {
               <td>Art. 6 Abs. 1 lit. a (Einwilligung)</td>
             </tr>
             <tr>
-              <td>JWT, lokal „nützlich“</td>
-              <td>Sitzung / Anzeige</td>
-              <td>lit. b / f bzw. Einwilligung für Server-Sync</td>
+              <td>JWT; „nützlich“ / „gelesen“ (Gerät und nach Login der Server)</td>
+              <td>Sitzung und Sync der Archive</td>
+              <td>Art. 6 Abs. 1 lit. b für das Konto; ohne Login nur Gerät (lit. f)</td>
             </tr>
           </tbody>
         </table>
@@ -117,6 +117,7 @@ export function PrivacyContentDe(): JSX.Element {
         <li>Server-Logs: bis ca. 90 Tage.</li>
         <li>Engagement-Events: 12 Monate.</li>
         <li>Konto: bis zur Selbstlöschung in der App (Seite „Konto“); Refresh-Token max. 14 Tage.</li>
+        <li>„Nützlich“ und „Gelesen“ am Konto: 60 bzw. 30 Tage.</li>
         <li>Passwort-Reset-Token: 60 Minuten.</li>
       </ul>
 

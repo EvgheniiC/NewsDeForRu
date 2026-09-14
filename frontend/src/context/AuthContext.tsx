@@ -16,6 +16,7 @@ import {
   authRefresh,
   authRegister,
 } from "../api/client";
+import { clearLibraryOwner, configureUserLibrarySync } from "../lib/userLibrarySync";
 import type {
   RegisterResponse,
   UserLoginCredentials,
@@ -181,10 +182,26 @@ export function AuthProvider(props: Readonly<{ children: React.ReactNode }>): JS
       await runWithTokenRetry(async (accessToken: string): Promise<void> => {
         await authDeleteAccount(accessToken, password);
       });
+      clearLibraryOwner();
       applyPairState(null, null);
     },
     [applyPairState, runWithTokenRetry],
   );
+
+  const userId: number | null = user?.id ?? null;
+
+  useEffect(() => {
+    if (initializing) {
+      return;
+    }
+    return configureUserLibrarySync({
+      userId,
+      runAuthenticated:
+        userId === null
+          ? null
+          : (task: (accessToken: string) => Promise<void>): Promise<void> => runWithTokenRetry(task),
+    });
+  }, [initializing, runWithTokenRetry, userId]);
 
   useEffect(() => {
     const hydrate = async (): Promise<void> => {

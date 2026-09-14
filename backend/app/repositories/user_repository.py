@@ -11,6 +11,7 @@ from app.models.app_user import ADMIN_ROLE, READER_ROLE, AppRefreshToken, AppUse
 from app.models.email_verification_token import EmailVerificationToken
 from app.models.news import ModerationEvent
 from app.models.password_reset_token import PasswordResetToken
+from app.repositories.user_library_repository import UserLibraryRepository
 
 
 class UserRepository:
@@ -123,6 +124,7 @@ class UserRepository:
         self._db.execute(delete(AppRefreshToken).where(AppRefreshToken.user_id == user_id))
         self._db.execute(delete(EmailVerificationToken).where(EmailVerificationToken.user_id == user_id))
         self._db.execute(delete(PasswordResetToken).where(PasswordResetToken.user_id == user_id))
+        UserLibraryRepository(self._db).delete_for_user(user_id)
         self._db.execute(
             update(ModerationEvent).where(ModerationEvent.user_id == user_id).values(user_id=None)
         )

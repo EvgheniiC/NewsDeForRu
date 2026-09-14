@@ -11,6 +11,7 @@ from app.models.news import (
 )
 from app.models.engagement import UserEngagementEvent
 from app.models.job_lock import AppJobLock
+from app.models.user_library import UserReadNews, UserSavedNews
 
 __all__ = [
     "ImpactPresentation",
@@ -24,4 +25,6 @@ __all__ = [
     "ModerationEvent",
     "UserEngagementEvent",
     "AppJobLock",
+    "UserSavedNews",
+    "UserReadNews",
 ]

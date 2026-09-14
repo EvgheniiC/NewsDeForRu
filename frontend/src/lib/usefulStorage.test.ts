@@ -1,10 +1,12 @@
 import { describe, expect, test, beforeEach } from "vitest";
 import {
+  listUsefulEntries,
   listUsefulMarkedNewsIds,
   readStoredUseful,
   setStoredUseful,
   USEFUL_RETENTION_MS,
-  USEFUL_STATE_STORAGE_KEY
+  USEFUL_STATE_STORAGE_KEY,
+  type UsefulStorageEntry
 } from "./usefulStorage";
 
 describe("usefulStorage", () => {
@@ -23,6 +25,15 @@ describe("usefulStorage", () => {
     setStoredUseful(7, false);
     expect(readStoredUseful(7)).toBe(false);
     expect(listUsefulMarkedNewsIds()).toEqual([]);
+  });
+
+  test("listUsefulEntries returns marked news with timestamps", () => {
+    setStoredUseful(1, true);
+    setStoredUseful(2, true);
+    const entries: UsefulStorageEntry[] = listUsefulEntries();
+    const ids: number[] = entries.map((entry: UsefulStorageEntry) => entry.newsId).sort((a: number, b: number) => a - b);
+    expect(ids).toEqual([1, 2]);
+    expect(entries.every((entry: UsefulStorageEntry) => entry.markedAt > 0)).toBe(true);
   });
 
   test("useful entries expire after retention window", () => {

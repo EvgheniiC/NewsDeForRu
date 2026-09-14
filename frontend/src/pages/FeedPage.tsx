@@ -6,6 +6,7 @@ import { TikTokFeed } from "../components/TikTokFeed";
 import { useInfiniteFeed } from "../hooks/useInfiniteFeed";
 import { useReadSavedFeed } from "../hooks/useReadSavedFeed";
 import { useUsefulSavedFeed } from "../hooks/useUsefulSavedFeed";
+import { useAuth } from "../context/AuthContext";
 import { filterActiveFeedItems, isFeedCaughtUp } from "../lib/feedVisibility";
 import { feedFilterPillClass } from "../lib/newsUi";
 import { READ_STATE_CHANGED_EVENT } from "../lib/readStateStorage";
@@ -43,6 +44,7 @@ interface FeedLocationState {
 export function FeedPage(): JSX.Element {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const feedLocationState = location.state as FeedLocationState | null | undefined;
   const verificationPendingEmail: string = feedLocationState?.verificationPendingEmail?.trim() ?? "";
   const devVerificationLink: string | null =
@@ -222,14 +224,16 @@ export function FeedPage(): JSX.Element {
       ) : null}
       {isSavedUsefulTab && !feedLoading && visibleItems.length === 0 && !feedError ? (
         <p className="muted">
-          Здесь появятся новости, отмеченные «Полезно». Хранятся 60 дней на этом устройстве, на сервер не
-          синхронизируются.
+          {user !== null
+            ? "Здесь появятся новости, отмеченные «Полезно». Хранятся 60 дней и синхронизируются с аккаунтом."
+            : "Здесь появятся новости, отмеченные «Полезно». Хранятся 60 дней на этом устройстве. Войдите в аккаунт, чтобы не потерять их при смене телефона."}
         </p>
       ) : null}
       {isReadSavedTab && !feedLoading && visibleItems.length === 0 && !feedError ? (
         <p className="muted">
-          Здесь появятся прочитанные новости — после пролистывания ленты, свайпа вправо или дочитывания статьи. Хранятся 30 дней на этом
-          устройстве.
+          {user !== null
+            ? "Здесь появятся прочитанные новости — после пролистывания ленты, свайпа вправо или дочитывания статьи. Хранятся 30 дней и синхронизируются с аккаунтом."
+            : "Здесь появятся прочитанные новости — после пролистывания ленты, свайпа вправо или дочитывания статьи. Хранятся 30 дней на этом устройстве. Войдите в аккаунт, чтобы не потерять их при смене телефона."}
         </p>
       ) : null}
 

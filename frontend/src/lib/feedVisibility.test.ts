@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { beforeEach, describe, expect, test } from "vitest";
 import {
   activeFeedMaxAgeDays,
   filterActiveFeedItems,
@@ -25,6 +25,10 @@ function sampleItem(overrides: Partial<NewsFeedItem> = {}): NewsFeedItem {
 }
 
 describe("feedVisibility", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   test("activeFeedMaxAgeDays varies by category", () => {
     expect(activeFeedMaxAgeDays("top_today")).toBe(1);
     expect(activeFeedMaxAgeDays("urgent")).toBe(2);
@@ -57,7 +61,7 @@ describe("feedVisibility", () => {
     const expiredUnread: NewsFeedItem[] = [
       sampleItem({
         id: 5,
-        published_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+        published_at: new Date(Date.now() - 2.5 * 24 * 60 * 60 * 1000).toISOString()
       })
     ];
     expect(isFeedCaughtUp(expiredUnread, "urgent")).toBe(true);
