@@ -43,6 +43,7 @@ def patch_news_metadata(
     item: ProcessedNews | None = repository.update_processed_metadata(
         news_id=news_id,
         topic=request.topic,
+        cover_tag=request.cover_tag,
         is_urgent=request.is_urgent,
         is_positive=request.is_positive,
         user_id=actor.id,
@@ -93,6 +94,7 @@ def moderate_news(
         sent_mod: bool = send_moderation_approved_notice(
             title_ru=item.title,
             topic=item.topic,
+            cover_tag=item.cover_tag,
             one_sentence_summary=item.one_sentence_summary,
             source_url=item.source_url,
             source_name=item.copyright_holder or "",

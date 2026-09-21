@@ -17,7 +17,6 @@ import {
   type ModerationPeriodKey,
   type ModerationPeriodOption,
 } from "../lib/moderationQueue";
-import { NewsTopicCover } from "../components/NewsTopicCover";
 import type { ProcessedNews } from "../types/news";
 
 interface ModerationNewsCardProps {
@@ -37,7 +36,6 @@ function ModerationNewsCard({
     <article className="news-card">
       <p className="moderation-card-date">{formatDateTimeRuBerlin(item.created_at)}</p>
       <h3>{item.title}</h3>
-      <NewsTopicCover newsId={item.id} topic={item.topic} variant="card" />
       <p>{item.one_sentence_summary}</p>
       <ModerationMetadataForm disabled={busyId !== null} item={item} onSave={onSaveMetadata} />
       <div className="news-card-footer">
@@ -198,11 +196,15 @@ export function ModerationPage(): JSX.Element {
 
     const patch: {
       topic?: NewsMetadataDraft["topic"];
+      cover_tag?: NewsMetadataDraft["cover_tag"];
       is_urgent?: boolean;
       is_positive?: boolean;
     } = {};
     if (draft.topic !== current.topic) {
       patch.topic = draft.topic;
+    }
+    if (draft.cover_tag !== current.cover_tag) {
+      patch.cover_tag = draft.cover_tag;
     }
     if (draft.is_urgent !== current.is_urgent) {
       patch.is_urgent = draft.is_urgent;

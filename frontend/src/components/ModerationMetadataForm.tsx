@@ -1,11 +1,30 @@
 import { useEffect, useState } from "react";
 import { newsTopicChipClass } from "../lib/newsUi";
-import { newsTopicLabelRu, type NewsTopic, type ProcessedNews } from "../types/news";
+import {
+  coverTagLabelRu,
+  newsTopicLabelRu,
+  type CoverTag,
+  type NewsTopic,
+  type ProcessedNews
+} from "../types/news";
+import { NewsTopicCover } from "./NewsTopicCover";
 
 const TOPIC_OPTIONS: readonly NewsTopic[] = ["politics", "economy", "life"] as const;
 
+interface CoverTagGroup {
+  label: string;
+  tags: readonly CoverTag[];
+}
+
+const COVER_TAG_GROUPS: readonly CoverTagGroup[] = [
+  { label: "Политика", tags: ["government", "elections", "eu", "security"] },
+  { label: "Экономика", tags: ["money", "jobs", "energy", "construction", "transport"] },
+  { label: "Жизнь", tags: ["health", "education", "sport", "family", "weather", "culture"] }
+] as const;
+
 export interface NewsMetadataDraft {
   topic: NewsTopic;
+  cover_tag: CoverTag;
   is_urgent: boolean;
   is_positive: boolean;
 }
@@ -16,17 +35,32 @@ interface ModerationMetadataFormProps {
   onSave: (newsId: number, draft: NewsMetadataDraft) => Promise<void>;
 }
 
+function defaultCoverTag(item: ProcessedNews): CoverTag {
+  if (item.cover_tag) {
+    return item.cover_tag;
+  }
+  if (item.topic === "politics") {
+    return "government";
+  }
+  if (item.topic === "economy") {
+    return "money";
+  }
+  return "family";
+}
+
 function draftFromItem(item: ProcessedNews): NewsMetadataDraft {
   return {
     topic: item.topic,
+    cover_tag: defaultCoverTag(item),
     is_urgent: item.is_urgent,
-    is_positive: item.is_positive,
+    is_positive: item.is_positive
   };
 }
 
 function draftsEqual(left: NewsMetadataDraft, right: NewsMetadataDraft): boolean {
   return (
     left.topic === right.topic &&
+    left.cover_tag === right.cover_tag &&
     left.is_urgent === right.is_urgent &&
     left.is_positive === right.is_positive
   );
@@ -35,7 +69,7 @@ function draftsEqual(left: NewsMetadataDraft, right: NewsMetadataDraft): boolean
 export function ModerationMetadataForm({
   item,
   disabled,
-  onSave,
+  onSave
 }: ModerationMetadataFormProps): JSX.Element {
   const [draft, setDraft] = useState<NewsMetadataDraft>(() => draftFromItem(item));
   const [saving, setSaving] = useState<boolean>(false);
@@ -67,6 +101,7 @@ export function ModerationMetadataForm({
   return (
     <div className="moderation-metadata-form">
       <p className="moderation-metadata-label">Метки перед публикацией</p>
+      <NewsTopicCover coverTag={draft.cover_tag} newsId={item.id} topic={draft.topic} variant="card" />
       <label className="moderation-metadata-field">
         <span>Категория</span>
         <select
@@ -74,7 +109,7 @@ export function ModerationMetadataForm({
           onChange={(event: React.ChangeEvent<HTMLSelectElement>) =>
             setDraft((current: NewsMetadataDraft) => ({
               ...current,
-              topic: event.target.value as NewsTopic,
+              topic: event.target.value as NewsTopic
             }))
           }
           value={draft.topic}
@@ -86,6 +121,29 @@ export function ModerationMetadataForm({
           ))}
         </select>
       </label>
+      <label className="moderation-metadata-field">
+        <span>Иллюстрация</span>
+        <select
+          disabled={disabled || saving}
+          onChange={(event: React.ChangeEvent<HTMLSelectElement>) =>
+            setDraft((current: NewsMetadataDraft) => ({
+              ...current,
+              cover_tag: event.target.value as CoverTag
+            }))
+          }
+          value={draft.cover_tag}
+        >
+          {COVER_TAG_GROUPS.map((group: CoverTagGroup) => (
+            <optgroup key={group.label} label={group.label}>
+              {group.tags.map((tag: CoverTag) => (
+                <option key={tag} value={tag}>
+                  {coverTagLabelRu(tag)}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      </label>
       <label className="moderation-metadata-checkbox">
         <input
           checked={draft.is_urgent}
@@ -93,7 +151,7 @@ export function ModerationMetadataForm({
           onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
             setDraft((current: NewsMetadataDraft) => ({
               ...current,
-              is_urgent: event.target.checked,
+              is_urgent: event.target.checked
             }))
           }
           type="checkbox"
@@ -107,7 +165,7 @@ export function ModerationMetadataForm({
           onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
             setDraft((current: NewsMetadataDraft) => ({
               ...current,
-              is_positive: event.target.checked,
+              is_positive: event.target.checked
             }))
           }
           type="checkbox"
@@ -115,14 +173,11 @@ export function ModerationMetadataForm({
         <span>Позитивная</span>
       </label>
       <div className="moderation-metadata-actions">
-        <button
-          disabled={disabled || saving || !isDirty}
-          onClick={() => void handleSave()}
-          type="button"
-        >
+        <button disabled={disabled || saving || !isDirty} onClick={() => void handleSave()} type="button">
           {saving ? "Сохранение…" : "Сохранить метки"}
         </button>
         <span className={newsTopicChipClass(draft.topic)}>{newsTopicLabelRu(draft.topic)}</span>
+        <span className="moderation-cover-tag-chip">{coverTagLabelRu(draft.cover_tag)}</span>
       </div>
       {saveError !== "" ? <p className="error moderation-metadata-error">{saveError}</p> : null}
     </div>

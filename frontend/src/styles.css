@@ -1087,6 +1087,11 @@ a:visited {
   gap: 10px;
 }
 
+.moderation-cover-tag-chip {
+  font-size: 0.8rem;
+  color: var(--muted, #5c6570);
+}
+
 .moderation-metadata-error {
   margin: 0;
 }

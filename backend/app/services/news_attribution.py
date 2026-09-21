@@ -41,6 +41,7 @@ def build_processed_news_response(processed: ProcessedNews) -> ProcessedNewsResp
         publication_status=processed.publication_status,
         read_time_minutes=processed.read_time_minutes,
         topic=processed.topic,
+        cover_tag=processed.cover_tag,
         is_urgent=processed.is_urgent,
         is_positive=processed.is_positive,
         importance_ai_score=processed.importance_ai_score,

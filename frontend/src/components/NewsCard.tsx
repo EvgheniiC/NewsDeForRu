@@ -198,7 +198,7 @@ export function NewsCard({
         <span>{item.source_name}</span>
       </p>
       <h3>{item.title}</h3>
-      <NewsTopicCover newsId={item.id} topic={item.topic} variant="card" />
+      <NewsTopicCover coverTag={item.cover_tag} newsId={item.id} topic={item.topic} variant="card" />
       {expanded ? (
         <div className="news-card-expanded-body">
           {detailsLoading ? <p className="muted">Загрузка…</p> : null}

@@ -98,6 +98,23 @@ def test_patch_metadata_updates_topic_in_queue(
     assert body["is_positive"] is False
 
 
+def test_patch_metadata_updates_cover_tag(
+    api_client: TestClient,
+    bearer_ops_headers: dict[str, str],
+) -> None:
+    news_id: int = _create_needs_review_item(guid="meta-cover-1", topic=NewsTopic.LIFE)
+
+    response = api_client.patch(
+        f"/moderation/{news_id}/metadata",
+        headers=bearer_ops_headers,
+        json={"cover_tag": "sport"},
+    )
+    assert response.status_code == 200
+    body: dict[str, object] = response.json()
+    assert body["cover_tag"] == "sport"
+    assert body["topic"] == "life"
+
+
 def test_patch_metadata_records_audit_event(
     api_client: TestClient,
     bearer_ops_headers: dict[str, str],

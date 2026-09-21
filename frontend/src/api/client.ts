@@ -12,7 +12,7 @@ import type {
   UserLibraryPutResponse,
   UserLibrarySnapshot,
 } from "../types/userLibrary";
-import type { FeedPeriodKey, NewsFeedItem, NewsTopic, ProcessedNews } from "../types/news";
+import type { CoverTag, FeedPeriodKey, NewsFeedItem, NewsTopic, ProcessedNews } from "../types/news";
 import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
 
 export const API_BASE_URL: string = (
@@ -290,6 +290,7 @@ export async function moderate(
 
 export interface NewsMetadataPatch {
   topic?: NewsTopic;
+  cover_tag?: CoverTag;
   is_urgent?: boolean;
   is_positive?: boolean;
 }

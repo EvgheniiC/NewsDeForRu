@@ -7,7 +7,7 @@ import pytest
 
 from app.core.config import Settings
 from app.core.http_tls import httpx_verify_arg
-from app.models.news import NewsTopic
+from app.models.news import CoverTag, NewsTopic
 from app.services.telegram_notifier import (
     format_auto_published_html,
     format_moderation_approved_html,
@@ -148,7 +148,7 @@ def test_send_notice_includes_read_in_app_markup_when_base_url_set() -> None:
     post_url: str = str(mock_post.call_args[0][0])
     assert "sendPhoto" in post_url
     payload: dict[str, object] = mock_post.call_args.kwargs["json"]
-    assert payload["photo"] == "https://app.example.com/topic-covers/life/001.jpg"
+    assert payload["photo"] == "https://app.example.com/topic-covers/life/003.jpg"
     mk: object = payload.get("reply_markup")
     assert isinstance(mk, dict)
     rows: object = mk["inline_keyboard"]
@@ -248,10 +248,35 @@ def test_send_notice_uses_topic_cover_photo_when_base_url_set() -> None:
     post_url: str = str(mock_post.call_args[0][0])
     assert "sendPhoto" in post_url
     payload: dict[str, object] = mock_post.call_args.kwargs["json"]
-    assert payload["photo"] == "https://app.example.com/topic-covers/politics/001.jpg"
+    assert payload["photo"] == "https://app.example.com/topic-covers/politics/008.jpg"
     assert "caption" in payload
     assert "parse_mode" in payload
     assert "reply_markup" in payload
+
+
+def test_send_notice_uses_cover_tag_folder_when_set() -> None:
+    cfg: Settings = Settings(
+        telegram_notifications_enabled=True,
+        telegram_bot_token="TOKEN",
+        telegram_chat_id="999",
+        public_app_base_url="https://app.example.com/",
+    )
+    mock_resp: MagicMock = _mock_telegram_response(ok=True)
+
+    with patch("app.services.telegram_notifier.httpx.post", return_value=mock_resp) as mock_post:
+        send_auto_published_notice(
+            title_ru="t",
+            topic=NewsTopic.LIFE,
+            cover_tag=CoverTag.SPORT,
+            one_sentence_summary="s",
+            source_url="https://x",
+            processed_id=10,
+            app_settings=cfg,
+        )
+
+    payload: dict[str, object] = mock_post.call_args.kwargs["json"]
+    photo: str = str(payload["photo"])
+    assert photo.startswith("https://app.example.com/topic-covers/sport/")
 
 
 def test_topic_cover_photo_failure_falls_back_to_send_message() -> None:

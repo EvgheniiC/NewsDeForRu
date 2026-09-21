@@ -3,7 +3,7 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, Field, field_serializer, model_validator
 
-from app.models.news import ImpactPresentation, NewsTopic, PipelineStatus, SourceUrlStatus, UserRole
+from app.models.news import CoverTag, ImpactPresentation, NewsTopic, PipelineStatus, SourceUrlStatus, UserRole
 from app.utils.berlin_time import to_berlin_iso
 
 # Existing rows can contain a literal "None" from bad model JSON; never expose to clients as text.
@@ -52,6 +52,7 @@ class ProcessedNewsResponse(BaseModel):
     publication_status: PipelineStatus
     read_time_minutes: int
     topic: NewsTopic
+    cover_tag: CoverTag | None = None
     is_urgent: bool
     is_positive: bool
     importance_ai_score: int
@@ -102,6 +103,7 @@ class NewsFeedItem(BaseModel):
     image_url: str | None = None
     read_time_minutes: int
     topic: NewsTopic
+    cover_tag: CoverTag | None = None
     is_urgent: bool
     is_positive: bool
     published_at: datetime
@@ -146,12 +148,18 @@ class NewsMetadataPatchRequest(BaseModel):
     """Partial metadata edit for items in the moderation queue."""
 
     topic: NewsTopic | None = None
+    cover_tag: CoverTag | None = None
     is_urgent: bool | None = None
     is_positive: bool | None = None
 
     @model_validator(mode="after")
     def _require_at_least_one_field(self) -> Self:
-        if self.topic is None and self.is_urgent is None and self.is_positive is None:
+        if (
+            self.topic is None
+            and self.cover_tag is None
+            and self.is_urgent is None
+            and self.is_positive is None
+        ):
             raise ValueError("At least one metadata field must be provided.")
         return self
 

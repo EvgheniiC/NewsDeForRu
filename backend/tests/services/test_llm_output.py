@@ -29,6 +29,7 @@ def _valid_payload() -> dict[str, object]:
         "bonus_block": "факт",
         "spoiler": "интрига",
         "topic": "life",
+        "cover_tag": "family",
         "is_positive": False,
         "confidence_score": 0.9,
         "importance_score": 7,
@@ -123,6 +124,29 @@ def test_parse_llm_news_json_coerces_german_topic_wirtschaft() -> None:
     p["topic"] = "Wirtschaft"
     out: LLMNewsOutput = parse_llm_news_json(json.dumps(p, ensure_ascii=True))
     assert out.topic == "economy"
+
+
+def test_parse_llm_news_json_coerces_cover_tag_sport() -> None:
+    p: dict[str, object] = _valid_payload()
+    p["cover_tag"] = "футбол"
+    out: LLMNewsOutput = parse_llm_news_json(json.dumps(p, ensure_ascii=True))
+    assert out.cover_tag == "sport"
+
+
+def test_parse_llm_news_json_defaults_cover_tag_from_topic() -> None:
+    p: dict[str, object] = _valid_payload()
+    p["topic"] = "economy"
+    p.pop("cover_tag", None)
+    out: LLMNewsOutput = parse_llm_news_json(json.dumps(p, ensure_ascii=True))
+    assert out.cover_tag == "money"
+
+
+def test_parse_llm_news_json_maps_cover_theme_alias() -> None:
+    p: dict[str, object] = _valid_payload()
+    p.pop("cover_tag", None)
+    p["cover_theme"] = "construction"
+    out: LLMNewsOutput = parse_llm_news_json(json.dumps(p, ensure_ascii=True))
+    assert out.cover_tag == "construction"
 
 
 def test_parse_llm_news_json_leaves_empty_action_items_optional_like_bonus_spoiler() -> None:

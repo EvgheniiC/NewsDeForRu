@@ -73,6 +73,7 @@ def run_telegram_digest_for_hour(
             ok: bool = send_scheduled_digest_notice(
                 title_ru=item.title,
                 topic=item.topic,
+                cover_tag=item.cover_tag,
                 one_sentence_summary=item.one_sentence_summary,
                 source_url=item.source_url,
                 source_name=source_name,

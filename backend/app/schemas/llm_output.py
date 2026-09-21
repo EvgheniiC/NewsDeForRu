@@ -2,7 +2,28 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.services.cover_tags import coerce_cover_tag
+
 NewsTopicLiteral = Literal["politics", "economy", "life"]
+CoverTagLiteral = Literal[
+    "government",
+    "elections",
+    "eu",
+    "security",
+    "money",
+    "jobs",
+    "energy",
+    "construction",
+    "transport",
+    "health",
+    "education",
+    "sport",
+    "family",
+    "weather",
+    "culture",
+]
+
+_COVER_TAG_ALIASES: tuple[str, ...] = ("cover_theme", "illustration_tag", "image_tag")
 
 
 def _coerce_topic_for_llm(value: object) -> NewsTopicLiteral:
@@ -155,10 +176,18 @@ def coerce_llm_news_dict_before_validate(
     """
     Fix common LLM JSON mistakes before :class:`LLMNewsOutput` validation.
 
-    Normalizes optional strings and maps topic synonyms onto politics/economy/life.
+    Normalizes optional strings and maps topic / cover_tag synonyms onto closed tokens.
     Missing core Russian fields remain invalid so publisher text is never substituted.
     """
     out: dict[str, Any] = dict(data)
+    if out.get("cover_tag") in (None, ""):
+        for alias_key in _COVER_TAG_ALIASES:
+            alias_val: object | None = out.get(alias_key)
+            if alias_val not in (None, ""):
+                out["cover_tag"] = alias_val
+                break
+    for alias_key in _COVER_TAG_ALIASES:
+        out.pop(alias_key, None)
 
     def _txt(key: str) -> str:
         v: object | None = out.get(key)
@@ -185,6 +214,7 @@ def coerce_llm_news_dict_before_validate(
     out["spoiler"] = spoil[:2000]
 
     out["topic"] = _coerce_topic_for_llm(out.get("topic"))
+    out["cover_tag"] = coerce_cover_tag(out.get("cover_tag"), out["topic"])
     out["is_positive"] = _coerce_is_positive(out.get("is_positive"))
     return out
 
@@ -211,6 +241,10 @@ class LLMNewsOutput(BaseModel):
     topic: NewsTopicLiteral = Field(
         ...,
         description="Primary category: politics, economy, or everyday life in Germany.",
+    )
+    cover_tag: CoverTagLiteral = Field(
+        default="family",
+        description="Illustration folder key; independent of the public feed topic.",
     )
     is_positive: bool = Field(
         ...,
@@ -297,9 +331,14 @@ class LLMNewsOutput(BaseModel):
             "Return exactly one JSON object (no markdown, no extra text) with these keys: "
             "title, one_sentence_summary, plain_language, impact_presentation, impact_unified, "
             "impact_owner, impact_tenant, impact_buyer, action_items, bonus_block, spoiler, "
-            "topic, is_positive, confidence_score, importance_score. "
+            "topic, cover_tag, is_positive, confidence_score, importance_score. "
             "topic MUST be the English token exactly one of: politics, economy, life — "
             "never Russian (e.g. экономика) or German words; pick the story's main angle.\n"
+            "cover_tag MUST be exactly one of: government, elections, eu, security, money, jobs, "
+            "energy, construction, transport, health, education, sport, family, weather, culture. "
+            "cover_tag chooses the illustration, not the feed filter: a housing law can be "
+            "topic=politics and cover_tag=construction; football is topic=life and cover_tag=sport. "
+            "Pick the single most visible scene of the story.\n"
             "Rubric: politics = government, political parties, elections, parliament/Bundestag, "
             "laws in legislative process, ministers, foreign policy, state institutions, diplomacy. "
             "economy = business and markets, companies, stocks, inflation, interest rates, "
@@ -362,6 +401,7 @@ def fallback_after_validation_failure() -> LLMNewsOutput:
         bonus_block="",
         spoiler="",
         topic="life",
+        cover_tag="family",
         is_positive=False,
         confidence_score=0.0,
         importance_score=1,

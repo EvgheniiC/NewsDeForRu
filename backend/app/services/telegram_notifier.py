@@ -11,7 +11,7 @@ import httpx
 
 from app.core.config import Settings, settings
 from app.core.http_tls import httpx_verify_arg
-from app.models.news import NewsTopic
+from app.models.news import CoverTag, NewsTopic
 from app.services.topic_covers import topic_cover_relative_path
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -83,12 +83,17 @@ def _read_in_app_url(cfg: Settings, processed_id: int) -> str | None:
     return f"{base.rstrip('/')}/news/{processed_id}"
 
 
-def _topic_cover_url(cfg: Settings, topic: NewsTopic, news_id: int) -> str | None:
+def _topic_cover_url(
+    cfg: Settings,
+    topic: NewsTopic,
+    news_id: int,
+    cover_tag: CoverTag | None = None,
+) -> str | None:
     """Public HTTPS URL for a stable topic-pool cover (same assets as the frontend)."""
     base: str = cfg.public_app_base_url.strip()
     if not base:
         return None
-    path: str | None = topic_cover_relative_path(topic, news_id)
+    path: str | None = topic_cover_relative_path(topic, news_id, cover_tag=cover_tag)
     if path is None:
         return None
     return f"{base.rstrip('/')}{path}"
@@ -246,6 +251,7 @@ def _post_telegram_payload(
     topic: NewsTopic,
     processed_id: int,
     cfg: Settings,
+    cover_tag: CoverTag | None = None,
 ) -> bool:
     token: str = cfg.telegram_bot_token.strip()
     chat_id: str = cfg.telegram_chat_id.strip()
@@ -263,7 +269,7 @@ def _post_telegram_payload(
     )
 
     # App topic stock covers (not publisher photos). Requires PUBLIC_APP_BASE_URL.
-    photo_url: str | None = _topic_cover_url(cfg, topic, processed_id)
+    photo_url: str | None = _topic_cover_url(cfg, topic, processed_id, cover_tag=cover_tag)
     if photo_url is not None:
         photo_api: str = f"https://api.telegram.org/bot{token}/sendPhoto"
         payload_photo: dict[str, object] = {
@@ -312,6 +318,7 @@ def _retrying_post_telegram_payload(
     max_attempts: int,
     base_delay: float,
     context: str,
+    cover_tag: CoverTag | None = None,
 ) -> bool:
     """Full transport retries (e.g. moderation / digest) after failed HTTP or ok=false."""
     for attempt in range(max_attempts):
@@ -320,6 +327,7 @@ def _retrying_post_telegram_payload(
             topic=topic,
             processed_id=processed_id,
             cfg=cfg,
+            cover_tag=cover_tag,
         ):
             return True
         if attempt < max_attempts - 1:
@@ -345,6 +353,7 @@ def send_auto_published_notice(
     processed_id: int,
     source_name: str = "",
     changes_notice: str = "",
+    cover_tag: CoverTag | None = None,
     app_settings: Settings | None = None,
     use_urgent_retries: bool = False,
 ) -> bool:
@@ -366,7 +375,7 @@ def send_auto_published_notice(
 
     for attempt in range(attempts):
         ok: bool = _post_telegram_payload(
-            text=text, topic=topic, processed_id=processed_id, cfg=cfg
+            text=text, topic=topic, processed_id=processed_id, cfg=cfg, cover_tag=cover_tag
         )
         if ok:
             return True
@@ -393,6 +402,7 @@ def send_scheduled_digest_notice(
     slot_hour: int,
     source_name: str = "",
     changes_notice: str = "",
+    cover_tag: CoverTag | None = None,
     app_settings: Settings | None = None,
 ) -> bool:
     """Non-urgent auto-publish digest slot (e.g. 7:00 / 15:00 / 20:00)."""
@@ -417,6 +427,7 @@ def send_scheduled_digest_notice(
         max_attempts=cfg.telegram_digest_send_max_attempts,
         base_delay=cfg.telegram_digest_send_retry_base_seconds,
         context="digest",
+        cover_tag=cover_tag,
     )
 
 
@@ -429,6 +440,7 @@ def send_moderation_approved_notice(
     processed_id: int,
     source_name: str = "",
     changes_notice: str = "",
+    cover_tag: CoverTag | None = None,
     app_settings: Settings | None = None,
 ) -> bool:
     """Notify Telegram right after moderator approval (same channel/settings as autopublish)."""
@@ -452,6 +464,7 @@ def send_moderation_approved_notice(
         max_attempts=cfg.telegram_moderation_send_max_attempts,
         base_delay=cfg.telegram_moderation_send_retry_base_seconds,
         context="moderation",
+        cover_tag=cover_tag,
     )
 
 

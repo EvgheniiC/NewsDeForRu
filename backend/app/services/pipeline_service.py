@@ -6,7 +6,7 @@ from datetime import timedelta
 
 from app.core.config import settings as app_settings
 from app.core.database import SessionLocal
-from app.models.news import ImpactPresentation, NewsTopic, PipelineStatus, ProcessedNews, RawNewsItem
+from app.models.news import CoverTag, ImpactPresentation, NewsTopic, PipelineStatus, ProcessedNews, RawNewsItem
 from app.repositories.news_repository import NewsRepository
 from app.schemas.llm_output import fallback_after_validation_failure, is_validation_fallback
 from app.schemas.news import PipelineItemErrorDetail, PipelineRunResponse
@@ -297,6 +297,7 @@ class PipelineService:
                 needs_review += 1
 
             topic: NewsTopic = NewsTopic(llm_output.topic)
+            cover_tag: CoverTag = CoverTag(llm_output.cover_tag)
             is_urgent: bool = ev_is_urgent_news(
                 raw_item.title,
                 raw_item.summary,
@@ -337,6 +338,7 @@ class PipelineService:
                 publication_status=publication_status,
                 read_time_minutes=2,
                 topic=topic,
+                cover_tag=cover_tag,
                 is_urgent=is_urgent,
                 is_positive=llm_output.is_positive,
             )
@@ -347,6 +349,7 @@ class PipelineService:
                         urgent_id: int = saved.id
                         urgent_title: str = saved.title
                         urgent_topic: NewsTopic = saved.topic
+                        urgent_cover_tag: CoverTag | None = saved.cover_tag
                         urgent_summary: str = saved.one_sentence_summary
                         urgent_source_url: str = saved.source_url
                         urgent_source_name: str = raw_item.source.name
@@ -357,6 +360,7 @@ class PipelineService:
                                 sent_bg: bool = send_auto_published_notice(
                                     title_ru=urgent_title,
                                     topic=urgent_topic,
+                                    cover_tag=urgent_cover_tag,
                                     one_sentence_summary=urgent_summary,
                                     source_url=urgent_source_url,
                                     source_name=urgent_source_name,
@@ -383,6 +387,7 @@ class PipelineService:
                         sent_breaking: bool = send_auto_published_notice(
                             title_ru=saved.title,
                             topic=saved.topic,
+                            cover_tag=saved.cover_tag,
                             one_sentence_summary=saved.one_sentence_summary,
                             source_url=saved.source_url,
                             source_name=raw_item.source.name,

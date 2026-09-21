@@ -7,7 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Final
 
-from app.models.news import NewsTopic
+from app.models.news import CoverTag, NewsTopic
 
 _MANIFEST_PATH: Final[Path] = (
     Path(__file__).resolve().parent.parent / "data" / "topic_covers_manifest.json"
@@ -29,10 +29,23 @@ def _load_manifest() -> dict[str, tuple[str, ...]]:
     return out
 
 
-def topic_cover_relative_path(topic: NewsTopic, news_id: int) -> str | None:
-    """Stable cover path for a news item, e.g. ``/topic-covers/life/001.jpg``."""
-    files: tuple[str, ...] | None = _load_manifest().get(topic.value)
+def topic_cover_relative_path(
+    topic: NewsTopic,
+    news_id: int,
+    cover_tag: CoverTag | None = None,
+) -> str | None:
+    """Stable cover path, preferring the illustration tag folder over the feed topic."""
+    manifest: dict[str, tuple[str, ...]] = _load_manifest()
+    pool_key: str = topic.value
+    if cover_tag is not None:
+        tag_key: str = cover_tag.value
+        if tag_key in manifest:
+            pool_key = tag_key
+    files: tuple[str, ...] | None = manifest.get(pool_key)
+    if not files:
+        pool_key = topic.value
+        files = manifest.get(pool_key)
     if not files:
         return None
     index: int = abs(int(news_id)) % len(files)
-    return f"/topic-covers/{topic.value}/{files[index]}"
+    return f"/topic-covers/{pool_key}/{files[index]}"

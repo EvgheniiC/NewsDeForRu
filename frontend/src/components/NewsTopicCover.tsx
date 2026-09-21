@@ -1,9 +1,10 @@
 import { TOPIC_COVER_AI_DISCLAIMER_RU, newsTopicCoverSrc } from "../lib/topicCovers";
-import type { NewsTopic } from "../types/news";
+import type { CoverTag, NewsTopic } from "../types/news";
 
 interface NewsTopicCoverProps {
   topic: NewsTopic;
   newsId: number;
+  coverTag?: CoverTag | null;
   /** ``card`` for feed/moderation; ``detail`` for the article page. */
   variant?: "card" | "detail";
 }
@@ -12,6 +13,7 @@ interface NewsTopicCoverProps {
 export function NewsTopicCover({
   topic,
   newsId,
+  coverTag = null,
   variant = "card"
 }: NewsTopicCoverProps): JSX.Element {
   const imageClass: string = variant === "detail" ? "news-detail-image" : "news-card-image";
@@ -20,7 +22,13 @@ export function NewsTopicCover({
 
   return (
     <figure className={wrapClass}>
-      <img alt="" className={imageClass} decoding="async" loading="lazy" src={newsTopicCoverSrc(topic, newsId)} />
+      <img
+        alt=""
+        className={imageClass}
+        decoding="async"
+        loading="lazy"
+        src={newsTopicCoverSrc(topic, newsId, coverTag)}
+      />
       <figcaption className="news-topic-cover__disclaimer">{TOPIC_COVER_AI_DISCLAIMER_RU}</figcaption>
     </figure>
   );

@@ -1,5 +1,40 @@
 export type NewsTopic = "politics" | "economy" | "life";
 
+export type CoverTag =
+  | "government"
+  | "elections"
+  | "eu"
+  | "security"
+  | "money"
+  | "jobs"
+  | "energy"
+  | "construction"
+  | "transport"
+  | "health"
+  | "education"
+  | "sport"
+  | "family"
+  | "weather"
+  | "culture";
+
+export const COVER_TAGS: readonly CoverTag[] = [
+  "government",
+  "elections",
+  "eu",
+  "security",
+  "money",
+  "jobs",
+  "energy",
+  "construction",
+  "transport",
+  "health",
+  "education",
+  "sport",
+  "family",
+  "weather",
+  "culture"
+] as const;
+
 /** Human-readable topic label for the UI (Russian). */
 export function newsTopicLabelRu(topic: NewsTopic): string {
   switch (topic) {
@@ -11,6 +46,46 @@ export function newsTopicLabelRu(topic: NewsTopic): string {
       return "Жизнь";
     default: {
       const _exhaustive: never = topic;
+      return _exhaustive;
+    }
+  }
+}
+
+/** Human-readable illustration tag for moderation (Russian). */
+export function coverTagLabelRu(tag: CoverTag): string {
+  switch (tag) {
+    case "government":
+      return "Правительство";
+    case "elections":
+      return "Выборы";
+    case "eu":
+      return "ЕС";
+    case "security":
+      return "Безопасность";
+    case "money":
+      return "Финансы";
+    case "jobs":
+      return "Работа";
+    case "energy":
+      return "Энергетика";
+    case "construction":
+      return "Стройка и жильё";
+    case "transport":
+      return "Транспорт";
+    case "health":
+      return "Здоровье";
+    case "education":
+      return "Образование";
+    case "sport":
+      return "Спорт";
+    case "family":
+      return "Семья и быт";
+    case "weather":
+      return "Погода";
+    case "culture":
+      return "Культура";
+    default: {
+      const _exhaustive: never = tag;
       return _exhaustive;
     }
   }
@@ -48,6 +123,7 @@ export interface NewsFeedItem {
   image_url?: string | null;
   read_time_minutes: number;
   topic: NewsTopic;
+  cover_tag?: CoverTag | null;
   is_urgent: boolean;
   is_positive: boolean;
   published_at: string;
@@ -81,6 +157,7 @@ export interface ProcessedNews {
   publication_status: string;
   read_time_minutes: number;
   topic: NewsTopic;
+  cover_tag?: CoverTag | null;
   is_urgent: boolean;
   is_positive: boolean;
   published_at: string;
@@ -107,6 +184,7 @@ export function processedNewsToFeedItem(p: ProcessedNews): NewsFeedItem {
     image_url: p.image_url ?? null,
     read_time_minutes: p.read_time_minutes,
     topic: p.topic,
+    cover_tag: p.cover_tag ?? null,
     is_urgent: p.is_urgent,
     is_positive: p.is_positive,
     published_at: p.published_at,

@@ -42,6 +42,26 @@ class NewsTopic(StrEnum):
     LIFE = "life"
 
 
+class CoverTag(StrEnum):
+    """Illustration pool key (not a public feed filter)."""
+
+    GOVERNMENT = "government"
+    ELECTIONS = "elections"
+    EU = "eu"
+    SECURITY = "security"
+    MONEY = "money"
+    JOBS = "jobs"
+    ENERGY = "energy"
+    CONSTRUCTION = "construction"
+    TRANSPORT = "transport"
+    HEALTH = "health"
+    EDUCATION = "education"
+    SPORT = "sport"
+    FAMILY = "family"
+    WEATHER = "weather"
+    CULTURE = "culture"
+
+
 class FeedPeriod(StrEnum):
     """Calendar windows in Europe/Berlin for list filters."""
 
@@ -187,6 +207,16 @@ class ProcessedNews(Base):
         ),
         default=NewsTopic.LIFE,
         nullable=False,
+    )
+    cover_tag: Mapped[CoverTag | None] = mapped_column(
+        Enum(
+            CoverTag,
+            native_enum=False,
+            length=32,
+            values_callable=lambda t: [m.value for m in t],
+        ),
+        default=None,
+        nullable=True,
     )
     is_urgent: Mapped[bool] = mapped_column(default=False, nullable=False)
     is_positive: Mapped[bool] = mapped_column(default=False, nullable=False)

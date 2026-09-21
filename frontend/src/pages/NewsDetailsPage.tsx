@@ -165,7 +165,7 @@ export function NewsDetailsPage(): JSX.Element {
           </div>
         ) : null}
         <h1>{news.title}</h1>
-        <NewsTopicCover newsId={news.id} topic={news.topic} variant="detail" />
+        <NewsTopicCover coverTag={news.cover_tag} newsId={news.id} topic={news.topic} variant="detail" />
         <NewsArticleBody news={news} />
       </article>
       <p className="news-detail-category">

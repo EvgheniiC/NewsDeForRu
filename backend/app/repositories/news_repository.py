@@ -10,6 +10,7 @@ import numpy as np
 from app.core.config import settings
 from app.models.news import (
     ClusterItem,
+    CoverTag,
     ModerationEvent,
     NewsCluster,
     NewsTopic,
@@ -634,11 +635,12 @@ class NewsRepository:
         news_id: int,
         *,
         topic: NewsTopic | None = None,
+        cover_tag: CoverTag | None = None,
         is_urgent: bool | None = None,
         is_positive: bool | None = None,
         user_id: int | None = None,
     ) -> ProcessedNews | None:
-        """Update topic/flags for a processed item and record an audit row when values change."""
+        """Update topic/cover/flags for a processed item and record an audit row when values change."""
         processed: ProcessedNews | None = self.get_processed_by_id(news_id)
         if processed is None:
             return None
@@ -646,6 +648,9 @@ class NewsRepository:
         changed: bool = False
         if topic is not None and processed.topic != topic:
             processed.topic = topic
+            changed = True
+        if cover_tag is not None and processed.cover_tag != cover_tag:
+            processed.cover_tag = cover_tag
             changed = True
         if is_urgent is not None and processed.is_urgent != is_urgent:
             processed.is_urgent = is_urgent

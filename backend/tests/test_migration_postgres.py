@@ -132,6 +132,7 @@ def test_alembic_upgrade_creates_expected_schema(postgres_test_db_url: str) -> N
             "source_url_status",
             "source_url_checked_at",
             "source_url_http_status",
+            "cover_tag",
             "original_title",
             "original_language",
             "licence",
@@ -157,7 +158,7 @@ def test_alembic_upgrade_creates_expected_schema(postgres_test_db_url: str) -> N
         with engine.connect() as connection:
             version_rows = connection.execute(text("SELECT version_num FROM alembic_version")).all()
         assert len(version_rows) == 1
-        assert version_rows[0][0] == "20260802_02"
+        assert version_rows[0][0] == "20260919_01"
 
         moderation_cols: set[str] = {
             column["name"] for column in inspector.get_columns("moderation_events")
