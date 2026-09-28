@@ -6,6 +6,16 @@ from app.services.rss_sources import (
 )
 
 
+def test_pending_permission_source_stays_blocked() -> None:
+    assert not is_source_allowed_for_publication(
+        "ausnews",
+        rights_verified=True,
+        enabled_source_keys="ausnews",
+        allow_unverified=True,
+    )
+    assert allowed_rss_source_keys("ausnews", allow_unverified=True) == frozenset()
+
+
 def test_allowed_rss_source_keys_fail_closed() -> None:
     assert allowed_rss_source_keys("") == frozenset()
     assert allowed_rss_source_keys("welt,die_zeit") == frozenset()

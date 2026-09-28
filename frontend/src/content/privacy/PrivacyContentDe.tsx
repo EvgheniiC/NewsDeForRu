@@ -69,8 +69,8 @@ export function PrivacyContentDe(): JSX.Element {
               <td>Art. 6 Abs. 1 lit. b</td>
             </tr>
             <tr>
-              <td>GMX SMTP (mail.gmx.net)</td>
-              <td>Reset-E-Mail</td>
+              <td>SMTP noreply@simplenewsapp.de</td>
+              <td>Bestätigung und Passwort-Reset</td>
               <td>Art. 6 Abs. 1 lit. b</td>
             </tr>
             <tr>
@@ -124,7 +124,7 @@ export function PrivacyContentDe(): JSX.Element {
       <h2>6. Auftragsverarbeiter</h2>
       <ul>
         <li>Hosting / DB — {legal.hostingCountry}.</li>
-        <li>OpenAI (USA), Telegram, GMX — siehe Tabelle.</li>
+        <li>OpenAI (USA), Telegram; E-Mail noreply@simplenewsapp.de — siehe Tabelle.</li>
         <li>Sentry / Prometheus — derzeit deaktiviert.</li>
       </ul>
 

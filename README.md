@@ -176,7 +176,7 @@ Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (push/PR на `
 
 ## Конфиденциальность и Impressum (EU / DE)
 
-- `/privacy` — Datenschutzerklärung (OpenAI, Telegram, GMX SMTP, хостинг DE, аналитика по согласию).
+- `/privacy` — Datenschutzerklärung (OpenAI, Telegram, SMTP noreply@simplenewsapp.de, хостинг DE, аналитика по согласию).
 - `/impressum` — § 5 TMG (физлицо; данные из `VITE_LEGAL_*` в `frontend/.env`).
 - Баннер согласия на engagement-аналитику (TTDSG) до отправки событий на `/engagement/events`.
 - Шаблон и чеклист: [`docs/privacy-EU-DE.md`](docs/privacy-EU-DE.md), пример env: [`frontend/.env.example`](frontend/.env.example).

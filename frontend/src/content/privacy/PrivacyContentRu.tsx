@@ -69,8 +69,8 @@ export function PrivacyContentRu(): JSX.Element {
               <td>Договор (b)</td>
             </tr>
             <tr>
-              <td>GMX SMTP (mail.gmx.net)</td>
-              <td>Письмо со ссылкой сброса</td>
+              <td>SMTP noreply@simplenewsapp.de</td>
+              <td>Подтверждение почты и сброс пароля</td>
               <td>Договор (b)</td>
             </tr>
             <tr>
@@ -124,7 +124,7 @@ export function PrivacyContentRu(): JSX.Element {
       <h2>6. Обработчики (субподрядчики)</h2>
       <ul>
         <li>Хостинг / БД — {legal.hostingCountry}.</li>
-        <li>OpenAI (США), Telegram, GMX.</li>
+        <li>OpenAI (США), Telegram; почта noreply@simplenewsapp.de.</li>
         <li>Sentry / Prometheus — сейчас выключены.</li>
       </ul>
 

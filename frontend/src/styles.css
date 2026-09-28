@@ -1058,10 +1058,15 @@ a:visited {
 
 .moderation-metadata-form {
   margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border-subtle);
   display: grid;
   gap: 10px;
+}
+
+.moderation-metadata-section {
+  display: grid;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
 }
 
 .moderation-metadata-label {
@@ -1077,14 +1082,39 @@ a:visited {
   font-size: 0.9rem;
 }
 
-.moderation-metadata-field select {
+.moderation-metadata-field-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.moderation-metadata-counter {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.moderation-metadata-field select,
+.moderation-metadata-field input,
+.moderation-metadata-field textarea {
   width: 100%;
-  max-width: 16rem;
-  padding: 6px 8px;
+  padding: 8px 10px;
   border-radius: 8px;
   border: 1px solid var(--border-subtle);
   background: var(--bg-card);
   color: var(--text-primary);
+  font: inherit;
+}
+
+.moderation-metadata-field select {
+  max-width: 16rem;
+  padding: 6px 8px;
+}
+
+.moderation-metadata-field textarea {
+  resize: vertical;
+  min-height: 5.5rem;
+  line-height: 1.45;
 }
 
 .moderation-metadata-checkbox {

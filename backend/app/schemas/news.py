@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal, Self
 
-from pydantic import BaseModel, Field, field_serializer, model_validator
+from pydantic import BaseModel, Field, field_serializer, field_validator, model_validator
 
 from app.models.news import CoverTag, ImpactPresentation, NewsTopic, PipelineStatus, SourceUrlStatus, UserRole
 from app.utils.berlin_time import to_berlin_iso
@@ -144,13 +144,30 @@ class ModerationActionRequest(BaseModel):
     action: Literal["approve", "reject"]
 
 
+MODERATION_TITLE_MAX_LENGTH: int = 300
+MODERATION_SUMMARY_MAX_LENGTH: int = 2000
+
+
 class NewsMetadataPatchRequest(BaseModel):
-    """Partial metadata edit for items in the moderation queue."""
+    """Partial copy and metadata edit for items in the moderation queue."""
 
     topic: NewsTopic | None = None
     cover_tag: CoverTag | None = None
     is_urgent: bool | None = None
     is_positive: bool | None = None
+    title: str | None = Field(default=None, min_length=1, max_length=MODERATION_TITLE_MAX_LENGTH)
+    one_sentence_summary: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=MODERATION_SUMMARY_MAX_LENGTH,
+    )
+
+    @field_validator("title", "one_sentence_summary", mode="before")
+    @classmethod
+    def _strip_copy(cls, value: object) -> object:
+        if isinstance(value, str):
+            return value.strip()
+        return value
 
     @model_validator(mode="after")
     def _require_at_least_one_field(self) -> Self:
@@ -159,8 +176,10 @@ class NewsMetadataPatchRequest(BaseModel):
             and self.cover_tag is None
             and self.is_urgent is None
             and self.is_positive is None
+            and self.title is None
+            and self.one_sentence_summary is None
         ):
-            raise ValueError("At least one metadata field must be provided.")
+            raise ValueError("At least one field must be provided.")
         return self
 
 

@@ -638,9 +638,11 @@ class NewsRepository:
         cover_tag: CoverTag | None = None,
         is_urgent: bool | None = None,
         is_positive: bool | None = None,
+        title: str | None = None,
+        one_sentence_summary: str | None = None,
         user_id: int | None = None,
     ) -> ProcessedNews | None:
-        """Update topic/cover/flags for a processed item and record an audit row when values change."""
+        """Update copy, topic, cover, and flags; record an audit row when values change."""
         processed: ProcessedNews | None = self.get_processed_by_id(news_id)
         if processed is None:
             return None
@@ -657,6 +659,12 @@ class NewsRepository:
             changed = True
         if is_positive is not None and processed.is_positive != is_positive:
             processed.is_positive = is_positive
+            changed = True
+        if title is not None and processed.title != title:
+            processed.title = title
+            changed = True
+        if one_sentence_summary is not None and processed.one_sentence_summary != one_sentence_summary:
+            processed.one_sentence_summary = one_sentence_summary
             changed = True
 
         if not changed:

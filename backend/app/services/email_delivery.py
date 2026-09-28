@@ -116,7 +116,7 @@ def try_send_transactional_email(
         return True
     except smtplib.SMTPAuthenticationError:
         _logger.exception(
-            "transactional_email_auth_failed context=%s to=%s hint=check SMTP_USER/SMTP_PASSWORD (GMX: app password)",
+            "transactional_email_auth_failed context=%s to=%s hint=check SMTP_USER/SMTP_PASSWORD",
             log_context,
             to_address,
         )

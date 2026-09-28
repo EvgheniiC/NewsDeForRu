@@ -293,6 +293,8 @@ export interface NewsMetadataPatch {
   cover_tag?: CoverTag;
   is_urgent?: boolean;
   is_positive?: boolean;
+  title?: string;
+  one_sentence_summary?: string;
 }
 
 export async function patchNewsMetadata(

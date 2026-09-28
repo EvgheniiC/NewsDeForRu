@@ -37,7 +37,7 @@ def patch_news_metadata(
     if before.publication_status != PipelineStatus.NEEDS_REVIEW:
         raise HTTPException(
             status_code=409,
-            detail="Metadata can only be edited while the item is in the moderation queue.",
+            detail="Copy and metadata can only be edited while the item is in the moderation queue.",
         )
 
     item: ProcessedNews | None = repository.update_processed_metadata(
@@ -46,6 +46,8 @@ def patch_news_metadata(
         cover_tag=request.cover_tag,
         is_urgent=request.is_urgent,
         is_positive=request.is_positive,
+        title=request.title,
+        one_sentence_summary=request.one_sentence_summary,
         user_id=actor.id,
     )
     if item is None:

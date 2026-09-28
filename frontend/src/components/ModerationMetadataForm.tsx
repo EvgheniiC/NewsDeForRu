@@ -10,6 +10,8 @@ import {
 import { NewsTopicCover } from "./NewsTopicCover";
 
 const TOPIC_OPTIONS: readonly NewsTopic[] = ["politics", "economy", "life"] as const;
+const TITLE_MAX_LENGTH: number = 300;
+const SUMMARY_MAX_LENGTH: number = 2000;
 
 interface CoverTagGroup {
   label: string;
@@ -23,6 +25,8 @@ const COVER_TAG_GROUPS: readonly CoverTagGroup[] = [
 ] as const;
 
 export interface NewsMetadataDraft {
+  title: string;
+  one_sentence_summary: string;
   topic: NewsTopic;
   cover_tag: CoverTag;
   is_urgent: boolean;
@@ -50,6 +54,8 @@ function defaultCoverTag(item: ProcessedNews): CoverTag {
 
 function draftFromItem(item: ProcessedNews): NewsMetadataDraft {
   return {
+    title: item.title,
+    one_sentence_summary: item.one_sentence_summary,
     topic: item.topic,
     cover_tag: defaultCoverTag(item),
     is_urgent: item.is_urgent,
@@ -59,6 +65,8 @@ function draftFromItem(item: ProcessedNews): NewsMetadataDraft {
 
 function draftsEqual(left: NewsMetadataDraft, right: NewsMetadataDraft): boolean {
   return (
+    left.title.trim() === right.title.trim() &&
+    left.one_sentence_summary.trim() === right.one_sentence_summary.trim() &&
     left.topic === right.topic &&
     left.cover_tag === right.cover_tag &&
     left.is_urgent === right.is_urgent &&
@@ -87,12 +95,26 @@ export function ModerationMetadataForm({
     if (!isDirty) {
       return;
     }
+    const title: string = draft.title.trim();
+    const oneSentenceSummary: string = draft.one_sentence_summary.trim();
+    if (title.length === 0) {
+      setSaveError("Заголовок не может быть пустым.");
+      return;
+    }
+    if (oneSentenceSummary.length === 0) {
+      setSaveError("Краткое описание не может быть пустым.");
+      return;
+    }
     setSaving(true);
     setSaveError("");
     try {
-      await onSave(item.id, draft);
+      await onSave(item.id, {
+        ...draft,
+        title,
+        one_sentence_summary: oneSentenceSummary
+      });
     } catch (error: unknown) {
-      setSaveError(error instanceof Error ? error.message : "Не удалось сохранить метки.");
+      setSaveError(error instanceof Error ? error.message : "Не удалось сохранить изменения.");
     } finally {
       setSaving(false);
     }
@@ -100,81 +122,124 @@ export function ModerationMetadataForm({
 
   return (
     <div className="moderation-metadata-form">
-      <p className="moderation-metadata-label">Метки перед публикацией</p>
-      <NewsTopicCover coverTag={draft.cover_tag} newsId={item.id} topic={draft.topic} variant="card" />
       <label className="moderation-metadata-field">
-        <span>Категория</span>
-        <select
-          disabled={disabled || saving}
-          onChange={(event: React.ChangeEvent<HTMLSelectElement>) =>
-            setDraft((current: NewsMetadataDraft) => ({
-              ...current,
-              topic: event.target.value as NewsTopic
-            }))
-          }
-          value={draft.topic}
-        >
-          {TOPIC_OPTIONS.map((topic: NewsTopic) => (
-            <option key={topic} value={topic}>
-              {newsTopicLabelRu(topic)}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="moderation-metadata-field">
-        <span>Иллюстрация</span>
-        <select
-          disabled={disabled || saving}
-          onChange={(event: React.ChangeEvent<HTMLSelectElement>) =>
-            setDraft((current: NewsMetadataDraft) => ({
-              ...current,
-              cover_tag: event.target.value as CoverTag
-            }))
-          }
-          value={draft.cover_tag}
-        >
-          {COVER_TAG_GROUPS.map((group: CoverTagGroup) => (
-            <optgroup key={group.label} label={group.label}>
-              {group.tags.map((tag: CoverTag) => (
-                <option key={tag} value={tag}>
-                  {coverTagLabelRu(tag)}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
-      </label>
-      <label className="moderation-metadata-checkbox">
+        <span className="moderation-metadata-field-head">
+          Заголовок
+          <span className="moderation-metadata-counter">
+            {draft.title.length}/{TITLE_MAX_LENGTH}
+          </span>
+        </span>
         <input
-          checked={draft.is_urgent}
+          autoComplete="off"
           disabled={disabled || saving}
+          maxLength={TITLE_MAX_LENGTH}
           onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
             setDraft((current: NewsMetadataDraft) => ({
               ...current,
-              is_urgent: event.target.checked
+              title: event.target.value
             }))
           }
-          type="checkbox"
+          type="text"
+          value={draft.title}
         />
-        <span>Срочная</span>
       </label>
-      <label className="moderation-metadata-checkbox">
-        <input
-          checked={draft.is_positive}
+      <label className="moderation-metadata-field">
+        <span className="moderation-metadata-field-head">
+          Краткое описание
+          <span className="moderation-metadata-counter">
+            {draft.one_sentence_summary.length}/{SUMMARY_MAX_LENGTH}
+          </span>
+        </span>
+        <textarea
           disabled={disabled || saving}
-          onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+          maxLength={SUMMARY_MAX_LENGTH}
+          onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
             setDraft((current: NewsMetadataDraft) => ({
               ...current,
-              is_positive: event.target.checked
+              one_sentence_summary: event.target.value
             }))
           }
-          type="checkbox"
+          rows={4}
+          value={draft.one_sentence_summary}
         />
-        <span>Позитивная</span>
       </label>
+      <div className="moderation-metadata-section">
+        <p className="moderation-metadata-label">Метки перед публикацией</p>
+        <NewsTopicCover coverTag={draft.cover_tag} newsId={item.id} topic={draft.topic} variant="card" />
+        <label className="moderation-metadata-field">
+          <span>Категория</span>
+          <select
+            disabled={disabled || saving}
+            onChange={(event: React.ChangeEvent<HTMLSelectElement>) =>
+              setDraft((current: NewsMetadataDraft) => ({
+                ...current,
+                topic: event.target.value as NewsTopic
+              }))
+            }
+            value={draft.topic}
+          >
+            {TOPIC_OPTIONS.map((topic: NewsTopic) => (
+              <option key={topic} value={topic}>
+                {newsTopicLabelRu(topic)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="moderation-metadata-field">
+          <span>Иллюстрация</span>
+          <select
+            disabled={disabled || saving}
+            onChange={(event: React.ChangeEvent<HTMLSelectElement>) =>
+              setDraft((current: NewsMetadataDraft) => ({
+                ...current,
+                cover_tag: event.target.value as CoverTag
+              }))
+            }
+            value={draft.cover_tag}
+          >
+            {COVER_TAG_GROUPS.map((group: CoverTagGroup) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.tags.map((tag: CoverTag) => (
+                  <option key={tag} value={tag}>
+                    {coverTagLabelRu(tag)}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </label>
+        <label className="moderation-metadata-checkbox">
+          <input
+            checked={draft.is_urgent}
+            disabled={disabled || saving}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+              setDraft((current: NewsMetadataDraft) => ({
+                ...current,
+                is_urgent: event.target.checked
+              }))
+            }
+            type="checkbox"
+          />
+          <span>Срочная</span>
+        </label>
+        <label className="moderation-metadata-checkbox">
+          <input
+            checked={draft.is_positive}
+            disabled={disabled || saving}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+              setDraft((current: NewsMetadataDraft) => ({
+                ...current,
+                is_positive: event.target.checked
+              }))
+            }
+            type="checkbox"
+          />
+          <span>Позитивная</span>
+        </label>
+      </div>
       <div className="moderation-metadata-actions">
         <button disabled={disabled || saving || !isDirty} onClick={() => void handleSave()} type="button">
-          {saving ? "Сохранение…" : "Сохранить метки"}
+          {saving ? "Сохранение…" : "Сохранить"}
         </button>
         <span className={newsTopicChipClass(draft.topic)}>{newsTopicLabelRu(draft.topic)}</span>
         <span className="moderation-cover-tag-chip">{coverTagLabelRu(draft.cover_tag)}</span>

@@ -27,7 +27,7 @@ Impressum: `/impressum` · Live-Text: `/privacy`
 | SQLite/DB auf Server **DE** (RSS, Artikel, Embeddings, Moderation) | News-Pipeline | Art. 6 Abs. 1 lit. f |
 | **OpenAI** (`LLM_PROVIDER=openai`, gpt-4o-mini, api.openai.com) | Zusammenfassung, Übersetzung, Relevanz | Art. 6 Abs. 1 lit. f; USA — SCC Anbieter |
 | **Telegram** (`TELEGRAM_NOTIFICATIONS_ENABLED`) | Kanal-Benachrichtigungen | Art. 6 Abs. 1 lit. f |
-| **GMX SMTP** (mail.gmx.net) | Passwort-Reset-E-Mail | Art. 6 Abs. 1 lit. b |
+| **SMTP** noreply@simplenewsapp.de | Bestätigung und Passwort-Reset | Art. 6 Abs. 1 lit. b |
 | Konto: E-Mail, Passwort-Hash, Refresh-Token | Login, Registrierung | Art. 6 Abs. 1 lit. b |
 | Engagement: `anonymous_user_id`, `session_id`, Events | Nutzungsstatistik | **Art. 6 Abs. 1 lit. a** (Banner) |
 | JWT `newsfr.auth.*` in localStorage | Sitzung | Art. 6 Abs. 1 lit. b / f |
@@ -52,7 +52,7 @@ Impressum: `/impressum` · Live-Text: `/privacy`
 1. **Hosting VPS/Server — Deutschland** (Application + Datenbank).
 2. **OpenAI, L.L.C.** (USA) — Textverarbeitung.
 3. **Telegram** — Bot-API für Veröffentlichungskanal.
-4. **GMX (1&1 Mail)** — transaktionale E-Mails.
+4. **E-Mail** noreply@simplenewsapp.de — transaktionale E-Mails. Kontakt: support@simplenewsapp.de.
 
 Keine aktive Nutzung: Sentry, öffentliches Prometheus.
 
@@ -93,6 +93,6 @@ Separat unter `/impressum` — gleiche Kontaktdaten wie oben.
 - [ ] `VITE_LEGAL_*` in Production-Build gesetzt
 - [ ] Impressum zeigt vollständige Anschrift
 - [ ] Consent-Banner getestet (Akzeptieren / Ablehnen / Widerruf auf `/privacy`)
-- [ ] AV-Verträge mit Hoster, OpenAI, GMX (soweit erforderlich)
+- [ ] AV-Verträge mit Hoster, OpenAI und dem Mailserver für @simplenewsapp.de (soweit erforderlich)
 - [ ] Keine Secrets in Git (`.env` nur lokal)
 - [ ] Google Play Data safety + Apple App Privacy ausgefüllt — siehe [`store-privacy-forms.md`](store-privacy-forms.md)

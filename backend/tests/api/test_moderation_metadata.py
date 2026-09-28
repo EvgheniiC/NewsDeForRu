@@ -188,6 +188,75 @@ def test_patch_metadata_requires_moderator(api_client: TestClient) -> None:
     assert response.status_code == 403
 
 
+def test_patch_metadata_updates_title_and_summary(
+    api_client: TestClient,
+    bearer_ops_headers: dict[str, str],
+) -> None:
+    news_id: int = _create_needs_review_item(guid="meta-copy-1")
+
+    response = api_client.patch(
+        f"/moderation/{news_id}/metadata",
+        headers=bearer_ops_headers,
+        json={
+            "title": "  Исправленный заголовок  ",
+            "one_sentence_summary": " Точный перевод одной фразой. ",
+        },
+    )
+    assert response.status_code == 200
+    body: dict[str, object] = response.json()
+    assert body["title"] == "Исправленный заголовок"
+    assert body["one_sentence_summary"] == "Точный перевод одной фразой."
+
+    with SessionLocal() as db:
+        row: ProcessedNews | None = db.get(ProcessedNews, news_id)
+        assert row is not None
+        assert row.title == "Исправленный заголовок"
+        assert row.one_sentence_summary == "Точный перевод одной фразой."
+        events: list[ModerationEvent] = list(
+            db.execute(
+                select(ModerationEvent).where(
+                    ModerationEvent.processed_news_id == news_id,
+                    ModerationEvent.action == "metadata_update",
+                )
+            ).scalars()
+        )
+        assert len(events) == 1
+
+
+def test_patch_metadata_rejects_blank_or_too_long_copy(
+    api_client: TestClient,
+    bearer_ops_headers: dict[str, str],
+) -> None:
+    news_id: int = _create_needs_review_item(guid="meta-copy-invalid-1")
+
+    blank = api_client.patch(
+        f"/moderation/{news_id}/metadata",
+        headers=bearer_ops_headers,
+        json={"title": "   "},
+    )
+    assert blank.status_code == 422
+
+    too_long = api_client.patch(
+        f"/moderation/{news_id}/metadata",
+        headers=bearer_ops_headers,
+        json={"title": "а" * 301},
+    )
+    assert too_long.status_code == 422
+
+    summary_too_long = api_client.patch(
+        f"/moderation/{news_id}/metadata",
+        headers=bearer_ops_headers,
+        json={"one_sentence_summary": "б" * 2001},
+    )
+    assert summary_too_long.status_code == 422
+
+    with SessionLocal() as db:
+        row: ProcessedNews | None = db.get(ProcessedNews, news_id)
+        assert row is not None
+        assert row.title == "Title meta-copy-invalid-1"
+        assert row.one_sentence_summary == "One line"
+
+
 def test_patch_metadata_empty_body_422(
     api_client: TestClient,
     bearer_ops_headers: dict[str, str],

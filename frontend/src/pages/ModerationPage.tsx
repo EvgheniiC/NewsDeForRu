@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ApiError, getHealth, getModerationQueue, moderate, NetworkError, patchNewsMetadata, runPipeline } from "../api/client";
+import {
+  ApiError,
+  getHealth,
+  getModerationQueue,
+  moderate,
+  NetworkError,
+  patchNewsMetadata,
+  runPipeline,
+  type NewsMetadataPatch,
+} from "../api/client";
 import {
   ModerationMetadataForm,
   type NewsMetadataDraft,
@@ -35,8 +44,6 @@ function ModerationNewsCard({
   return (
     <article className="news-card">
       <p className="moderation-card-date">{formatDateTimeRuBerlin(item.created_at)}</p>
-      <h3>{item.title}</h3>
-      <p>{item.one_sentence_summary}</p>
       <ModerationMetadataForm disabled={busyId !== null} item={item} onSave={onSaveMetadata} />
       <div className="news-card-footer">
         <button
@@ -194,12 +201,9 @@ export function ModerationPage(): JSX.Element {
       throw new Error("Новость не найдена в очереди.");
     }
 
-    const patch: {
-      topic?: NewsMetadataDraft["topic"];
-      cover_tag?: NewsMetadataDraft["cover_tag"];
-      is_urgent?: boolean;
-      is_positive?: boolean;
-    } = {};
+    const patch: NewsMetadataPatch = {};
+    const nextTitle: string = draft.title.trim();
+    const nextSummary: string = draft.one_sentence_summary.trim();
     if (draft.topic !== current.topic) {
       patch.topic = draft.topic;
     }
@@ -211,6 +215,16 @@ export function ModerationPage(): JSX.Element {
     }
     if (draft.is_positive !== current.is_positive) {
       patch.is_positive = draft.is_positive;
+    }
+    if (nextTitle !== current.title.trim()) {
+      patch.title = nextTitle;
+    }
+    if (nextSummary !== current.one_sentence_summary.trim()) {
+      patch.one_sentence_summary = nextSummary;
+    }
+    const hasPatch: boolean = Object.keys(patch).length > 0;
+    if (!hasPatch) {
+      return;
     }
 
     const updated: ProcessedNews = await withModerationAccess(async (token: string) =>

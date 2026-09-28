@@ -19,6 +19,9 @@ class RSSSource:
     changes_notice: str | None = None
     rights_verified: bool = False
     text_only: bool = True
+    # Stays out of ingestion and the public feed until written permission arrives.
+    pending_permission: bool = False
+    contact_email: str | None = None
 
 
 def _publisher_rss(key: str, name: str, url: str) -> RSSSource:
@@ -72,6 +75,21 @@ DEFAULT_RSS_SOURCES: tuple[RSSSource, ...] = (
         ),
         rights_verified=True,
     ),
+    # Russian WordPress feed. Footer allows reuse with a link, but terms of service
+    # section 3.1 forbid use without written permission. Email mail@ausnews.de after
+    # the Google Play launch; do not clear pending_permission before that reply.
+    # The feed is already Russian, so it must not go through German-to-Russian translation.
+    RSSSource(
+        key="ausnews",
+        name="AUSNEWS",
+        url="https://ausnews.de/feed/",
+        copyright_holder="AUSNEWS",
+        original_language="ru",
+        rights_verified=False,
+        text_only=True,
+        pending_permission=True,
+        contact_email="mail@ausnews.de",
+    ),
 )
 
 RSS_CATALOG_SOURCE_KEYS: frozenset[str] = frozenset(source.key for source in DEFAULT_RSS_SOURCES)
@@ -95,6 +113,7 @@ def enabled_rss_sources(
         source
         for source in DEFAULT_RSS_SOURCES
         if source.key.casefold() in enabled_keys
+        and not source.pending_permission
         and (source.rights_verified or allow_unverified)
     )
 
@@ -126,6 +145,7 @@ def is_source_allowed_for_publication(
     Rules:
     - Official statistics sources are always allowed when verified.
     - Known RSS catalog keys require membership in ``RSS_ENABLED_SOURCE_KEYS``.
+    - Sources with ``pending_permission`` stay blocked even when listed and unverified ingestion is on.
     - Catalog publishers also need ``rights_verified`` unless ``allow_unverified``.
     - Non-catalog keys (tests / other providers) only need ``rights_verified``.
     """
@@ -138,6 +158,12 @@ def is_source_allowed_for_publication(
         return rights_verified
     catalog: frozenset[str] = frozenset(key.casefold() for key in RSS_CATALOG_SOURCE_KEYS)
     if normalized in catalog:
+        catalog_source: RSSSource | None = next(
+            (source for source in DEFAULT_RSS_SOURCES if source.key.casefold() == normalized),
+            None,
+        )
+        if catalog_source is not None and catalog_source.pending_permission:
+            return False
         allowed: frozenset[str] = frozenset(
             key.casefold()
             for key in allowed_rss_source_keys(

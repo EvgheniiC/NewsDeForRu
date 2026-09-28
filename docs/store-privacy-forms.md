@@ -37,7 +37,7 @@
 | Refresh token | `/auth/refresh` | хеш в `app_refresh_tokens` | до 14 дней |
 | Access JWT | ответ API | `localStorage` `newsfr.auth.*` | короткий TTL |
 
-Сброс пароля: `POST /auth/forgot-password` → письмо через **GMX SMTP** (`mail.gmx.net`).
+Сброс пароля: `POST /auth/forgot-password` → письмо с **noreply@simplenewsapp.de**. Подтверждение регистрации — с того же адреса. Публичный контакт: **support@simplenewsapp.de**.
 
 ### 2.3 Аналитика (только после «Принять» в баннере)
 
@@ -74,9 +74,9 @@ Payload (примеры): `feed_mode`, `max_ratio`, `dwell_ms`, `channel`, `cach
 |--------|--------|----------------------------|
 | **OpenAI** | RSS-тексты для подготовки сводок | На OpenAI уходит контент RSS, но не email пользователя |
 | **Telegram** | уведомления о новых новостях | Пользовательские PII **не** отправляются |
-| **GMX SMTP** | email при сбросе пароля | Только если пользователь запросил reset |
+| **SMTP** noreply@simplenewsapp.de | email при подтверждении и сбросе пароля | Только для этих писем |
 
-Для форм сторов: указывайте передачу **email** процессору почты (GMX). Передачу **RSS-текстов** в OpenAI можно описать как обработку контента сервисом (часто не попадает в «данные пользователя» в Data safety, если не отправляете профиль/идентификаторы на OpenAI — в вашем коде не отправляете).
+Для форм сторов: указывайте передачу **email** почтовому серверу @simplenewsapp.de. Передачу **RSS-текстов** в OpenAI можно описать как обработку контента сервисом (часто не попадает в «данные пользователя» в Data safety, если не отправляете профиль/идентификаторы на OpenAI — в вашем коде не отправляете).
 
 ---
 
@@ -102,7 +102,7 @@ Payload (примеры): `feed_mode`, `max_ratio`, `dwell_ms`, `channel`, `cach
 | Поле | Значение |
 |------|----------|
 | Collected | Yes |
-| Shared | **Yes** (с GMX/1&1 только для транзакционного письма сброса пароля) |
+| Shared | **Yes** (только доставка письма с noreply@simplenewsapp.de: подтверждение и сброс пароля) |
 | Ephemeral | No |
 | Required or optional | **Optional** (лента без регистрации) |
 | Why collected | **App functionality**, **Account management** |
@@ -239,7 +239,7 @@ https://simplenewsapp.de/privacy
 
 | Тип данных | Собирается | Обязательно | Shared 3rd party | Цель |
 |------------|------------|-------------|------------------|------|
-| Email | Да | Нет | GMX (reset mail) | Аккаунт |
+| Email | Да | Нет | noreply@simplenewsapp.de (подтверждение и сброс) | Аккаунт |
 | User ID (account + UUID) | Да | Нет | Нет | Сессия / аналитика |
 | App interactions | Да | Нет (нужен opt-in) | Нет | Аналитика |
 | Пароль | Да (как хеш) | Нет | Нет | Аккаунт |
