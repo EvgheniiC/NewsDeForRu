@@ -112,9 +112,6 @@ export function NewsArticleBody({
 
   return (
     <>
-      <p className="news-detail-lead">
-        <strong>Суть:</strong> {news.one_sentence_summary}
-      </p>
       <p className="news-detail-body">
         <strong>Простым языком:</strong> {news.plain_language}
       </p>
