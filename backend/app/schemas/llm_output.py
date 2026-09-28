@@ -5,6 +5,44 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from app.services.cover_tags import coerce_cover_tag
 
 NewsTopicLiteral = Literal["politics", "economy", "life"]
+StoryKindLiteral = Literal["report", "match_color", "personal_story"]
+
+# The model classifies; publication policy decides which kinds never become a card.
+DENIED_STORY_KINDS: frozenset[StoryKindLiteral] = frozenset(
+    {"match_color", "personal_story"}
+)
+
+# Keys are casefolded labels with "_" and "-" already turned into spaces.
+_STORY_KIND_SYNONYMS: dict[str, StoryKindLiteral] = {
+    "report": "report",
+    "news": "report",
+    "event": "report",
+    "fact": "report",
+    "meldung": "report",
+    "nachricht": "report",
+    "новость": "report",
+    "событие": "report",
+    "факт": "report",
+    "match color": "match_color",
+    "spielbericht": "match_color",
+    "matchbericht": "match_color",
+    "spielkommentar": "match_color",
+    "kommentar": "match_color",
+    "kommentar zum spiel": "match_color",
+    "match reaction": "match_color",
+    "комментарий": "match_color",
+    "реакция": "match_color",
+    "personal story": "personal_story",
+    "interview": "personal_story",
+    "feature": "personal_story",
+    "portrait": "personal_story",
+    "human interest": "personal_story",
+    "интервью": "personal_story",
+    "рассказ": "personal_story",
+    "личная история": "personal_story",
+    "мнение": "personal_story",
+    "meinung": "personal_story",
+}
 CoverTagLiteral = Literal[
     "government",
     "elections",
@@ -96,6 +134,34 @@ def _coerce_topic_for_llm(value: object) -> NewsTopicLiteral:
     ):
         return "life"
     return "life"
+
+
+def _normalize_story_kind_label(value: str) -> str:
+    collapsed: str = value.strip().casefold().replace("_", " ").replace("-", " ")
+    return " ".join(collapsed.split())
+
+
+def _coerce_story_kind(value: object) -> str:
+    """
+    Map known labels onto story_kind tokens.
+
+    A missing value becomes report so one forgotten key does not empty the feed.
+    An unknown token is left unchanged and fails closed-literal validation.
+    """
+    if value is None:
+        return "report"
+    normalized: str = _normalize_story_kind_label(str(value))
+    if not normalized:
+        return "report"
+    mapped: StoryKindLiteral | None = _STORY_KIND_SYNONYMS.get(normalized)
+    if mapped is not None:
+        return mapped
+    return normalized
+
+
+def is_denied_story_kind(story_kind: StoryKindLiteral) -> bool:
+    """True when this genre must not become a feed card."""
+    return story_kind in DENIED_STORY_KINDS
 
 
 def _coerce_is_positive(value: object) -> bool:
@@ -215,6 +281,7 @@ def coerce_llm_news_dict_before_validate(
 
     out["topic"] = _coerce_topic_for_llm(out.get("topic"))
     out["cover_tag"] = coerce_cover_tag(out.get("cover_tag"), out["topic"])
+    out["story_kind"] = _coerce_story_kind(out.get("story_kind"))
     out["is_positive"] = _coerce_is_positive(out.get("is_positive"))
     return out
 
@@ -245,6 +312,12 @@ class LLMNewsOutput(BaseModel):
     cover_tag: CoverTagLiteral = Field(
         default="family",
         description="Illustration folder key; independent of the public feed topic.",
+    )
+    story_kind: StoryKindLiteral = Field(
+        default="report",
+        description=(
+            "Editorial genre. match_color and personal_story are dropped before a card is created."
+        ),
     )
     is_positive: bool = Field(
         ...,
@@ -331,7 +404,7 @@ class LLMNewsOutput(BaseModel):
             "Return exactly one JSON object (no markdown, no extra text) with these keys: "
             "title, one_sentence_summary, plain_language, impact_presentation, impact_unified, "
             "impact_owner, impact_tenant, impact_buyer, action_items, bonus_block, spoiler, "
-            "topic, cover_tag, is_positive, confidence_score, importance_score. "
+            "topic, cover_tag, story_kind, is_positive, confidence_score, importance_score. "
             "topic MUST be the English token exactly one of: politics, economy, life — "
             "never Russian (e.g. экономика) or German words; pick the story's main angle.\n"
             "cover_tag MUST be exactly one of: government, elections, eu, security, money, jobs, "
@@ -339,6 +412,17 @@ class LLMNewsOutput(BaseModel):
             "cover_tag chooses the illustration, not the feed filter: a housing law can be "
             "topic=politics and cover_tag=construction; football is topic=life and cover_tag=sport. "
             "Pick the single most visible scene of the story.\n"
+            "story_kind MUST be exactly one of: report, match_color, personal_story. "
+            "Classify the news value, not the presence of quotes. "
+            "report = a new public fact: a decision, law, incident, statistic, appointment, "
+            "or a quote that announces one. "
+            "match_color = a reaction to a match or athletic performance: a player or coach comment, "
+            "praise, or impression, with no new fact beyond the game. "
+            "personal_story = someone talking about themselves (fame, feelings, memories, lifestyle) "
+            "without a new public fact. "
+            "A minister announcing a benefit in an interview is report. "
+            "A player impressing as goalkeeper is match_color. "
+            "An athlete who no longer wants to be famous is personal_story.\n"
             "Rubric: politics = government, political parties, elections, parliament/Bundestag, "
             "laws in legislative process, ministers, foreign policy, state institutions, diplomacy. "
             "economy = business and markets, companies, stocks, inflation, interest rates, "

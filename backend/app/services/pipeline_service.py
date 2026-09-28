@@ -8,7 +8,11 @@ from app.core.config import settings as app_settings
 from app.core.database import SessionLocal
 from app.models.news import CoverTag, ImpactPresentation, NewsTopic, PipelineStatus, ProcessedNews, RawNewsItem
 from app.repositories.news_repository import NewsRepository
-from app.schemas.llm_output import fallback_after_validation_failure, is_validation_fallback
+from app.schemas.llm_output import (
+    fallback_after_validation_failure,
+    is_denied_story_kind,
+    is_validation_fallback,
+)
 from app.schemas.news import PipelineItemErrorDetail, PipelineRunResponse
 from app.services.dedup_service import DedupService
 from app.services.embedding_service import create_embedding_encoder
@@ -263,6 +267,22 @@ class PipelineService:
                     status=PipelineStatus.FILTERED_OUT,
                     relevance_score=relevance.score,
                     relevance_reason=fallback_reason,
+                    cluster_key=dedup_result.cluster_key,
+                )
+                continue
+            if is_denied_story_kind(llm_output.story_kind):
+                story_reason: str = f"story_kind:{llm_output.story_kind}"
+                logger.info(
+                    "Skipping non-news story kind raw_item_id=%s reason=%s",
+                    raw_item.id,
+                    story_reason,
+                )
+                filtered_out += 1
+                self.repository.update_raw_status(
+                    raw_item=raw_item,
+                    status=PipelineStatus.FILTERED_OUT,
+                    relevance_score=relevance.score,
+                    relevance_reason=story_reason,
                     cluster_key=dedup_result.cluster_key,
                 )
                 continue

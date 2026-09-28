@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from app.schemas.llm_output import (
     LLMNewsOutput,
     fallback_after_validation_failure,
+    is_denied_story_kind,
     is_validation_fallback,
 )
 from app.schemas.news import normalize_action_items_for_api, normalize_one_sentence_for_api
@@ -30,6 +31,7 @@ def _valid_payload() -> dict[str, object]:
         "spoiler": "интрига",
         "topic": "life",
         "cover_tag": "family",
+        "story_kind": "report",
         "is_positive": False,
         "confidence_score": 0.9,
         "importance_score": 7,
@@ -141,6 +143,46 @@ def test_parse_llm_news_json_defaults_cover_tag_from_topic() -> None:
     assert out.cover_tag == "money"
 
 
+def test_parse_llm_news_json_defaults_missing_story_kind_to_report() -> None:
+    p: dict[str, object] = _valid_payload()
+    del p["story_kind"]
+    out: LLMNewsOutput = parse_llm_news_json(json.dumps(p, ensure_ascii=True))
+    assert out.story_kind == "report"
+
+
+def test_parse_llm_news_json_coerces_story_kind_synonyms() -> None:
+    cases: tuple[tuple[str, str], ...] = (
+        ("Interview", "personal_story"),
+        ("Spielbericht", "match_color"),
+        ("мнение", "personal_story"),
+        ("match-color", "match_color"),
+        ("Kommentar zum Spiel", "match_color"),
+    )
+    for raw_kind, expected in cases:
+        payload: dict[str, object] = _valid_payload()
+        payload["story_kind"] = raw_kind
+        parsed: LLMNewsOutput = parse_llm_news_json(json.dumps(payload, ensure_ascii=False))
+        assert parsed.story_kind == expected
+
+
+def test_parse_llm_news_json_rejects_unknown_story_kind() -> None:
+    p: dict[str, object] = _valid_payload()
+    p["story_kind"] = "column"
+    with pytest.raises(ValidationError):
+        parse_llm_news_json(json.dumps(p, ensure_ascii=True))
+
+
+def test_denied_story_kinds_exclude_factual_reports() -> None:
+    assert is_denied_story_kind("match_color") is True
+    assert is_denied_story_kind("personal_story") is True
+    assert is_denied_story_kind("report") is False
+
+
+def test_system_prompt_requires_closed_story_kind() -> None:
+    prompt: str = LLMNewsOutput.system_prompt_addendum()
+    assert "story_kind MUST be exactly one of: report, match_color, personal_story." in prompt
+
+
 def test_parse_llm_news_json_maps_cover_theme_alias() -> None:
     p: dict[str, object] = _valid_payload()
     p.pop("cover_tag", None)
@@ -175,6 +217,7 @@ def test_extract_json_string_code_fence() -> None:
 
 def test_stub_llm_provider_returns_valid_model() -> None:
     p: LLMNewsOutput = StubLLMProvider().process_news("  Title  ", "  Summary  ")
+    assert p.story_kind == "report"
     assert p.title.startswith("Новость из Германии")
     assert "русском" in p.one_sentence_summary
     assert "LLM_PROVIDER=openai" in p.one_sentence_summary
