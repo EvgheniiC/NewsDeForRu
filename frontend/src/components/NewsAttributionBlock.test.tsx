@@ -24,5 +24,24 @@ describe("NewsAttributionBlock", () => {
       "https://creativecommons.org/licenses/by/4.0/"
     );
     expect(screen.getByText(/Неофициальный перевод/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Открыть источник" }).getAttribute("href")).toBe(
+      "https://ec.europa.eu/example"
+    );
+  });
+
+  it("hides the source line when the card has no primary source", () => {
+    const view = render(
+      <NewsAttributionBlock
+        publishedAt="2026-08-02T10:00:00Z"
+        sourceName=""
+        sourceUrl=""
+      />
+    );
+
+    const text: string = view.container.textContent ?? "";
+    expect(view.container.querySelector(".news-attribution__source")).toBeNull();
+    expect(text.includes("Источник:")).toBe(false);
+    expect(view.container.querySelector("a.news-attribution__link")).toBeNull();
+    expect(text.includes("Опубликовано:")).toBe(true);
   });
 });

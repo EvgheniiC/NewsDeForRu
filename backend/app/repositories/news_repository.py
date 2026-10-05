@@ -132,6 +132,8 @@ class NewsRepository:
         changes_notice: str | None = None,
         source_revision: str | None = None,
         rights_verified: bool = False,
+        primary_source_url: str | None = None,
+        primary_source_name: str | None = None,
     ) -> RawNewsItem:
         item: RawNewsItem = RawNewsItem(
             source_id=source_id,
@@ -139,6 +141,8 @@ class NewsRepository:
             title=title,
             summary=summary,
             url=url,
+            primary_source_url=primary_source_url,
+            primary_source_name=primary_source_name,
             image_url=image_url,
             published_at=published_at,
             original_language=original_language,

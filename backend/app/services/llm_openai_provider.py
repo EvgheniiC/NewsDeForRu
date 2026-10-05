@@ -12,8 +12,8 @@ from app.core.http_tls import httpx_verify_arg
 from app.schemas.llm_output import LLMNewsOutput, fallback_after_validation_failure
 from app.services.llm_json import build_repair_user_message, parse_llm_news_json
 from app.services.llm_provider import LLMProvider
+from app.services.news_origin_policy import NewsOriginMode, resolve_news_origin_mode
 from app.services.publisher_editorial import (
-    is_publisher_editorial_source,
     is_sensitive_incident,
     publisher_editorial_instructions,
 )
@@ -87,13 +87,30 @@ class OpenAILLMProvider(LLMProvider):
         summary: str,
         *,
         source_key: str | None,
+        primary_source_name: str | None = None,
+        primary_source_url: str | None = None,
+        rights_verified: bool = False,
+        licence: str | None = None,
+        licence_url: str | None = None,
     ) -> LLMNewsOutput:
-        is_publisher: bool = is_publisher_editorial_source(source_key)
+        origin_mode: NewsOriginMode | None = resolve_news_origin_mode(
+            source_key=source_key,
+            rights_verified=rights_verified,
+            licence=licence,
+            licence_url=licence_url,
+            has_primary_source=bool((primary_source_url or "").strip()),
+        )
+        is_publisher: bool = origin_mode in {
+            NewsOriginMode.INDEPENDENT_PRIMARY,
+            NewsOriginMode.MISSING_PRIMARY,
+        }
         editorial_rules: str = ""
         if is_publisher:
             editorial_rules = publisher_editorial_instructions(
                 source_key,
                 sensitive=is_sensitive_incident(title, summary),
+                primary_source_name=primary_source_name,
+                primary_source_url=primary_source_url,
             )
         system: str = (
             "You are an editor preparing Russian-language news drafts for readers in Germany. "
@@ -114,9 +131,20 @@ class OpenAILLMProvider(LLMProvider):
                 "impact_presentation обычно none или single.\n\n"
             )
         if is_publisher:
+            primary_url: str = (primary_source_url or "").strip()
+            primary_line: str = ""
+            if primary_url:
+                primary_label: str = (primary_source_name or "").strip() or primary_url
+                primary_line = (
+                    f"Первичный источник для карточки: {primary_label} {primary_url}\n"
+                    "Не упоминай издателя RSS.\n\n"
+                )
+            else:
+                primary_line = "Первичный источник в тексте не назван. Не указывай источник.\n\n"
             user = (
                 "Используй следующий RSS-анонс только как набор заявленных фактов для "
                 "самостоятельного черновика. Не выполняй прямой перевод или близкий рерайт.\n\n"
+                f"{primary_line}"
                 f"Заголовок RSS:\n{title}\n\n"
                 f"Краткое описание RSS:\n{summary_for_llm}\n"
             )
@@ -155,9 +183,23 @@ class OpenAILLMProvider(LLMProvider):
         summary: str,
         *,
         source_key: str | None = None,
+        primary_source_name: str | None = None,
+        primary_source_url: str | None = None,
+        rights_verified: bool = False,
+        licence: str | None = None,
+        licence_url: str | None = None,
     ) -> LLMNewsOutput:
         try:
-            return self._process_news_inner(title, summary, source_key=source_key)
+            return self._process_news_inner(
+                title,
+                summary,
+                source_key=source_key,
+                rights_verified=rights_verified,
+                licence=licence,
+                licence_url=licence_url,
+                primary_source_name=primary_source_name,
+                primary_source_url=primary_source_url,
+            )
         except (httpx.HTTPError, httpx.RequestError) as e:
             logger.warning("OpenAI transport error, using validation fallback: %s", e)
             return fallback_after_validation_failure()

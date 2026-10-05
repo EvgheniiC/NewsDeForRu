@@ -36,17 +36,23 @@ export function NewsAttributionBlock({
 }: NewsAttributionBlockProps): JSX.Element {
   const publishedLabel: string =
     variant === "compact" ? formatDateRuBerlin(publishedAt) : formatDateTimeRuBerlin(publishedAt);
-  const sourceUnavailable: boolean = sourceUrlStatus === "unavailable";
+  const hasSourceName: boolean = sourceName.trim().length > 0;
+  const hasSourceLink: boolean = sourceUrl.trim().length > 0;
+  const sourceUnavailable: boolean = hasSourceLink && sourceUrlStatus === "unavailable";
 
   return (
     <div className={`news-attribution news-attribution--${variant}`}>
       <p className="news-attribution__meta">
-        <span className="news-attribution__label">Источник:</span>{" "}
-        <span className="news-attribution__source">{sourceName}</span>
-        <span aria-hidden="true" className="news-attribution__sep">
-          {" "}
-          ·{" "}
-        </span>
+        {hasSourceName ? (
+          <>
+            <span className="news-attribution__label">Источник:</span>{" "}
+            <span className="news-attribution__source">{sourceName}</span>
+            <span aria-hidden="true" className="news-attribution__sep">
+              {" "}
+              ·{" "}
+            </span>
+          </>
+        ) : null}
         <span className="news-attribution__label">Опубликовано:</span>{" "}
         <time dateTime={publishedAt}>{publishedLabel}</time>
       </p>
@@ -87,7 +93,7 @@ export function NewsAttributionBlock({
         <p className="news-attribution__source-gone" role="status">
           Оригинальная публикация была удалена или больше недоступна на сайте издателя.
         </p>
-      ) : (
+      ) : hasSourceLink ? (
         <a
           className="news-attribution__link"
           href={sourceUrl}
@@ -95,9 +101,9 @@ export function NewsAttributionBlock({
           rel="noreferrer"
           target="_blank"
         >
-          Оригинальная статья на сайте издателя
+          Открыть источник
         </a>
-      )}
+      ) : null}
     </div>
   );
 }

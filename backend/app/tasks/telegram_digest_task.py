@@ -12,6 +12,7 @@ from app.core.config import Settings, settings
 from app.models.news import ProcessedNews
 from app.repositories.job_lock_repository import JobLockRepository
 from app.repositories.news_repository import NewsRepository
+from app.services.news_attribution import attribution_from_processed
 from app.services.telegram_notifier import send_scheduled_digest_notice
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -65,17 +66,13 @@ def run_telegram_digest_for_hour(
             return
 
         for item in candidates:
-            source_name: str = (
-                item.raw_item.source.name
-                if item.raw_item is not None and item.raw_item.source is not None
-                else (item.copyright_holder or "")
-            )
+            _published_at, source_name, source_url = attribution_from_processed(item)
             ok: bool = send_scheduled_digest_notice(
                 title_ru=item.title,
                 topic=item.topic,
                 cover_tag=item.cover_tag,
                 one_sentence_summary=item.one_sentence_summary,
-                source_url=item.source_url,
+                source_url=source_url,
                 source_name=source_name,
                 changes_notice=item.changes_notice or "",
                 processed_id=item.id,

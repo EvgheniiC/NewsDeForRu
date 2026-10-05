@@ -194,8 +194,12 @@ export function NewsCard({
       ) : null}
       <p className="news-card-meta">
         <span>{formatDateRuBerlin(item.published_at)}</span>
-        <span aria-hidden="true"> · </span>
-        <span>{item.source_name}</span>
+        {item.source_name.trim().length > 0 ? (
+          <>
+            <span aria-hidden="true"> · </span>
+            <span>{item.source_name}</span>
+          </>
+        ) : null}
       </p>
       <h3>{item.title}</h3>
       <NewsTopicCover coverTag={item.cover_tag} newsId={item.id} topic={item.topic} variant="card" />

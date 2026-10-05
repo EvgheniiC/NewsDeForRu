@@ -114,6 +114,8 @@ class RawNewsItem(Base):
     title: Mapped[str] = mapped_column(String(512), nullable=False)
     summary: Mapped[str] = mapped_column(Text, nullable=False)
     url: Mapped[str] = mapped_column(String(1024), nullable=False)
+    primary_source_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    primary_source_name: Mapped[str | None] = mapped_column(String(256), nullable=True)
     image_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     published_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     original_language: Mapped[str | None] = mapped_column(String(16), nullable=True)

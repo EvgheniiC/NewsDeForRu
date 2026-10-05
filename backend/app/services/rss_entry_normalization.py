@@ -13,6 +13,7 @@ from typing import Any
 
 from app.schemas.llm_output import meaningful_feed_text
 from app.services.preview_image_service import normalize_image_url
+from app.services.primary_source import PrimarySourceLink, extract_primary_source
 
 # Match DB column limits
 _MAX_GUID_LEN: int = 512
@@ -34,6 +35,8 @@ class NormalizedFeedEntry:
     url: str
     published_at: datetime
     image_url: str | None
+    primary_source_url: str | None = None
+    primary_source_name: str | None = None
 
 _TAG_RE: re.Pattern[str] = re.compile(r"<[^>]+>")
 
@@ -181,6 +184,7 @@ def normalize_feedparser_entry(entry: Mapping[str, Any]) -> NormalizedFeedEntry 
     summary_plain: str = meaningful_feed_text(strip_html_to_text(summary_html))
     url: str = str(entry.get("link") or "").strip()
     image_url: str | None = extract_feed_entry_image_url(entry, url)
+    primary: PrimarySourceLink | None = extract_primary_source(summary_html, url)
 
     return NormalizedFeedEntry(
         guid=_truncate(guid_raw, _MAX_GUID_LEN),
@@ -189,4 +193,6 @@ def normalize_feedparser_entry(entry: Mapping[str, Any]) -> NormalizedFeedEntry 
         url=_truncate(url, _MAX_URL_LEN),
         published_at=parse_entry_published_at(entry),
         image_url=image_url,
+        primary_source_url=primary.url if primary is not None else None,
+        primary_source_name=primary.name if primary is not None else None,
     )

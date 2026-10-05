@@ -24,7 +24,9 @@ from app.services.official_data_ingestion import (
     GenesisIngestionService,
     IngestionProvider,
 )
+from app.services.news_attribution import public_source_fields
 from app.services.publication_service import PublicationDecisionInput, PublicationService
+from app.services.publisher_editorial import is_publisher_editorial_source
 from app.services.publisher_text_guard import guard_llm_output
 from app.services.telegram_notifier import send_auto_published_notice
 from app.services.push_notifier import send_urgent_push_notice
@@ -197,11 +199,33 @@ class PipelineService:
                     previous_cluster_size,
                 )
 
+            publisher_item: bool = is_publisher_editorial_source(source_key)
+            primary_url: str = (raw_item.primary_source_url or "").strip()
+            primary_name: str = (raw_item.primary_source_name or "").strip()
+            has_primary_source: bool = bool(primary_url) if publisher_item else True
+            publisher_name: str = raw_item.source.name if raw_item.source is not None else ""
+            public_name: str
+            public_url: str
+            public_name, public_url = public_source_fields(
+                source_key=source_key,
+                publisher_name=publisher_name,
+                publisher_url=raw_item.url,
+                primary_source_url=primary_url or None,
+                primary_source_name=primary_name or None,
+                rights_verified=raw_item.rights_verified,
+                licence=raw_item.licence,
+                licence_url=raw_item.licence_url,
+            )
             try:
                 llm_output = self.context.llm_provider.process_news(
                     raw_item.title,
                     raw_item.summary,
                     source_key=source_key,
+                    primary_source_name=primary_name or None if publisher_item else None,
+                    primary_source_url=primary_url or None if publisher_item else None,
+                    rights_verified=raw_item.rights_verified,
+                    licence=raw_item.licence,
+                    licence_url=raw_item.licence_url,
                 )
             except Exception as e:
                 source_key: str = raw_item.source.source_key if raw_item.source is not None else ""
@@ -296,6 +320,7 @@ class PipelineService:
                 licence_url=raw_item.licence_url,
                 rights_verified=raw_item.rights_verified,
                 source_key=source_key,
+                has_primary_source=has_primary_source,
             )
             publication_status, _ = self.context.publication.decide_status(decision_inp)
             if (
@@ -338,7 +363,7 @@ class PipelineService:
                 action_items=llm_output.action_items,
                 bonus_block=llm_output.bonus_block,
                 spoiler=llm_output.spoiler,
-                source_url=raw_item.url,
+                source_url=public_url or raw_item.url,
                 original_title=raw_item.title,
                 original_language=raw_item.original_language,
                 retrieved_at=raw_item.retrieved_at,
@@ -371,8 +396,8 @@ class PipelineService:
                         urgent_topic: NewsTopic = saved.topic
                         urgent_cover_tag: CoverTag | None = saved.cover_tag
                         urgent_summary: str = saved.one_sentence_summary
-                        urgent_source_url: str = saved.source_url
-                        urgent_source_name: str = raw_item.source.name
+                        urgent_source_url: str = public_url if publisher_item else saved.source_url
+                        urgent_source_name: str = public_name if publisher_item else publisher_name
                         urgent_changes_notice: str = saved.changes_notice or ""
 
                         def _urgent_telegram_worker() -> None:
@@ -409,8 +434,8 @@ class PipelineService:
                             topic=saved.topic,
                             cover_tag=saved.cover_tag,
                             one_sentence_summary=saved.one_sentence_summary,
-                            source_url=saved.source_url,
-                            source_name=raw_item.source.name,
+                            source_url=public_url if publisher_item else saved.source_url,
+                            source_name=public_name if publisher_item else publisher_name,
                             changes_notice=saved.changes_notice or "",
                             processed_id=saved.id,
                             use_urgent_retries=True,
@@ -421,8 +446,8 @@ class PipelineService:
                         push_id: int = saved.id
                         push_title: str = saved.title
                         push_summary: str = saved.one_sentence_summary
-                        push_source_name: str = raw_item.source.name
-                        push_source_url: str = saved.source_url
+                        push_source_name: str = public_name if publisher_item else publisher_name
+                        push_source_url: str = public_url if publisher_item else saved.source_url
 
                         def _urgent_push_worker() -> None:
                             try:
@@ -454,8 +479,8 @@ class PipelineService:
                             title_ru=saved.title,
                             one_sentence_summary=saved.one_sentence_summary,
                             processed_id=saved.id,
-                            source_name=raw_item.source.name,
-                            source_url=saved.source_url,
+                            source_name=public_name if publisher_item else publisher_name,
+                            source_url=public_url if publisher_item else saved.source_url,
                             use_urgent_retries=True,
                         )
                         if sent_push:

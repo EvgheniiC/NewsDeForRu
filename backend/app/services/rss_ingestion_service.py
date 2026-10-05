@@ -115,6 +115,8 @@ class RSSIngestionService:
                         changes_notice=source.changes_notice,
                         source_revision=normalized.guid,
                         rights_verified=source.rights_verified,
+                        primary_source_url=normalized.primary_source_url,
+                        primary_source_name=normalized.primary_source_name,
                     )
                     fetched += 1
 

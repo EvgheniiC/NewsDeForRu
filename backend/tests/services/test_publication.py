@@ -114,7 +114,7 @@ def test_publication_service_fails_closed_without_verified_licence() -> None:
         licence=None,
         licence_url=None,
         rights_verified=False,
-        source_key="welt",
+        source_key="custom_feed",
     )
 
     status, reason = service.decide_status(unsafe)
@@ -123,45 +123,74 @@ def test_publication_service_fails_closed_without_verified_licence() -> None:
     assert reason == PublicationReviewReason.LICENCE
 
 
-def test_publisher_sources_always_require_moderation_during_testing() -> None:
+def test_licensed_publisher_can_auto_publish() -> None:
+    service: PublicationService = PublicationService(
+        app_settings=Settings(
+            auto_publish_threshold=0.85,
+            auto_publish_min_relevance=0.5,
+            auto_publish_review_on_duplicate_cluster=False,
+        )
+    )
+
+    status, reason = service.decide_status(_inp(source_key="bild"))
+
+    assert status == PipelineStatus.PUBLISHED
+    assert reason is None
+
+
+def test_unlicensed_publisher_with_primary_source_always_needs_review() -> None:
     service: PublicationService = PublicationService(
         app_settings=Settings(
             auto_publish_threshold=0.1,
             auto_publish_min_relevance=0.1,
             auto_publish_review_on_duplicate_cluster=False,
-            rss_allow_unverified_catalog_sources=False,
+            rss_allow_unverified_catalog_sources=True,
         )
     )
 
     for source_key in ("bild", "die_zeit", "spiegel", "tagesschau", "welt", "zdf"):
-        status, reason = service.decide_status(_inp(source_key=source_key))
+        status, reason = service.decide_status(
+            PublicationDecisionInput(
+                confidence_score=0.99,
+                relevance_score=0.9,
+                is_new_cluster=True,
+                title="Titel",
+                summary="Kurz",
+                licence=None,
+                licence_url=None,
+                rights_verified=False,
+                source_key=source_key,
+                has_primary_source=True,
+            )
+        )
 
         assert status == PipelineStatus.NEEDS_REVIEW
-        assert reason == PublicationReviewReason.PUBLISHER_TESTING
+        assert reason == PublicationReviewReason.INDEPENDENT_DRAFT
 
 
-def test_google_test_publisher_sources_can_auto_publish() -> None:
+def test_publisher_without_primary_source_always_needs_review() -> None:
     service: PublicationService = PublicationService(
         app_settings=Settings(
-            auto_publish_threshold=0.85,
-            auto_publish_min_relevance=0.5,
+            auto_publish_threshold=0.1,
+            auto_publish_min_relevance=0.1,
             auto_publish_review_on_duplicate_cluster=False,
             rss_allow_unverified_catalog_sources=True,
         )
     )
     unsafe: PublicationDecisionInput = PublicationDecisionInput(
         confidence_score=0.99,
-        relevance_score=0.75,
+        relevance_score=0.9,
         is_new_cluster=True,
         title="Titel",
         summary="Kurz",
         licence=None,
         licence_url=None,
         rights_verified=False,
-        source_key="die_zeit",
+        source_key="welt",
+        has_primary_source=False,
     )
 
     status, reason = service.decide_status(unsafe)
 
-    assert status == PipelineStatus.PUBLISHED
-    assert reason is None
+    assert status == PipelineStatus.NEEDS_REVIEW
+    assert reason == PublicationReviewReason.NO_PRIMARY_SOURCE

@@ -3,7 +3,7 @@ from enum import StrEnum
 
 from app.core.config import Settings, settings
 from app.models.news import PipelineStatus
-from app.services.publisher_editorial import is_publisher_editorial_source
+from app.services.news_origin_policy import NewsOriginMode, resolve_news_origin_mode
 
 
 @dataclass(frozen=True)
@@ -19,6 +19,7 @@ class PublicationDecisionInput:
     licence_url: str | None
     rights_verified: bool
     source_key: str | None = None
+    has_primary_source: bool = True
 
 
 class PublicationReviewReason(StrEnum):
@@ -29,7 +30,8 @@ class PublicationReviewReason(StrEnum):
     DUPLICATE_CLUSTER = "duplicate_cluster"
     KEYWORD = "keyword"
     LICENCE = "licence"
-    PUBLISHER_TESTING = "publisher_testing"
+    INDEPENDENT_DRAFT = "independent_draft"
+    NO_PRIMARY_SOURCE = "no_primary_source"
 
 
 def _parse_review_keywords(raw: str) -> tuple[str, ...]:
@@ -45,20 +47,23 @@ class PublicationService:
         """
         Return publication status and, when not auto-published, the primary reason for review.
         """
-        google_test_publisher: bool = (
-            self._s.rss_allow_unverified_catalog_sources
-            and is_publisher_editorial_source(inp.source_key)
+        origin_mode: NewsOriginMode | None = resolve_news_origin_mode(
+            source_key=inp.source_key,
+            rights_verified=inp.rights_verified,
+            licence=inp.licence,
+            licence_url=inp.licence_url,
+            has_primary_source=inp.has_primary_source,
         )
-        if not google_test_publisher:
-            if (
-                not inp.rights_verified
-                or not (inp.licence or "").strip()
-                or not (inp.licence_url or "").strip()
-            ):
-                return PipelineStatus.NEEDS_REVIEW, PublicationReviewReason.LICENCE
-
-            if is_publisher_editorial_source(inp.source_key):
-                return PipelineStatus.NEEDS_REVIEW, PublicationReviewReason.PUBLISHER_TESTING
+        # Rule 3: no primary source, so a person must decide.
+        if origin_mode is NewsOriginMode.MISSING_PRIMARY:
+            return PipelineStatus.NEEDS_REVIEW, PublicationReviewReason.NO_PRIMARY_SOURCE
+        # Rule 2: original draft from a primary source, still a moderation item.
+        if origin_mode is NewsOriginMode.INDEPENDENT_PRIMARY:
+            return PipelineStatus.NEEDS_REVIEW, PublicationReviewReason.INDEPENDENT_DRAFT
+        # Unlicensed non-publisher items stay out of the public feed.
+        if origin_mode is None:
+            return PipelineStatus.NEEDS_REVIEW, PublicationReviewReason.LICENCE
+        # Rule 1: a licensed source may pass the quality gates below.
 
         text_lower: str = f"{inp.title}\n{inp.summary}".lower()
         for kw in _parse_review_keywords(self._s.moderation_extra_review_keywords):

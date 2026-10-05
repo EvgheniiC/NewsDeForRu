@@ -16,6 +16,11 @@ class LLMProvider(ABC):
         summary: str,
         *,
         source_key: str | None = None,
+        primary_source_name: str | None = None,
+        primary_source_url: str | None = None,
+        rights_verified: bool = False,
+        licence: str | None = None,
+        licence_url: str | None = None,
     ) -> LLMNewsOutput:
         raise NotImplementedError
 
@@ -27,7 +32,13 @@ class StubLLMProvider(LLMProvider):
         summary: str,
         *,
         source_key: str | None = None,
+        primary_source_name: str | None = None,
+        primary_source_url: str | None = None,
+        rights_verified: bool = False,
+        licence: str | None = None,
+        licence_url: str | None = None,
     ) -> LLMNewsOutput:
+        del rights_verified, licence, licence_url
         # Do not pass German RSS text through as the published title/summary: the UI is Russian.
         # Stub has no translation model; we emit Russian placeholders. Use LLM_PROVIDER=openai to translate.
         key: int = abs(hash((title, summary, source_key)))

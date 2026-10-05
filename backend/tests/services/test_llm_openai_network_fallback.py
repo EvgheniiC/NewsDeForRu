@@ -115,3 +115,38 @@ def test_publisher_source_uses_independent_editorial_prompt() -> None:
     assert "подозреваемого преступником" in system_content
     assert "ручной модерации" in system_content
     assert "Не выполняй прямой перевод" in user_content
+
+
+def test_licensed_publisher_uses_translation_prompt() -> None:
+    provider: OpenAILLMProvider = OpenAILLMProvider(
+        api_key="k",
+        model="m",
+        base_url="https://api.openai.com/v1",
+    )
+    captured: list[list[dict[str, str]]] = []
+    valid_json: str = (
+        '{"title":"Тест","one_sentence_summary":"Кратко.","plain_language":"Пояснение.",'
+        '"impact_presentation":"none","impact_unified":"","impact_owner":"",'
+        '"impact_tenant":"","impact_buyer":"","action_items":"","bonus_block":"",'
+        '"spoiler":"","topic":"life","is_positive":false,"confidence_score":0.7,'
+        '"importance_score":5}'
+    )
+
+    def _fake_chat(messages: list[dict[str, str]]) -> str:
+        captured.append(messages)
+        return valid_json
+
+    with patch.object(provider, "_chat", side_effect=_fake_chat):
+        provider.process_news(
+            "Polizei meldet Messerattacke",
+            "Ein Verdächtiger wurde festgenommen.",
+            source_key="bild",
+            rights_verified=True,
+            licence="Written permission",
+            licence_url="https://www.bild.de/permission",
+        )
+
+    system_content: str = captured[0][0]["content"]
+    user_content: str = captured[0][1]["content"]
+    assert "ручной модерации" not in system_content
+    assert "переведи для полей в JSON" in user_content

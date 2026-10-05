@@ -53,9 +53,21 @@ def is_sensitive_incident(title: str, summary: str) -> bool:
     return any(term in text for term in _SENSITIVE_INCIDENT_TERMS)
 
 
-def publisher_editorial_instructions(source_key: str | None, *, sensitive: bool) -> str:
-    """Build strict instructions for an independent, attributed moderation draft."""
+def publisher_editorial_instructions(
+    source_key: str | None,
+    *,
+    sensitive: bool,
+    primary_source_name: str | None = None,
+    primary_source_url: str | None = None,
+) -> str:
+    """Build strict instructions for an independent moderation draft.
+
+    When the RSS item links a primary source, the draft must follow that source
+    instead of the publisher. When it does not, the draft must not name a source.
+    """
     source_name: str = publisher_source_name(source_key)
+    primary_name: str = (primary_source_name or "").strip()
+    primary_url: str = (primary_source_url or "").strip()
     sensitive_rules: str = ""
     if sensitive:
         sensitive_rules = (
@@ -63,18 +75,39 @@ def publisher_editorial_instructions(source_key: str | None, *, sensitive: bool)
             "Не используй кликбейт и графические подробности. Не называй подозреваемого "
             "преступником до решения суда. Не предполагай мотив, гражданство, религию, "
             "миграционный статус, психическое состояние или терроризм. Сохраняй оговорки "
-            "«по данным», «предположительно», «подозреваемый» и явно отмечай неизвестное. "
+            "«предположительно» и «подозреваемый» и явно отмечай неизвестное. "
         )
+    if primary_url:
+        cited_name: str = primary_name or primary_url
+        origin_rules: str = (
+            f"В анонсе есть ссылка на первичный источник: {cited_name} ({primary_url}). "
+            "Напиши короткую собственную новость по явно указанным фактам этого первоисточника, "
+            "а не сокращённый перевод или пересказ другого СМИ. "
+            f"Не называй {source_name} и не пиши «по данным {source_name}». "
+            f"Укажи первоисточник формулировкой «по данным {cited_name}», "
+            "и только если это прямо сказано во входных данных. "
+        )
+    else:
+        origin_rules = (
+            "Ссылки на первичный источник во входных данных нет. "
+            "Не указывай, на что опирается текст: не называй СМИ, полицию, партию, ведомство или другой источник. "
+            "Не пиши «по данным», «сообщает» и «источник». "
+        )
+    uncertainty_rules: str = (
+        "Если данных недостаточно, снизь confidence_score и прямо укажи, что сведения неполные. "
+        if not primary_url
+        else (
+            "Если данных недостаточно, снизь confidence_score и прямо укажи, "
+            "что сведения требуют проверки по первичному источнику. "
+        )
+    )
     return (
         f"Входные данные — RSS-анонс издателя {source_name}, а не официальный первоисточник. "
         "Создай самостоятельный редакционный черновик на русском языке только по явно "
         "указанным проверяемым фактам. Не переводи и не перефразируй текст предложение за "
         "предложением; не сохраняй исходную структуру, заголовок, стиль или уникальные выводы. "
         "Не добавляй факты, контекст, цитаты или причинно-следственные связи, которых нет во "
-        "входных данных. Атрибутируй спорные и предварительные сведения формулировкой "
-        f"«по данным {source_name}». Если данных недостаточно, снизь confidence_score и прямо "
-        "укажи, что сведения требуют проверки по полиции, прокуратуре, пожарной службе, суду "
-        "или другому официальному источнику. "
+        f"входных данных. {origin_rules}{uncertainty_rules}"
         f"{sensitive_rules}"
         "Материал всегда является черновиком для ручной модерации."
     )

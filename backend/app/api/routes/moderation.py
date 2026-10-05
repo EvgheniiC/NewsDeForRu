@@ -7,7 +7,7 @@ from app.models.app_user import AppUser
 from app.models.news import PipelineStatus, ProcessedNews
 from app.repositories.news_repository import NewsRepository
 from app.schemas.news import ModerationActionRequest, NewsMetadataPatchRequest, ProcessedNewsResponse
-from app.services.news_attribution import build_processed_news_response
+from app.services.news_attribution import attribution_from_processed, build_processed_news_response
 from app.services.telegram_notifier import send_moderation_approved_notice
 from app.services.push_notifier import send_urgent_push_notice
 
@@ -93,13 +93,19 @@ def moderate_news(
         raise HTTPException(status_code=404, detail="News item not found.")
 
     if request.action == "approve" and from_moderation_queue:
+        notice_item: ProcessedNews | None = repository.get_processed_by_id_with_raw(news_id)
+        _published_at, notice_source_name, notice_source_url = (
+            attribution_from_processed(notice_item)
+            if notice_item is not None
+            else (item.created_at, "", "")
+        )
         sent_mod: bool = send_moderation_approved_notice(
             title_ru=item.title,
             topic=item.topic,
             cover_tag=item.cover_tag,
             one_sentence_summary=item.one_sentence_summary,
-            source_url=item.source_url,
-            source_name=item.copyright_holder or "",
+            source_url=notice_source_url,
+            source_name=notice_source_name,
             changes_notice=item.changes_notice or "",
             processed_id=item.id,
         )
@@ -110,8 +116,8 @@ def moderate_news(
                 title_ru=item.title,
                 one_sentence_summary=item.one_sentence_summary,
                 processed_id=item.id,
-                source_name=item.copyright_holder or "",
-                source_url=item.source_url,
+                source_name=notice_source_name,
+                source_url=notice_source_url,
                 use_urgent_retries=True,
             )
             if sent_push_mod:
