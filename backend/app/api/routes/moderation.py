@@ -71,15 +71,7 @@ def moderate_news(
         raise HTTPException(status_code=404, detail="News item not found.")
 
     from_moderation_queue: bool = before.publication_status == PipelineStatus.NEEDS_REVIEW
-    if request.action == "approve" and (
-        not before.rights_verified
-        or not (before.licence or "").strip()
-        or not (before.licence_url or "").strip()
-    ):
-        raise HTTPException(
-            status_code=409,
-            detail="News item cannot be published without a verified licence.",
-        )
+    # A moderator decision publishes drafts that have no publisher licence.
     target_status: PipelineStatus = (
         PipelineStatus.PUBLISHED if request.action == "approve" else PipelineStatus.FILTERED_OUT
     )

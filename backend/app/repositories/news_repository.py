@@ -22,6 +22,7 @@ from app.models.news import (
 from app.services.publisher_editorial import PUBLISHER_EDITORIAL_SOURCE_KEYS
 from app.services.relevance_filter_service import OFFICIAL_DATA_SOURCE_KEYS
 from app.services.rss_sources import (
+    DEFAULT_RSS_SOURCES,
     is_source_allowed_for_publication,
     publication_allowed_sql_filter,
 )
@@ -32,11 +33,37 @@ class NewsRepository:
     def __init__(self, db_session: Session) -> None:
         self.db_session: Session = db_session
 
+    def _pending_permission_source_keys(self) -> tuple[str, ...]:
+        return tuple(source.key for source in DEFAULT_RSS_SOURCES if source.pending_permission)
+
+    def _has_moderator_approval(self, processed_news_id: int) -> bool:
+        query: Select[tuple[int]] = (
+            select(ModerationEvent.id)
+            .where(
+                ModerationEvent.processed_news_id == processed_news_id,
+                ModerationEvent.action == "approve",
+            )
+            .limit(1)
+        )
+        return self.db_session.execute(query).scalar_one_or_none() is not None
+
+    def _moderator_published_clause(self) -> Any:
+        """Human-approved rows stay in the feed even without a verified licence."""
+        approved = exists().where(
+            ModerationEvent.processed_news_id == ProcessedNews.id,
+            ModerationEvent.action == "approve",
+        )
+        pending_keys: tuple[str, ...] = self._pending_permission_source_keys()
+        if not pending_keys:
+            return approved
+        return and_(approved, ~Source.source_key.in_(pending_keys))
+
     def _publication_source_filter(self) -> Any:
-        return publication_allowed_sql_filter(
+        allowed = publication_allowed_sql_filter(
             settings.rss_enabled_source_keys,
             allow_unverified=settings.rss_allow_unverified_catalog_sources,
         )
+        return or_(allowed, self._moderator_published_clause())
 
     def upsert_source(
         self,
@@ -517,6 +544,12 @@ class NewsRepository:
         source_key: str | None = None
         if raw_item is not None and raw_item.source is not None:
             source_key = raw_item.source.source_key
+        pending_keys: set[str] = {
+            key.casefold() for key in self._pending_permission_source_keys()
+        }
+        normalized_key: str = (source_key or "").strip().casefold()
+        if normalized_key not in pending_keys and self._has_moderator_approval(item.id):
+            return True
         return is_source_allowed_for_publication(
             source_key,
             rights_verified=item.rights_verified,

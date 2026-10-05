@@ -6,7 +6,7 @@ import pytest
 
 from app.core.config import settings
 from app.core.database import Base, SessionLocal, engine, init_database
-from app.models.news import ImpactPresentation, NewsTopic, PipelineStatus, ProcessedNews
+from app.models.news import ImpactPresentation, ModerationEvent, NewsTopic, PipelineStatus, ProcessedNews
 from app.repositories.news_repository import NewsRepository
 
 
@@ -112,3 +112,52 @@ def test_list_telegram_digest_hides_disabled_catalog_sources(
         )
         titles: set[str] = {row.title for row in picked}
         assert titles == {"Custom story"}
+
+
+def test_moderator_approval_shows_unlicensed_publisher(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "rss_enabled_source_keys", "destatis")
+    monkeypatch.setattr(settings, "rss_allow_unverified_catalog_sources", False)
+    with SessionLocal() as db:
+        repo: NewsRepository = NewsRepository(db)
+        published: ProcessedNews = _make_published(
+            repo,
+            source_key="welt",
+            name="WELT",
+            guid="welt-approved",
+            title="Approved Welt story",
+            rights_verified=False,
+        )
+        hidden, _has_more = repo.list_published(limit=20)
+        assert "Approved Welt story" not in {row.title for row in hidden}
+
+        db.add(ModerationEvent(processed_news_id=published.id, action="approve"))
+        db.commit()
+
+        shown, _shown_more = repo.list_published(limit=20)
+        assert "Approved Welt story" in {row.title for row in shown}
+        loaded: ProcessedNews | None = repo.get_processed_by_id_with_raw(published.id)
+        assert loaded is not None
+        assert repo.is_processed_visible_in_feed(loaded) is True
+
+
+def test_pending_permission_stays_hidden_after_approval(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "rss_enabled_source_keys", "ausnews")
+    monkeypatch.setattr(settings, "rss_allow_unverified_catalog_sources", True)
+    with SessionLocal() as db:
+        repo: NewsRepository = NewsRepository(db)
+        published: ProcessedNews = _make_published(
+            repo,
+            source_key="ausnews",
+            name="AUSNEWS",
+            guid="ausnews-approved",
+            title="Ausnews story",
+            rights_verified=False,
+        )
+        db.add(ModerationEvent(processed_news_id=published.id, action="approve"))
+        db.commit()
+
+        rows, _has_more = repo.list_published(limit=20)
+        assert "Ausnews story" not in {row.title for row in rows}
+        loaded: ProcessedNews | None = repo.get_processed_by_id_with_raw(published.id)
+        assert loaded is not None
+        assert repo.is_processed_visible_in_feed(loaded) is False

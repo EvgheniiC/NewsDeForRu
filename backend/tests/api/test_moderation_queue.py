@@ -107,3 +107,44 @@ def test_moderation_queue_excludes_items_older_than_seven_days(
         ).scalar_one_or_none()
         assert old_row is not None
         assert old_row.publication_status == PipelineStatus.NEEDS_REVIEW
+
+
+def test_approve_publishes_item_without_licence(
+    api_client: TestClient,
+    bearer_ops_headers: dict[str, str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _skip_notice(**_kwargs: object) -> bool:
+        return False
+
+    monkeypatch.setattr("app.api.routes.moderation.send_moderation_approved_notice", _skip_notice)
+    news_id: int = _create_needs_review_item(
+        guid="queue-approve-unlicensed",
+        created_at=datetime.utcnow(),
+    )
+
+    response = api_client.post(
+        f"/moderation/{news_id}/action",
+        headers=bearer_ops_headers,
+        json={"action": "approve"},
+    )
+    assert response.status_code == 200
+    assert response.json()["publication_status"] == "published"
+
+
+def test_reject_still_filters_item(
+    api_client: TestClient,
+    bearer_ops_headers: dict[str, str],
+) -> None:
+    news_id: int = _create_needs_review_item(
+        guid="queue-reject-unlicensed",
+        created_at=datetime.utcnow(),
+    )
+
+    response = api_client.post(
+        f"/moderation/{news_id}/action",
+        headers=bearer_ops_headers,
+        json={"action": "reject"},
+    )
+    assert response.status_code == 200
+    assert response.json()["publication_status"] == "filtered_out"
