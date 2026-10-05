@@ -24,8 +24,8 @@ def public_source_fields(
     """Return the source name and URL readers should see.
 
     A licensed source keeps its own name and URL. An unlicensed publisher item
-    points at a primary-source link when the RSS text contains one. Otherwise
-    both fields are empty: the card must not cite the publisher.
+    names a primary source when the RSS text contains one. Without that link
+    the publisher is not named, but the original article URL stays clickable.
     """
     primary_url: str = (primary_source_url or "").strip()
     origin_mode: NewsOriginMode | None = resolve_news_origin_mode(
@@ -42,7 +42,7 @@ def public_source_fields(
     if cites_publisher:
         return publisher_name, publisher_url
     if not primary_url:
-        return "", ""
+        return "", publisher_url
     primary_name: str = (primary_source_name or "").strip()
     if not primary_name:
         primary_name = (urlparse(primary_url).hostname or "").removeprefix("www.") or "Источник"

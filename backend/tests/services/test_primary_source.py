@@ -110,7 +110,7 @@ def test_public_source_uses_primary_link_for_publisher() -> None:
     assert url == "https://www.cdu.de/aktuelles/statement"
 
 
-def test_public_source_is_hidden_without_primary_link() -> None:
+def test_original_article_stays_linked_when_primary_source_is_missing() -> None:
     name: str
     url: str
     name, url = public_source_fields(
@@ -122,7 +122,7 @@ def test_public_source_is_hidden_without_primary_link() -> None:
     )
 
     assert name == ""
-    assert url == ""
+    assert url == "https://www.welt.de/article"
 
 
 def test_editorial_prompt_follows_primary_source() -> None:

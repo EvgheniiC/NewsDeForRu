@@ -1,4 +1,6 @@
+import type { MouseEvent } from "react";
 import { formatDateRuBerlin, formatDateTimeRuBerlin } from "../lib/dateTimeBerlin";
+import { openExternalUrl } from "../lib/openExternalUrl";
 import type { SourceUrlStatus } from "../types/news";
 
 interface NewsAttributionBlockProps {
@@ -39,6 +41,13 @@ export function NewsAttributionBlock({
   const hasSourceName: boolean = sourceName.trim().length > 0;
   const hasSourceLink: boolean = sourceUrl.trim().length > 0;
   const sourceUnavailable: boolean = hasSourceLink && sourceUrlStatus === "unavailable";
+  const sourceLinkLabel: string = hasSourceName ? "Открыть источник" : "Открыть оригинал";
+
+  const handleSourceClick = (event: MouseEvent<HTMLAnchorElement>): void => {
+    event.preventDefault();
+    onSourceClick?.();
+    openExternalUrl(sourceUrl);
+  };
 
   return (
     <div className={`news-attribution news-attribution--${variant}`}>
@@ -97,11 +106,10 @@ export function NewsAttributionBlock({
         <a
           className="news-attribution__link"
           href={sourceUrl}
-          onClick={onSourceClick}
+          onClick={handleSourceClick}
           rel="noreferrer"
-          target="_blank"
         >
-          Открыть источник
+          {sourceLinkLabel}
         </a>
       ) : null}
     </div>

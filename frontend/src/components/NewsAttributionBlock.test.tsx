@@ -44,4 +44,18 @@ describe("NewsAttributionBlock", () => {
     expect(view.container.querySelector("a.news-attribution__link")).toBeNull();
     expect(text.includes("Опубликовано:")).toBe(true);
   });
+
+  it("links the original article without naming the publisher", (): void => {
+    render(
+      <NewsAttributionBlock
+        publishedAt="2026-08-02T10:00:00Z"
+        sourceName=""
+        sourceUrl="https://www.welt.de/article"
+      />
+    );
+
+    const link: HTMLElement = screen.getByRole("link", { name: "Открыть оригинал" });
+    expect(link.getAttribute("href")).toBe("https://www.welt.de/article");
+    expect(link.getAttribute("target")).toBeNull();
+  });
 });
