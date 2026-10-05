@@ -33,6 +33,23 @@ def period_start_utc_naive(period: FeedPeriod | None) -> datetime | None:
     return start_berlin.astimezone(UTC_TZ).replace(tzinfo=None)
 
 
+def berlin_today() -> date:
+    """Current calendar day in Europe/Berlin."""
+    return datetime.now(BERLIN_TZ).date()
+
+
+def berlin_calendar_day_bounds_utc_naive(day: date) -> tuple[datetime, datetime]:
+    """Inclusive start and exclusive end of a Berlin calendar day, as naive UTC.
+
+    Matches how ``published_at`` and ``created_at`` are stored.
+    """
+    start_berlin: datetime = datetime.combine(day, time.min, tzinfo=BERLIN_TZ)
+    end_berlin: datetime = start_berlin + timedelta(days=1)
+    start_utc: datetime = start_berlin.astimezone(UTC_TZ).replace(tzinfo=None)
+    end_utc: datetime = end_berlin.astimezone(UTC_TZ).replace(tzinfo=None)
+    return start_utc, end_utc
+
+
 def moderation_queue_since_utc_naive() -> datetime:
     """Inclusive lower bound for moderation queue items (not older than 7 calendar days in Berlin)."""
     now_berlin: datetime = datetime.now(BERLIN_TZ)

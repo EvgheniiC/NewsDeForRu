@@ -17,6 +17,16 @@ export function formatDateTimeRuBerlin(isoOrTimestamp: string | null | undefined
   }
 }
 
+/** Calendar day in Europe/Berlin as ``YYYY-MM-DD`` (for ``input type="date"``). */
+export function berlinTodayYmd(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+}
+
 /** Date-only label for feed cards (publication date). */
 export function formatDateRuBerlin(isoOrTimestamp: string | null | undefined): string {
   if (!isoOrTimestamp) {

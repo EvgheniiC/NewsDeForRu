@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type MutableRefObject } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ApiError,
   getHealth,
+  getModerationDailyStats,
   getModerationQueue,
   moderate,
+  type ModerationDailyStats,
   NetworkError,
   patchNewsMetadata,
   runPipeline,
@@ -16,7 +18,7 @@ import {
 } from "../components/ModerationMetadataForm";
 import { ServerPipelinePanels } from "../components/ServerPipelinePanels";
 import { useAuth } from "../context/AuthContext";
-import { formatDateTimeRuBerlin } from "../lib/dateTimeBerlin";
+import { berlinTodayYmd, formatDateTimeRuBerlin } from "../lib/dateTimeBerlin";
 import { describePipelinePartialFailure } from "../lib/pipelineUi";
 import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
 import {
@@ -84,7 +86,14 @@ export function ModerationPage(): JSX.Element {
   const [lastManualRun, setLastManualRun] = useState<PipelineRunResponse | null>(null);
   const [pipelineNetworkError, setPipelineNetworkError] = useState<string>("");
   const [pipelineHttpError, setPipelineHttpError] = useState<string>("");
+  const [statsDate, setStatsDate] = useState<string>(() => berlinTodayYmd());
+  const [publishedCount, setPublishedCount] = useState<number | null>(null);
+  const [moderationCount, setModerationCount] = useState<number | null>(null);
+  const [statsLoading, setStatsLoading] = useState<boolean>(true);
+  const [statsError, setStatsError] = useState<string>("");
   const canRunPipeline: boolean = user?.can_run_pipeline === true;
+  const todayYmd: string = berlinTodayYmd();
+  const statsRequestIdRef: MutableRefObject<number> = useRef<number>(0);
 
   const periodCounts: Record<ModerationPeriodKey, number> = useMemo(
     () => countModerationQueueByPeriod(queue),
@@ -124,6 +133,44 @@ export function ModerationPage(): JSX.Element {
     [logout, navigate, withModerationAccess],
   );
 
+  const loadDailyStats = useCallback(
+    async (day: string): Promise<void> => {
+      const requestId: number = statsRequestIdRef.current + 1;
+      statsRequestIdRef.current = requestId;
+      setStatsLoading(true);
+      try {
+        const stats: ModerationDailyStats = await withModerationAccess(async (token: string) =>
+          getModerationDailyStats(token, day),
+        );
+        if (statsRequestIdRef.current !== requestId) {
+          return;
+        }
+        setPublishedCount(stats.published_count);
+        setModerationCount(stats.moderation_count);
+        setStatsError("");
+      } catch (fetchError: unknown) {
+        if (statsRequestIdRef.current !== requestId) {
+          return;
+        }
+        if (fetchError instanceof ApiError && fetchError.status === 401) {
+          await logout();
+          navigate("/login", { replace: true, state: { from: "/moderation" } });
+          return;
+        }
+        setPublishedCount(null);
+        setModerationCount(null);
+        setStatsError(
+          fetchError instanceof Error ? fetchError.message : "Не удалось загрузить счётчики.",
+        );
+      } finally {
+        if (statsRequestIdRef.current === requestId) {
+          setStatsLoading(false);
+        }
+      }
+    },
+    [logout, navigate, withModerationAccess],
+  );
+
   const loadHealth = useCallback(async (): Promise<void> => {
     try {
       const h: HealthResponse = await getHealth();
@@ -150,6 +197,13 @@ export function ModerationPage(): JSX.Element {
     void loadHealth();
   }, [loadHealth, loadQueue, user?.can_moderate]);
 
+  useEffect(() => {
+    if (!user?.can_moderate) {
+      return;
+    }
+    void loadDailyStats(statsDate);
+  }, [loadDailyStats, statsDate, user?.can_moderate]);
+
   const handlePipelineRefresh = async (): Promise<void> => {
     setPipelineNetworkError("");
     setPipelineHttpError("");
@@ -158,6 +212,7 @@ export function ModerationPage(): JSX.Element {
       const result: PipelineRunResponse = await withPipelineAccess((token: string) => runPipeline(token));
       setLastManualRun(result);
       await loadQueue({ silent: true });
+      await loadDailyStats(statsDate);
       await loadHealth();
     } catch (e: unknown) {
       if (e instanceof NetworkError) {
@@ -181,6 +236,7 @@ export function ModerationPage(): JSX.Element {
     try {
       await withModerationAccess(async (token: string) => moderate(newsId, action, token));
       await loadQueue({ silent: true });
+      await loadDailyStats(statsDate);
     } catch (fetchError: unknown) {
       if (fetchError instanceof ApiError && fetchError.status === 401) {
         await logout();
@@ -241,6 +297,51 @@ export function ModerationPage(): JSX.Element {
       <p className="moderation-queue-hint">
         Показаны новости за последние 7 дней. Старше недели в очереди не отображаются.
       </p>
+
+      <section className="moderation-daily-stats" aria-label="Счётчики за день">
+        <div className="moderation-daily-stats-head">
+          <div>
+            <h2 className="moderation-daily-stats-title">За день</h2>
+            <p className="moderation-daily-stats-hint">Календарный день по берлинскому времени.</p>
+          </div>
+          <label className="moderation-daily-stats-date">
+            Дата
+            <input
+              max={todayYmd}
+              onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                const nextDay: string = event.target.value;
+                if (nextDay === "") {
+                  return;
+                }
+                setStatsDate(nextDay);
+              }}
+              type="date"
+              value={statsDate}
+            />
+          </label>
+        </div>
+        {statsError !== "" && <p className="error">{statsError}</p>}
+        <div className="moderation-daily-stats-grid">
+          <article className="moderation-daily-stats-card">
+            <p className="moderation-daily-stats-value">
+              {statsLoading || publishedCount === null ? "…" : publishedCount}
+            </p>
+            <p className="moderation-daily-stats-label">В ленте</p>
+            <p className="moderation-daily-stats-hint">
+              Опубликованы и видны читателям. День — по дате публикации источника.
+            </p>
+          </article>
+          <article className="moderation-daily-stats-card">
+            <p className="moderation-daily-stats-value">
+              {statsLoading || moderationCount === null ? "…" : moderationCount}
+            </p>
+            <p className="moderation-daily-stats-label">На модерации</p>
+            <p className="moderation-daily-stats-hint">
+              Ещё ждут решения. День — по дате появления в очереди.
+            </p>
+          </article>
+        </div>
+      </section>
 
       <ServerPipelinePanels
         canRunPipeline={canRunPipeline}

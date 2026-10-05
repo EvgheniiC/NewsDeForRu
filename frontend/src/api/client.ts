@@ -276,6 +276,24 @@ export async function getModerationQueue(accessToken: string): Promise<Processed
   return fetchJsonAuthorized<ProcessedNews[]>("/moderation/queue", accessToken, { method: "GET" });
 }
 
+export interface ModerationDailyStats {
+  date: string;
+  published_count: number;
+  moderation_count: number;
+}
+
+export async function getModerationDailyStats(
+  accessToken: string,
+  day: string,
+): Promise<ModerationDailyStats> {
+  const params: URLSearchParams = new URLSearchParams({ date: day });
+  return fetchJsonAuthorized<ModerationDailyStats>(
+    `/moderation/daily-stats?${params.toString()}`,
+    accessToken,
+    { method: "GET" },
+  );
+}
+
 export async function moderate(
   newsId: number,
   action: "approve" | "reject",

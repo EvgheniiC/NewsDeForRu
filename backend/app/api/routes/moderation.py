@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from datetime import date
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps.auth import require_moderator
@@ -6,10 +8,16 @@ from app.core.database import get_db_session
 from app.models.app_user import AppUser
 from app.models.news import PipelineStatus, ProcessedNews
 from app.repositories.news_repository import NewsRepository
-from app.schemas.news import ModerationActionRequest, NewsMetadataPatchRequest, ProcessedNewsResponse
+from app.schemas.news import (
+    ModerationActionRequest,
+    ModerationDailyStatsResponse,
+    NewsMetadataPatchRequest,
+    ProcessedNewsResponse,
+)
 from app.services.news_attribution import attribution_from_processed, build_processed_news_response
 from app.services.telegram_notifier import send_moderation_approved_notice
 from app.services.push_notifier import send_urgent_push_notice
+from app.utils.feed_period import berlin_calendar_day_bounds_utc_naive, berlin_today
 
 router: APIRouter = APIRouter()
 
@@ -21,6 +29,34 @@ def list_queue(
 ) -> list[ProcessedNewsResponse]:
     repository = NewsRepository(db_session)
     return [build_processed_news_response(item) for item in repository.list_needs_review()]
+
+
+@router.get("/daily-stats", response_model=ModerationDailyStatsResponse)
+def daily_stats(
+    day: date | None = Query(
+        default=None,
+        alias="date",
+        description="Calendar day in Europe/Berlin (YYYY-MM-DD). Defaults to today.",
+    ),
+    db_session: Session = Depends(get_db_session),
+    _user: AppUser = Depends(require_moderator),
+) -> ModerationDailyStatsResponse:
+    selected_day: date = berlin_today() if day is None else day
+    day_start, day_end = berlin_calendar_day_bounds_utc_naive(selected_day)
+    repository: NewsRepository = NewsRepository(db_session)
+    published_count: int = repository.count_feed_published_between(
+        published_at_start=day_start,
+        published_at_end=day_end,
+    )
+    moderation_count: int = repository.count_needs_review_created_between(
+        created_at_start=day_start,
+        created_at_end=day_end,
+    )
+    return ModerationDailyStatsResponse(
+        date=selected_day,
+        published_count=published_count,
+        moderation_count=moderation_count,
+    )
 
 
 @router.patch("/{news_id}/metadata", response_model=ProcessedNewsResponse)

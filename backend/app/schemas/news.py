@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal, Self
 
 from pydantic import BaseModel, Field, field_serializer, field_validator, model_validator
@@ -142,6 +142,14 @@ class TopNewsTodayResponse(BaseModel):
 
 class ModerationActionRequest(BaseModel):
     action: Literal["approve", "reject"]
+
+
+class ModerationDailyStatsResponse(BaseModel):
+    """Daily counters for the moderator page (Europe/Berlin calendar day)."""
+
+    date: date
+    published_count: int
+    moderation_count: int
 
 
 MODERATION_TITLE_MAX_LENGTH: int = 300

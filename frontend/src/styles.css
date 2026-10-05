@@ -1182,6 +1182,84 @@ a:visited {
   font-size: 0.85rem;
 }
 
+.moderation-daily-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 0 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: var(--bg-card);
+}
+
+.moderation-daily-stats-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.moderation-daily-stats-title {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.moderation-daily-stats-date {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+
+.moderation-daily-stats-date input {
+  font: inherit;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-page, var(--bg-card));
+  color: var(--text-primary);
+}
+
+.moderation-daily-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.moderation-daily-stats-card {
+  margin: 0;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--bg-badge-count);
+}
+
+.moderation-daily-stats-value {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.moderation-daily-stats-label {
+  margin: 6px 0 0;
+  font-weight: 600;
+}
+
+.moderation-daily-stats-hint {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 640px) {
+  .moderation-daily-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .moderation-period-bar {
   display: flex;
   flex-wrap: nowrap;

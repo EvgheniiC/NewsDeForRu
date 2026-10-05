@@ -574,6 +574,45 @@ class NewsRepository:
         )
         return list(self.db_session.execute(query).scalars().all())
 
+    def count_feed_published_between(
+        self,
+        *,
+        published_at_start: datetime,
+        published_at_end: datetime,
+    ) -> int:
+        """Count feed-visible published items whose source time is in ``[start, end)``."""
+        query: Select[tuple[int]] = (
+            select(func.count(ProcessedNews.id))
+            .select_from(ProcessedNews)
+            .join(RawNewsItem, ProcessedNews.raw_item_id == RawNewsItem.id)
+            .join(Source, Source.id == RawNewsItem.source_id)
+            .where(
+                ProcessedNews.publication_status == PipelineStatus.PUBLISHED,
+                RawNewsItem.published_at >= published_at_start,
+                RawNewsItem.published_at < published_at_end,
+                self._publication_source_filter(),
+            )
+        )
+        result: int | None = self.db_session.execute(query).scalar_one()
+        return int(result or 0)
+
+    def count_needs_review_created_between(
+        self,
+        *,
+        created_at_start: datetime,
+        created_at_end: datetime,
+    ) -> int:
+        """Count items still waiting for moderation and created in ``[start, end)``."""
+        query: Select[tuple[int]] = (
+            select(func.count(ProcessedNews.id)).where(
+                ProcessedNews.publication_status == PipelineStatus.NEEDS_REVIEW,
+                ProcessedNews.created_at >= created_at_start,
+                ProcessedNews.created_at < created_at_end,
+            )
+        )
+        result: int | None = self.db_session.execute(query).scalar_one()
+        return int(result or 0)
+
     def get_processed_by_id(self, news_id: int) -> ProcessedNews | None:
         query: Select[tuple[ProcessedNews]] = select(ProcessedNews).where(ProcessedNews.id == news_id)
         return self.db_session.execute(query).scalar_one_or_none()
