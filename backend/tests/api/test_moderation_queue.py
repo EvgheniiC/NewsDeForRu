@@ -260,7 +260,7 @@ def test_daily_stats_counts_feed_and_moderation_for_selected_day(
     assert before.status_code == 200
     before_body: dict[str, object] = before.json()
     assert before_body["date"] == "2020-01-15"
-    assert before_body["published_count"] == 1
+    assert before_body["published_count"] == 2
     assert before_body["moderation_count"] == 2
     assert before_body["visit_count"] == 0
     assert waiting_id > 0
@@ -280,7 +280,7 @@ def test_daily_stats_counts_feed_and_moderation_for_selected_day(
     assert after.status_code == 200
     after_body: dict[str, object] = after.json()
     assert after_body["published_count"] == 2
-    assert after_body["moderation_count"] == 1
+    assert after_body["moderation_count"] == 2
 
     invalid = api_client.get(
         "/moderation/daily-stats",

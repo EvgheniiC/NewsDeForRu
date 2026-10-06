@@ -45,11 +45,11 @@ def daily_stats(
     selected_day: date = berlin_today() if day is None else day
     day_start, day_end = berlin_calendar_day_bounds_utc_naive(selected_day)
     repository: NewsRepository = NewsRepository(db_session)
-    published_count: int = repository.count_feed_published_between(
-        published_at_start=day_start,
-        published_at_end=day_end,
+    published_count: int = repository.count_published_created_between(
+        created_at_start=day_start,
+        created_at_end=day_end,
     )
-    moderation_count: int = repository.count_needs_review_created_between(
+    moderation_count: int = repository.count_sent_to_moderation_between(
         created_at_start=day_start,
         created_at_end=day_end,
     )

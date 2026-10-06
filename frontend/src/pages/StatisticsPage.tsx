@@ -9,8 +9,11 @@ import { useAuth } from "../context/AuthContext";
 import { berlinTodayYmd } from "../lib/dateTimeBerlin";
 
 function formatCount(loading: boolean, value: number | null): string {
-  if (loading || value === null) {
+  if (loading) {
     return "…";
+  }
+  if (value === null) {
+    return "—";
   }
   return String(value);
 }
@@ -50,6 +53,13 @@ export function StatisticsPage(): JSX.Element {
         if (fetchError instanceof ApiError && fetchError.status === 401) {
           await logout();
           navigate("/login", { replace: true, state: { from: "/statistics" } });
+          return;
+        }
+        if (fetchError instanceof ApiError && fetchError.status === 404) {
+          setPublishedCount(null);
+          setModerationCount(null);
+          setVisitCount(null);
+          setStatsError("Сервер ещё не отдаёт статистику. Обновите backend и перезапустите его.");
           return;
         }
         setPublishedCount(null);
@@ -105,14 +115,14 @@ export function StatisticsPage(): JSX.Element {
             <p className="moderation-daily-stats-value">{formatCount(statsLoading, publishedCount)}</p>
             <p className="moderation-daily-stats-label">В ленте</p>
             <p className="moderation-daily-stats-hint">
-              Опубликованы и видны читателям. День — по дате публикации источника.
+              Опубликованы в этот день, любая тема и любой источник.
             </p>
           </article>
           <article className="moderation-daily-stats-card">
             <p className="moderation-daily-stats-value">{formatCount(statsLoading, moderationCount)}</p>
             <p className="moderation-daily-stats-label">На модерации</p>
             <p className="moderation-daily-stats-hint">
-              Ещё ждут решения. День — по дате появления в очереди.
+              Отправлены на модерацию в этот день, даже если их потом опубликовали или отклонили.
             </p>
           </article>
           <article className="moderation-daily-stats-card">

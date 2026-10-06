@@ -574,43 +574,63 @@ class NewsRepository:
         )
         return list(self.db_session.execute(query).scalars().all())
 
-    def count_feed_published_between(
-        self,
-        *,
-        published_at_start: datetime,
-        published_at_end: datetime,
-    ) -> int:
-        """Count feed-visible published items whose source time is in ``[start, end)``."""
-        query: Select[tuple[int]] = (
-            select(func.count(ProcessedNews.id))
-            .select_from(ProcessedNews)
-            .join(RawNewsItem, ProcessedNews.raw_item_id == RawNewsItem.id)
-            .join(Source, Source.id == RawNewsItem.source_id)
-            .where(
-                ProcessedNews.publication_status == PipelineStatus.PUBLISHED,
-                RawNewsItem.published_at >= published_at_start,
-                RawNewsItem.published_at < published_at_end,
-                self._publication_source_filter(),
-            )
-        )
-        result: int | None = self.db_session.execute(query).scalar_one()
-        return int(result or 0)
-
-    def count_needs_review_created_between(
+    def count_published_created_between(
         self,
         *,
         created_at_start: datetime,
         created_at_end: datetime,
     ) -> int:
-        """Count items still waiting for moderation and created in ``[start, end)``."""
-        query: Select[tuple[int]] = (
+        """Count items published into the feed during ``[start, end)``.
+
+        Includes every topic and source. Auto-published rows use ``created_at``.
+        Moderator approvals use the approve event time, so a later reject or
+        unpublish does not remove the day they entered the feed.
+        """
+        approved = exists().where(
+            ModerationEvent.processed_news_id == ProcessedNews.id,
+            ModerationEvent.action == "approve",
+        )
+        auto_published: int | None = self.db_session.scalar(
             select(func.count(ProcessedNews.id)).where(
-                ProcessedNews.publication_status == PipelineStatus.NEEDS_REVIEW,
+                ProcessedNews.publication_status == PipelineStatus.PUBLISHED,
                 ProcessedNews.created_at >= created_at_start,
                 ProcessedNews.created_at < created_at_end,
+                ~approved,
             )
         )
-        result: int | None = self.db_session.execute(query).scalar_one()
+        moderator_published: int | None = self.db_session.scalar(
+            select(func.count(func.distinct(ModerationEvent.processed_news_id))).where(
+                ModerationEvent.action == "approve",
+                ModerationEvent.created_at >= created_at_start,
+                ModerationEvent.created_at < created_at_end,
+            )
+        )
+        return int(auto_published or 0) + int(moderator_published or 0)
+
+    def count_sent_to_moderation_between(
+        self,
+        *,
+        created_at_start: datetime,
+        created_at_end: datetime,
+    ) -> int:
+        """Count items the pipeline sent to moderation during ``[start, end)``.
+
+        Includes every topic and source. Later approve or reject does not remove the row.
+        """
+        decided_in_queue = exists().where(
+            ModerationEvent.processed_news_id == ProcessedNews.id,
+            ModerationEvent.action.in_(("approve", "reject")),
+        )
+        result: int | None = self.db_session.scalar(
+            select(func.count(ProcessedNews.id)).where(
+                ProcessedNews.created_at >= created_at_start,
+                ProcessedNews.created_at < created_at_end,
+                or_(
+                    ProcessedNews.publication_status == PipelineStatus.NEEDS_REVIEW,
+                    decided_in_queue,
+                ),
+            )
+        )
         return int(result or 0)
 
     def get_processed_by_id(self, news_id: int) -> ProcessedNews | None:
