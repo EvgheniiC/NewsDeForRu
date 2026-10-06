@@ -35,4 +35,5 @@ test("isMaintenanceExemptPath keeps legal and staff routes", (): void => {
   expect(isMaintenanceExemptPath("/login")).toBe(true);
   expect(isMaintenanceExemptPath("/account/reset")).toBe(true);
   expect(isMaintenanceExemptPath("/moderation")).toBe(true);
+  expect(isMaintenanceExemptPath("/statistics")).toBe(true);
 });

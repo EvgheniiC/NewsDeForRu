@@ -1,11 +1,14 @@
-"""Persist engagement/analytics batches."""
+"""Persist engagement/analytics batches and daily app visits."""
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from datetime import date
+
+from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models.engagement import UserEngagementEvent
+from app.models.engagement import AppVisit, UserEngagementEvent
 from app.schemas.engagement import RawEngagementEvent, payload_to_json
 
 
@@ -64,3 +67,30 @@ def insert_engagement_batch(
         raise
 
     return inserted, skipped
+
+
+def record_app_visit(db: Session, session_id: str, visit_date: date) -> bool:
+    """Insert one visit for this session and Berlin day. False when it already exists."""
+    existing_id: int | None = db.scalar(
+        select(AppVisit.id).where(
+            AppVisit.session_id == session_id,
+            AppVisit.visit_date == visit_date,
+        )
+    )
+    if existing_id is not None:
+        return False
+
+    db.add(AppVisit(session_id=session_id, visit_date=visit_date))
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        return False
+    return True
+
+
+def count_app_visits_on(db: Session, visit_date: date) -> int:
+    result: int | None = db.scalar(
+        select(func.count(AppVisit.id)).where(AppVisit.visit_date == visit_date)
+    )
+    return int(result or 0)

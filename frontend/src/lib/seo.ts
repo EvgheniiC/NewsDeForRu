@@ -19,7 +19,7 @@ export interface SitemapUrl {
   readonly priority: string;
 }
 
-const PRIVATE_PATH_PREFIXES: readonly string[] = ["/login", "/account", "/moderation"];
+const PRIVATE_PATH_PREFIXES: readonly string[] = ["/login", "/account", "/moderation", "/statistics"];
 
 /** Strips a trailing slash except for the origin itself. */
 export function publicOriginFromEnv(raw: string | undefined): string {
@@ -123,6 +123,7 @@ export function buildRobotsTxt(origin: string): string {
     "Disallow: /login",
     "Disallow: /account",
     "Disallow: /moderation",
+    "Disallow: /statistics",
     "",
     `Sitemap: ${origin}/sitemap.xml`,
     "",

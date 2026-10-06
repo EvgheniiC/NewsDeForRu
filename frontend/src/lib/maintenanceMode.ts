@@ -38,5 +38,10 @@ export function isMaintenanceExemptPath(pathname: string): boolean {
   if (LEGAL_PATHS.has(pathname)) {
     return true;
   }
-  return pathname === "/login" || pathname.startsWith("/account") || pathname.startsWith("/moderation");
+  return (
+    pathname === "/login" ||
+    pathname.startsWith("/account") ||
+    pathname.startsWith("/moderation") ||
+    pathname.startsWith("/statistics")
+  );
 }

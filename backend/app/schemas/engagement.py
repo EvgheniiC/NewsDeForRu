@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from typing import Any, cast
+from uuid import UUID
 
 from pydantic import AliasChoices, BaseModel, Field, field_validator
 
@@ -57,4 +58,23 @@ class EngagementBatchRequest(BaseModel):
 class EngagementBatchResponse(BaseModel):
     inserted: int
     skipped_duplicate: int
+
+
+class AppVisitRequest(BaseModel):
+    session_id: str = Field(min_length=36, max_length=36)
+
+    model_config = {"extra": "forbid"}
+
+    @field_validator("session_id")
+    @classmethod
+    def _session_must_be_uuid(cls, value: str) -> str:
+        try:
+            parsed: UUID = UUID(value)
+        except ValueError as exc:
+            raise ValueError("session_id must be a UUID") from exc
+        return str(parsed)
+
+
+class AppVisitResponse(BaseModel):
+    recorded: bool
 

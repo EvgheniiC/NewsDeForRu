@@ -9,8 +9,19 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db_session
-from app.repositories.engagement_repository import find_existing_news_ids, insert_engagement_batch
-from app.schemas.engagement import EngagementBatchRequest, EngagementBatchResponse, RawEngagementEvent
+from app.repositories.engagement_repository import (
+    find_existing_news_ids,
+    insert_engagement_batch,
+    record_app_visit,
+)
+from app.schemas.engagement import (
+    AppVisitRequest,
+    AppVisitResponse,
+    EngagementBatchRequest,
+    EngagementBatchResponse,
+    RawEngagementEvent,
+)
+from app.utils.feed_period import berlin_today
 
 router: APIRouter = APIRouter()
 
@@ -62,3 +73,12 @@ def post_engagement_events(
 
     inserted, skipped = insert_engagement_batch(db, uid, prepared_events)
     return EngagementBatchResponse(inserted=inserted, skipped_duplicate=skipped)
+
+
+@router.post("/visits", response_model=AppVisitResponse)
+def post_app_visit(
+    body: AppVisitRequest,
+    db: Session = Depends(get_db_session),
+) -> AppVisitResponse:
+    recorded: bool = record_app_visit(db, body.session_id, berlin_today())
+    return AppVisitResponse(recorded=recorded)

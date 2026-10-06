@@ -7,6 +7,7 @@ from sqlalchemy import engine_from_config, pool
 
 from app.core.config import settings
 from app.core.database import Base
+from app.models import engagement  # noqa: F401
 from app.models import news  # noqa: F401
 from app.models import app_user  # noqa: F401
 from app.models import password_reset_token  # noqa: F401

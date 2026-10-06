@@ -14,6 +14,8 @@ import { ResendVerificationPage } from "./pages/ResendVerificationPage";
 import { FeedPage } from "./pages/FeedPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ModerationPage } from "./pages/ModerationPage";
+import { StatisticsPage } from "./pages/StatisticsPage";
+import { VisitRecorder } from "./components/VisitRecorder";
 import { NewsDetailsPage } from "./pages/NewsDetailsPage";
 import { AnalyticsConsentBanner } from "./components/AnalyticsConsentBanner";
 import { AppHeader } from "./components/AppHeader";
@@ -73,11 +75,13 @@ function App(): JSX.Element {
       <PushNotificationListener />
       <AppHeader />
       <AnalyticsConsentBanner />
+      <VisitRecorder />
       <Routes>
         <Route element={<FeedPage />} path="/" />
         <Route element={<NewsDetailsPage />} path="/news/:id" />
-        <Route element={<ModeratorRoute />} path="/moderation">
-          <Route index element={<ModerationPage />} />
+        <Route element={<ModeratorRoute />}>
+          <Route element={<ModerationPage />} path="/moderation" />
+          <Route element={<StatisticsPage />} path="/statistics" />
         </Route>
         <Route element={<LoginPage />} path="/login" />
         <Route element={<AccountPage />} path="/account" />

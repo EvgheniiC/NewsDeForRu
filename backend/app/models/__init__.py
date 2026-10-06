@@ -9,7 +9,7 @@ from app.models.news import (
     Source,
     UserRole,
 )
-from app.models.engagement import UserEngagementEvent
+from app.models.engagement import AppVisit, UserEngagementEvent
 from app.models.job_lock import AppJobLock
 from app.models.user_library import UserReadNews, UserSavedNews
 
@@ -24,6 +24,7 @@ __all__ = [
     "ClusterItem",
     "ModerationEvent",
     "UserEngagementEvent",
+    "AppVisit",
     "AppJobLock",
     "UserSavedNews",
     "UserReadNews",

@@ -280,6 +280,15 @@ export interface ModerationDailyStats {
   date: string;
   published_count: number;
   moderation_count: number;
+  visit_count: number;
+}
+
+export async function postAppVisit(sessionId: string): Promise<{ recorded: boolean }> {
+  return fetchJson<{ recorded: boolean }>("/engagement/visits", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ session_id: sessionId }),
+  });
 }
 
 export async function getModerationDailyStats(

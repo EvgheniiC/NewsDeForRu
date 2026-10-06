@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import TYPE_CHECKING
 from enum import StrEnum
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Date, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -45,3 +45,18 @@ class UserEngagementEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     processed_news: Mapped["ProcessedNews"] = relationship(back_populates="user_engagement_events")
+
+
+class AppVisit(Base):
+    """One app open per browser session and Berlin calendar day."""
+
+    __tablename__ = "app_visits"
+    __table_args__ = (
+        UniqueConstraint("session_id", "visit_date", name="uq_app_visits_session_day"),
+        Index("ix_app_visits_visit_date", "visit_date"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    session_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    visit_date: Mapped[date] = mapped_column(Date, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)

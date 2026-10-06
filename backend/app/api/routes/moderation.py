@@ -7,6 +7,7 @@ from app.api.deps.auth import require_moderator
 from app.core.database import get_db_session
 from app.models.app_user import AppUser
 from app.models.news import PipelineStatus, ProcessedNews
+from app.repositories.engagement_repository import count_app_visits_on
 from app.repositories.news_repository import NewsRepository
 from app.schemas.news import (
     ModerationActionRequest,
@@ -52,10 +53,12 @@ def daily_stats(
         created_at_start=day_start,
         created_at_end=day_end,
     )
+    visit_count: int = count_app_visits_on(db_session, selected_day)
     return ModerationDailyStatsResponse(
         date=selected_day,
         published_count=published_count,
         moderation_count=moderation_count,
+        visit_count=visit_count,
     )
 
 

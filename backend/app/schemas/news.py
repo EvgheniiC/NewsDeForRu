@@ -150,6 +150,7 @@ class ModerationDailyStatsResponse(BaseModel):
     date: date
     published_count: int
     moderation_count: int
+    visit_count: int
 
 
 MODERATION_TITLE_MAX_LENGTH: int = 300

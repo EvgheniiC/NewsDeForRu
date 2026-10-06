@@ -31,6 +31,7 @@ test("resolveDocumentHead indexes legal pages and blocks private routes", (): vo
   expect(resolveDocumentHead("/login").robots).toBe("noindex, nofollow");
   expect(resolveDocumentHead("/account/reset").robots).toBe("noindex, nofollow");
   expect(resolveDocumentHead("/moderation").robots).toBe("noindex, nofollow");
+  expect(resolveDocumentHead("/statistics").robots).toBe("noindex, nofollow");
   expect(resolveDocumentHead("/").robots).toBe("index, follow");
 });
 

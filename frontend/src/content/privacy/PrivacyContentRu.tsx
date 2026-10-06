@@ -75,7 +75,8 @@ export function PrivacyContentRu(): JSX.Element {
             </tr>
             <tr>
               <td>
-                <code>nga_anonymous_user_id</code>, <code>nga_session_id</code>, события
+                <code>nga_anonymous_user_id</code>, <code>nga_session_id</code>, события и посещение
+                приложения (одна сессия в день)
               </td>
               <td>Статистика использования</td>
               <td>Согласие (a), баннер</td>

@@ -16,7 +16,7 @@ from app.models.news import ImpactPresentation, NewsTopic, PipelineStatus, Proce
 from app.repositories.news_repository import NewsRepository
 from app.repositories.user_repository import UserRepository
 from app.services.passwords import hash_password
-from app.utils.feed_period import berlin_calendar_day_bounds_utc_naive
+from app.utils.feed_period import berlin_calendar_day_bounds_utc_naive, berlin_today
 
 
 @pytest.fixture()
@@ -262,6 +262,7 @@ def test_daily_stats_counts_feed_and_moderation_for_selected_day(
     assert before_body["date"] == "2020-01-15"
     assert before_body["published_count"] == 1
     assert before_body["moderation_count"] == 2
+    assert before_body["visit_count"] == 0
     assert waiting_id > 0
 
     approved = api_client.post(
@@ -287,6 +288,46 @@ def test_daily_stats_counts_feed_and_moderation_for_selected_day(
         params={"date": "not-a-date"},
     )
     assert invalid.status_code == 422
+
+
+def test_app_visit_is_counted_once_per_session_and_day(
+    api_client: TestClient,
+    bearer_ops_headers: dict[str, str],
+) -> None:
+    today: str = berlin_today().isoformat()
+    session_id: str = "11111111-1111-4111-8111-111111111111"
+    other_session_id: str = "22222222-2222-4222-8222-222222222222"
+
+    before = api_client.get(
+        "/moderation/daily-stats",
+        headers=bearer_ops_headers,
+        params={"date": today},
+    )
+    assert before.status_code == 200
+    before_visits: int = int(before.json()["visit_count"])
+
+    first = api_client.post("/engagement/visits", json={"session_id": session_id})
+    assert first.status_code == 200
+    assert first.json()["recorded"] is True
+
+    duplicate = api_client.post("/engagement/visits", json={"session_id": session_id})
+    assert duplicate.status_code == 200
+    assert duplicate.json()["recorded"] is False
+
+    second = api_client.post("/engagement/visits", json={"session_id": other_session_id})
+    assert second.status_code == 200
+    assert second.json()["recorded"] is True
+
+    invalid = api_client.post("/engagement/visits", json={"session_id": "not-a-uuid"})
+    assert invalid.status_code == 422
+
+    after = api_client.get(
+        "/moderation/daily-stats",
+        headers=bearer_ops_headers,
+        params={"date": today},
+    )
+    assert after.status_code == 200
+    assert int(after.json()["visit_count"]) == before_visits + 2
 
 
 def test_daily_stats_requires_moderator(api_client: TestClient) -> None:
