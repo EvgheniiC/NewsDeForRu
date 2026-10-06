@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytest
 
@@ -141,14 +141,15 @@ def test_list_telegram_digest_candidates_one_per_cluster() -> None:
         repo: NewsRepository = NewsRepository(db)
         src = repo.upsert_source("s3", "S3", "http://x3/rss")
         cluster = repo.upsert_cluster("ck", "ct", "cs")
-        for i, (guid, score) in enumerate([("ga", 9), ("gb", 8)]):
+        now: datetime = datetime.utcnow()
+        for i, (guid, score, age_hours) in enumerate([("ga", 9, 2), ("gb", 8, 1)]):
             raw = repo.create_raw_item(
                 source_id=src.id,
                 guid=guid,
                 title=guid,
                 summary="s",
                 url=f"http://{guid}",
-                published_at=datetime.utcnow(),
+                published_at=now,
             )
             p = ProcessedNews(
                 raw_item_id=raw.id,
@@ -168,6 +169,7 @@ def test_list_telegram_digest_candidates_one_per_cluster() -> None:
                 is_urgent=False,
                 cluster_id=cluster.id,
                 rights_verified=True,
+                created_at=now - timedelta(hours=age_hours),
             )
             repo.create_processed_news(p)
         raw_other = repo.create_raw_item(
@@ -203,5 +205,53 @@ def test_list_telegram_digest_candidates_one_per_cluster() -> None:
             min_importance=6, limit=3, max_scan=50
         )
         titles = {x.title for x in picked}
-        assert titles == {"row0", "solo"}
+        assert titles == {"row1", "solo"}
         assert len(picked) == 2
+
+
+def test_list_telegram_digest_candidates_skips_stale_backlog() -> None:
+    now: datetime = datetime.utcnow()
+    with SessionLocal() as db:
+        repo: NewsRepository = NewsRepository(db)
+        src = repo.upsert_source("s4", "S4", "http://x4/rss")
+
+        def _row(guid: str, title: str, age_hours: int, score: int) -> None:
+            raw = repo.create_raw_item(
+                source_id=src.id,
+                guid=guid,
+                title=title,
+                summary="s",
+                url=f"http://{guid}",
+                published_at=now - timedelta(hours=age_hours),
+            )
+            processed: ProcessedNews = ProcessedNews(
+                raw_item_id=raw.id,
+                title=title,
+                one_sentence_summary="x",
+                plain_language="p",
+                impact_presentation=ImpactPresentation.MULTI,
+                impact_owner="",
+                impact_tenant="",
+                impact_buyer="",
+                action_items="",
+                spoiler="",
+                source_url="http://u",
+                publication_status=PipelineStatus.PUBLISHED,
+                topic=NewsTopic.LIFE,
+                importance_ai_score=score,
+                is_urgent=False,
+                rights_verified=True,
+                created_at=now - timedelta(hours=age_hours),
+            )
+            repo.create_processed_news(processed)
+
+        _row("old", "stale", 48, 10)
+        _row("new", "fresh", 1, 6)
+
+        picked: list[ProcessedNews] = repo.list_telegram_digest_candidates(
+            min_importance=6,
+            limit=3,
+            max_scan=50,
+            max_age_hours=16,
+        )
+        assert [item.title for item in picked] == ["fresh"]

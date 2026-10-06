@@ -170,7 +170,9 @@ class Settings(BaseSettings):
     telegram_digest_timezone: str = "Europe/Berlin"
     telegram_digest_min_importance: int = Field(default=6, ge=1, le=10)
     telegram_digest_max_per_slot: int = Field(default=3, ge=1, le=10)
-    # Fetch up to this many rows before deduping by news cluster for digest (see TODO: aging/fairness).
+    # Drop cards older than this so a missed slot cannot drain a multi-day backlog.
+    telegram_digest_max_age_hours: int = Field(default=16, ge=1, le=168)
+    # Fetch up to this many rows before deduping by news cluster for digest.
     telegram_digest_candidate_scan_limit: int = Field(default=120, ge=20, le=2000)
     # Breaking (urgent) auto-publish: retries with exponential backoff on full delivery failure.
     telegram_urgent_send_max_attempts: int = Field(default=3, ge=1, le=10)

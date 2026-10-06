@@ -651,32 +651,40 @@ class NewsRepository:
         min_importance: int,
         limit: int,
         max_scan: int,
+        max_age_hours: int | None = None,
     ) -> list[ProcessedNews]:
-        """Auto-published items only (no moderation approve row), for scheduled Telegram digests.
+        """Newest auto-published items for a Telegram digest (no moderation approve row).
 
         At most one row per ``cluster_id`` (skips duplicate clusters; ``cluster_id IS NULL`` rows are
-        not deduped against each other).
+        not deduped against each other). When ``max_age_hours`` is set, older cards are left unsent.
         """
         approve_exists = exists().where(
             ModerationEvent.processed_news_id == ProcessedNews.id,
             ModerationEvent.action == "approve",
         )
+        filters: list[Any] = [
+            ProcessedNews.publication_status == PipelineStatus.PUBLISHED,
+            ProcessedNews.importance_ai_score >= min_importance,
+            ProcessedNews.telegram_notified_at.is_(None),
+            ProcessedNews.is_urgent.is_(False),
+            ~approve_exists,
+            self._publication_source_filter(),
+        ]
+        if max_age_hours is not None:
+            newest_since: datetime = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+                hours=max_age_hours
+            )
+            filters.append(ProcessedNews.created_at >= newest_since)
         query: Select[tuple[ProcessedNews]] = (
             select(ProcessedNews)
             .join(RawNewsItem, ProcessedNews.raw_item_id == RawNewsItem.id)
             .join(Source, Source.id == RawNewsItem.source_id)
-            .where(
-                ProcessedNews.publication_status == PipelineStatus.PUBLISHED,
-                ProcessedNews.importance_ai_score >= min_importance,
-                ProcessedNews.telegram_notified_at.is_(None),
-                ProcessedNews.is_urgent.is_(False),
-                ~approve_exists,
-                self._publication_source_filter(),
-            )
+            .where(*filters)
             .options(selectinload(ProcessedNews.raw_item).selectinload(RawNewsItem.source))
             .order_by(
-                ProcessedNews.importance_ai_score.desc(),
                 ProcessedNews.created_at.desc(),
+                ProcessedNews.importance_ai_score.desc(),
+                ProcessedNews.id.desc(),
             )
             .limit(max_scan)
         )

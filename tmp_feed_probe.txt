@@ -1,0 +1,2 @@
+32200 | politics | 2026-10-04T15:33:30.000000+02:00 | 8 | https://www.tagesschau.de/ausland/europa/merz-kiew-106.html | Мерц в Киеве: Один миллиард военной помощи для Украины
+31247 | politics | 2026-10-03T02:13:18.000000+02:00 | 7 | https://www.bild.de/politik/ausland-und-internationales/kampf-gegen-die-huthis-in-jemen-saudi-arabien-fordert-militaerische-unterstuetzung-aus-deutschland-6ac008b7d0775b9e9d8fe11a | Саудовская Аравия требует военной помощи от Германии в борьбе с хуситами

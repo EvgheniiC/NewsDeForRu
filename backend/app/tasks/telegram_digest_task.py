@@ -1,4 +1,4 @@
-"""Scheduled Telegram digest: high-importance auto-published items at fixed local hours."""
+"""Scheduled Telegram digest: recent auto-published items at fixed local hours."""
 
 from __future__ import annotations
 
@@ -19,11 +19,6 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 # Stable key for PostgreSQL pg_try_advisory_lock / pg_advisory_unlock (must match).
 TELEGRAM_DIGEST_PG_ADVISORY_KEY: int = 3829154827312
-
-# TODO(digest-fairness): Reduce starvation when many high-importance items queue up.
-# - Track waiting time (e.g. telegram_queued_at or created_at) and boost score for older rows.
-# - Optional: force-send items waiting longer than N hours.
-# - Blend importance with top-today-style score (sources + freshness).
 
 
 def run_telegram_digest_for_hour(
@@ -60,6 +55,7 @@ def run_telegram_digest_for_hour(
             min_importance=cfg.telegram_digest_min_importance,
             limit=cfg.telegram_digest_max_per_slot,
             max_scan=cfg.telegram_digest_candidate_scan_limit,
+            max_age_hours=cfg.telegram_digest_max_age_hours,
         )
         if not candidates:
             logger.info("Telegram digest: no candidates for slot_hour=%s", slot_hour)
