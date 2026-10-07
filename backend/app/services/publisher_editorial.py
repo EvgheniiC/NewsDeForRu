@@ -60,10 +60,11 @@ def publisher_editorial_instructions(
     primary_source_name: str | None = None,
     primary_source_url: str | None = None,
 ) -> str:
-    """Build strict instructions for an independent moderation draft.
+    """Build strict instructions for an independent publisher draft.
 
     When the RSS item links a primary source, the draft must follow that source
-    instead of the publisher. When it does not, the draft must not name a source.
+    instead of the publisher and may be published. When it does not, the draft
+    must not name a source and stays a moderation item.
     """
     source_name: str = publisher_source_name(source_key)
     primary_name: str = (primary_source_name or "").strip()
@@ -101,6 +102,11 @@ def publisher_editorial_instructions(
             "что сведения требуют проверки по первичному источнику. "
         )
     )
+    publication_rule: str = (
+        "Если факты подтверждены первоисточником, карточку можно публиковать."
+        if primary_url
+        else "Материал всегда является черновиком для ручной модерации."
+    )
     return (
         f"Входные данные — RSS-анонс издателя {source_name}, а не официальный первоисточник. "
         "Создай самостоятельный редакционный черновик на русском языке только по явно "
@@ -108,6 +114,5 @@ def publisher_editorial_instructions(
         "предложением; не сохраняй исходную структуру, заголовок, стиль или уникальные выводы. "
         "Не добавляй факты, контекст, цитаты или причинно-следственные связи, которых нет во "
         f"входных данных. {origin_rules}{uncertainty_rules}"
-        f"{sensitive_rules}"
-        "Материал всегда является черновиком для ручной модерации."
+        f"{sensitive_rules}{publication_rule}"
     )

@@ -5,8 +5,8 @@
    quality gates pass.
 2. Unlicensed publisher with a primary source, for example BILD. The publisher
    item is only a signal that something happened. The card is a short original
-   draft based on the primary source, cites only that source, and always goes
-   to moderation.
+   draft based on the primary source, cites only that source, and may be
+   auto-published when the usual quality gates pass.
 3. Unlicensed publisher without a primary source. The card must not invent a
    source and always goes to moderation.
 """

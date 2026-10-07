@@ -137,6 +137,8 @@ def test_editorial_prompt_follows_primary_source() -> None:
     assert "короткую собственную новость" in text
     assert "не сокращённый перевод или пересказ другого СМИ" in text
     assert "Не называй ZEIT" in text
+    assert "карточку можно публиковать" in text
+    assert "ручной модерации" not in text
 
 
 def test_editorial_prompt_hides_source_when_primary_link_is_missing() -> None:
@@ -144,3 +146,4 @@ def test_editorial_prompt_hides_source_when_primary_link_is_missing() -> None:
 
     assert "Не пиши «по данным»" in text
     assert "по данным BILD" not in text
+    assert "ручной модерации" in text

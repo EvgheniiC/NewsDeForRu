@@ -30,7 +30,6 @@ class PublicationReviewReason(StrEnum):
     DUPLICATE_CLUSTER = "duplicate_cluster"
     KEYWORD = "keyword"
     LICENCE = "licence"
-    INDEPENDENT_DRAFT = "independent_draft"
     NO_PRIMARY_SOURCE = "no_primary_source"
 
 
@@ -57,13 +56,10 @@ class PublicationService:
         # Rule 3: no primary source, so a person must decide.
         if origin_mode is NewsOriginMode.MISSING_PRIMARY:
             return PipelineStatus.NEEDS_REVIEW, PublicationReviewReason.NO_PRIMARY_SOURCE
-        # Rule 2: original draft from a primary source, still a moderation item.
-        if origin_mode is NewsOriginMode.INDEPENDENT_PRIMARY:
-            return PipelineStatus.NEEDS_REVIEW, PublicationReviewReason.INDEPENDENT_DRAFT
         # Unlicensed non-publisher items stay out of the public feed.
         if origin_mode is None:
             return PipelineStatus.NEEDS_REVIEW, PublicationReviewReason.LICENCE
-        # Rule 1: a licensed source may pass the quality gates below.
+        # Rules 1 and 2 may pass the quality gates below. Rule 2 cites only the primary source.
 
         text_lower: str = f"{inp.title}\n{inp.summary}".lower()
         for kw in _parse_review_keywords(self._s.moderation_extra_review_keywords):

@@ -138,7 +138,7 @@ def test_licensed_publisher_can_auto_publish() -> None:
     assert reason is None
 
 
-def test_unlicensed_publisher_with_primary_source_always_needs_review() -> None:
+def test_unlicensed_publisher_with_primary_source_can_auto_publish() -> None:
     service: PublicationService = PublicationService(
         app_settings=Settings(
             auto_publish_threshold=0.1,
@@ -164,8 +164,35 @@ def test_unlicensed_publisher_with_primary_source_always_needs_review() -> None:
             )
         )
 
-        assert status == PipelineStatus.NEEDS_REVIEW
-        assert reason == PublicationReviewReason.INDEPENDENT_DRAFT
+        assert status == PipelineStatus.PUBLISHED
+        assert reason is None
+
+
+def test_unlicensed_publisher_with_primary_source_still_reviews_low_confidence() -> None:
+    service: PublicationService = PublicationService(
+        app_settings=Settings(
+            auto_publish_threshold=0.85,
+            auto_publish_min_relevance=0.5,
+            auto_publish_review_on_duplicate_cluster=False,
+        )
+    )
+    status, reason = service.decide_status(
+        PublicationDecisionInput(
+            confidence_score=0.2,
+            relevance_score=0.9,
+            is_new_cluster=True,
+            title="Titel",
+            summary="Kurz",
+            licence=None,
+            licence_url=None,
+            rights_verified=False,
+            source_key="bild",
+            has_primary_source=True,
+        )
+    )
+
+    assert status == PipelineStatus.NEEDS_REVIEW
+    assert reason == PublicationReviewReason.LOW_CONFIDENCE
 
 
 def test_publisher_without_primary_source_always_needs_review() -> None:
