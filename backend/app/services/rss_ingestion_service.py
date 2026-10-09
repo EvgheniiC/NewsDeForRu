@@ -8,6 +8,8 @@ import httpx
 from app.core.config import settings
 from app.core.http_tls import httpx_verify_arg
 from app.repositories.news_repository import NewsRepository
+from app.services.official_press_matcher import OfficialPressCatalog, OfficialRelease
+from app.services.publisher_editorial import is_publisher_editorial_source
 from app.services.rss_entry_normalization import normalize_feedparser_entry
 from app.services.rss_sources import RSSSource, enabled_rss_sources
 
@@ -21,8 +23,13 @@ class IngestionStats:
 
 
 class RSSIngestionService:
-    def __init__(self, repository: NewsRepository) -> None:
+    def __init__(
+        self,
+        repository: NewsRepository,
+        official_press: OfficialPressCatalog | None = None,
+    ) -> None:
         self.repository: NewsRepository = repository
+        self.official_press: OfficialPressCatalog | None = official_press
 
     @staticmethod
     def _fetch_feed_body(client: httpx.Client, url: str) -> bytes | None:
@@ -71,6 +78,14 @@ class RSSIngestionService:
             follow_redirects=True,
             verify=httpx_verify_arg(settings),
         ) as client:
+            catalog: OfficialPressCatalog | None = self.official_press
+            if (
+                catalog is None
+                and settings.official_press_lookup_enabled
+                and any(is_publisher_editorial_source(source.key) for source in sources)
+            ):
+                catalog = OfficialPressCatalog()
+                catalog.load(client)
             for source in sources:
                 body: bytes | None = self._fetch_feed_body(client, source.url)
                 if body is None:
@@ -100,6 +115,29 @@ class RSSIngestionService:
                         continue
                     if self.repository.has_raw_item(source_id=source_record.id, guid=normalized.guid):
                         continue
+                    primary_url: str | None = normalized.primary_source_url
+                    primary_name: str | None = normalized.primary_source_name
+                    if (
+                        not primary_url
+                        and catalog is not None
+                        and is_publisher_editorial_source(source.key)
+                    ):
+                        matched: OfficialRelease | None = catalog.match(
+                            normalized.title,
+                            normalized.summary,
+                            normalized.published_at,
+                            min_shared_tokens=settings.official_press_min_shared_tokens,
+                            min_title_coverage=settings.official_press_min_title_coverage,
+                            max_age_hours=settings.official_press_max_age_hours,
+                        )
+                        if matched is not None:
+                            primary_url = matched.url
+                            primary_name = matched.name
+                            logger.info(
+                                "Official press match source_key=%s url=%s",
+                                source.key,
+                                matched.url,
+                            )
                     self.repository.create_raw_item(
                         source_id=source_record.id,
                         guid=normalized.guid,
@@ -115,8 +153,8 @@ class RSSIngestionService:
                         changes_notice=source.changes_notice,
                         source_revision=normalized.guid,
                         rights_verified=source.rights_verified,
-                        primary_source_url=normalized.primary_source_url,
-                        primary_source_name=normalized.primary_source_name,
+                        primary_source_url=primary_url,
+                        primary_source_name=primary_name,
                     )
                     fetched += 1
 

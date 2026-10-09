@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     # Google Play closed testing: ingest listed catalog publishers even without rights_verified.
     # Keep false for production. Images stay app topic covers (text_only / OG fetch off).
     rss_allow_unverified_catalog_sources: bool = False
+    # Match publisher items to recent Presseportal police and authority releases.
+    official_press_lookup_enabled: bool = True
+    official_press_min_shared_tokens: int = Field(default=3, ge=2, le=8)
+    official_press_min_title_coverage: float = Field(default=0.55, ge=0.3, le=1.0)
+    official_press_max_age_hours: int = Field(default=48, ge=1, le=168)
     genesis_base_url: str = "https://genesis.destatis.de/genesisWS/rest/2020"
     genesis_api_token: str = ""
     genesis_dataset_codes: str = ""
