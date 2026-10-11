@@ -139,6 +139,17 @@ def mentions_institution(text: str) -> bool:
     return any(word in folded for word in _INSTITUTION_WORDS)
 
 
+def _is_same_release(left: OfficialRelease, right: OfficialRelease) -> bool:
+    """Whether two feed copies describe one press release, even with different URLs."""
+    left_tokens: set[str] = distinctive_tokens(left.title)
+    right_tokens: set[str] = distinctive_tokens(right.title)
+    if not left_tokens or not right_tokens:
+        return False
+    shared: int = _shared_token_count(left_tokens, right_tokens)
+    smaller: int = min(len(left_tokens), len(right_tokens))
+    return shared / smaller >= 0.8
+
+
 def find_official_release(
     title: str,
     summary: str,
@@ -149,7 +160,11 @@ def find_official_release(
     min_title_coverage: float,
     max_age_hours: int,
 ) -> OfficialRelease | None:
-    """Return one clearly matching press release, or None when the match is weak or ambiguous."""
+    """Return one clearly matching press release, or None when the match is weak or ambiguous.
+
+    Copies of the same release from the national and a state feed count as one candidate.
+    Two different events with a similar score are left unmatched.
+    """
     query: set[str] = distinctive_tokens(f"{title}\n{summary}")
     if len(query) < min_shared_tokens:
         return None
@@ -171,12 +186,13 @@ def find_official_release(
         ranked.append((coverage, shared, release))
     if not ranked:
         return None
-    ranked.sort(key=lambda item: (item[0], item[1]), reverse=True)
+    ranked.sort(key=lambda item: (-item[0], -item[1], item[2].url))
     best_coverage, _best_shared, best = ranked[0]
-    if len(ranked) > 1:
-        second_coverage: float = ranked[1][0]
-        if best_coverage - second_coverage < 0.15:
-            return None
+    close: list[OfficialRelease] = [
+        release for coverage, _shared, release in ranked if best_coverage - coverage < 0.15
+    ]
+    if any(not _is_same_release(best, release) for release in close):
+        return None
     return best
 
 

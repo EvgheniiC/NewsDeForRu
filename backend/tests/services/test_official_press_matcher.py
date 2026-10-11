@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 from app.core.config import settings
 from app.core.database import Base
+from app.models import app_user as _app_user_models
 from app.models.news import RawNewsItem
 from app.repositories.news_repository import NewsRepository
 from app.services.official_press_feeds import OfficialPressFeed
@@ -18,6 +19,8 @@ from app.services.official_press_matcher import (
     release_from_entry,
 )
 from app.services.rss_ingestion_service import RSSIngestionService
+
+assert _app_user_models.AppUser.__tablename__ == "app_users"
 
 _NOW: datetime = datetime(2026, 10, 9, 10, 0, tzinfo=timezone.utc)
 
@@ -66,15 +69,35 @@ def test_skips_unrelated_and_stale_releases() -> None:
     assert found is None
 
 
-def test_ambiguous_releases_are_not_chosen() -> None:
+def test_duplicate_feed_copies_pick_one_release() -> None:
     title: str = "Nach Schockanruf verliert Herner sein Erspartes"
     releases: list[OfficialRelease] = [
-        _release(title, "https://www.presseportal.de/pm/a"),
-        _release(title, "https://www.presseportal.de/pm/b"),
+        _release(title, "https://www.presseportal.de/pm/state"),
+        _release(title, "https://www.presseportal.de/pm/national"),
     ]
 
     found: OfficialRelease | None = find_official_release(
         title,
+        "",
+        _NOW,
+        releases,
+        min_shared_tokens=3,
+        min_title_coverage=0.55,
+        max_age_hours=48,
+    )
+
+    assert found is not None
+    assert found.url == "https://www.presseportal.de/pm/national"
+
+
+def test_ambiguous_releases_are_not_chosen() -> None:
+    releases: list[OfficialRelease] = [
+        _release("Schockanruf in Herne: Zeugen gesucht", "https://www.presseportal.de/pm/herne"),
+        _release("Einbruch in München: Zeugen gesucht", "https://www.presseportal.de/pm/muenchen"),
+    ]
+
+    found: OfficialRelease | None = find_official_release(
+        "Schockanruf und Einbruch: Zeugen in Herne und München gesucht",
         "",
         _NOW,
         releases,
