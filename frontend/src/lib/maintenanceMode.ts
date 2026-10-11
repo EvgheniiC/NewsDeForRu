@@ -2,7 +2,7 @@ import { Capacitor } from "@capacitor/core";
 
 import { parseOptionalBooleanEnv } from "./envFlags";
 
-const LEGAL_PATHS: ReadonlySet<string> = new Set(["/privacy", "/contact", "/impressum"]);
+const LEGAL_PATHS: ReadonlySet<string> = new Set(["/about", "/privacy", "/contact", "/impressum"]);
 
 export interface MaintenanceModeOptions {
   readonly isNative: boolean;
@@ -33,7 +33,7 @@ export function isMaintenanceMode(): boolean {
   });
 }
 
-/** Legal pages and staff/auth routes stay reachable while the public feed is closed. */
+/** Public info pages and staff/auth routes stay reachable while the public feed is closed. */
 export function isMaintenanceExemptPath(pathname: string): boolean {
   if (LEGAL_PATHS.has(pathname)) {
     return true;

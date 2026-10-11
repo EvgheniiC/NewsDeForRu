@@ -53,6 +53,14 @@ export function resolveDocumentHead(pathname: string): DocumentHeadSpec {
       robots: "noindex, nofollow",
     };
   }
+  if (pathname === "/about") {
+    return {
+      title: `О проекте — ${SITE_NAME}`,
+      description: "Новости Германии простым русским языком и заметки о том, как развивается проект.",
+      canonicalPath: "/about",
+      robots: "index, follow",
+    };
+  }
   if (pathname === "/impressum") {
     return {
       title: `Impressum — ${SITE_NAME}`,
@@ -109,6 +117,7 @@ export function sitemapUrls(includeHome: boolean): readonly SitemapUrl[] {
     urls.push({ path: "/", changefreq: "hourly", priority: "1.0" });
   }
   urls.push(
+    { path: "/about", changefreq: "monthly", priority: "0.5" },
     { path: "/impressum", changefreq: "monthly", priority: "0.4" },
     { path: "/privacy", changefreq: "monthly", priority: "0.4" },
     { path: "/contact", changefreq: "monthly", priority: "0.3" },

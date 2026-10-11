@@ -25,6 +25,7 @@ test("publicOriginFromEnv strips a trailing slash", (): void => {
 });
 
 test("resolveDocumentHead indexes legal pages and blocks private routes", (): void => {
+  expect(resolveDocumentHead("/about").title).toContain("О проекте");
   expect(resolveDocumentHead("/impressum").robots).toBe("index, follow");
   expect(resolveDocumentHead("/privacy").title).toContain("Datenschutz");
   expect(resolveDocumentHead("/contact").canonicalPath).toBe("/contact");
@@ -41,7 +42,12 @@ test("resolveMaintenanceDocumentHead keeps the reconstruction page out of the in
 });
 
 test("sitemap omits the homepage while it is noindex", (): void => {
-  expect(sitemapUrls(false).map((item) => item.path)).toEqual(["/impressum", "/privacy", "/contact"]);
+  expect(sitemapUrls(false).map((item) => item.path)).toEqual([
+    "/about",
+    "/impressum",
+    "/privacy",
+    "/contact",
+  ]);
   expect(sitemapUrls(true)[0]?.path).toBe("/");
 });
 

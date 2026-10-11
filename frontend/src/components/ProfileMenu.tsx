@@ -129,6 +129,9 @@ export function ProfileMenu(): JSX.Element {
               </>
             ) : null}
             <UrgentPushToggle />
+            <Link className="profile-menu-link" onClick={closeMenu} role="menuitem" to="/about">
+              О проекте
+            </Link>
             <Link className="profile-menu-link" onClick={closeMenu} role="menuitem" to="/contact">
               Контакты
             </Link>

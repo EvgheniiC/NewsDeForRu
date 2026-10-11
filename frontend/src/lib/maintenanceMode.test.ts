@@ -29,6 +29,7 @@ test("resolveMaintenanceMode closes production web when env is unset", (): void 
 test("isMaintenanceExemptPath keeps legal and staff routes", (): void => {
   expect(isMaintenanceExemptPath("/")).toBe(false);
   expect(isMaintenanceExemptPath("/news/12")).toBe(false);
+  expect(isMaintenanceExemptPath("/about")).toBe(true);
   expect(isMaintenanceExemptPath("/impressum")).toBe(true);
   expect(isMaintenanceExemptPath("/privacy")).toBe(true);
   expect(isMaintenanceExemptPath("/contact")).toBe(true);

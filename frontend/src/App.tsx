@@ -6,6 +6,7 @@ import { resolveDocumentHead, type DocumentHeadSpec } from "./lib/seo";
 import { AndroidBackButtonListener } from "./mobile/AndroidBackButtonListener";
 import { DeepLinkListener } from "./mobile/DeepLinkListener";
 import { PushNotificationListener } from "./mobile/PushNotificationListener";
+import { AboutPage } from "./pages/AboutPage";
 import { AccountPage } from "./pages/AccountPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
@@ -89,6 +90,7 @@ function App(): JSX.Element {
         <Route element={<ResetPasswordPage />} path="/account/reset" />
         <Route element={<VerifyEmailPage />} path="/account/verify" />
         <Route element={<ResendVerificationPage />} path="/account/resend-verification" />
+        <Route element={<AboutPage />} path="/about" />
         <Route element={<PrivacyPage />} path="/privacy" />
         <Route element={<ContactPage />} path="/contact" />
         <Route element={<ImpressumPage />} path="/impressum" />
