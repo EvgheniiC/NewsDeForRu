@@ -189,6 +189,26 @@ export async function installApiMock(
       return;
     }
 
+    if (path === "/users/me/listening" && (method === "GET" || method === "PUT")) {
+      if (!bearerPresent(route)) {
+        await fulfillJson(route, { detail: "Not authenticated" }, 401);
+        return;
+      }
+      const emptyState: {
+        items: never[];
+        current_news_id: null;
+        auto_next: boolean;
+        updated_at: number;
+      } = { items: [], current_news_id: null, auto_next: false, updated_at: 0 };
+      await fulfillJson(
+        route,
+        method === "GET"
+          ? emptyState
+          : { state: emptyState, applied: true, skipped_news_ids: [] },
+      );
+      return;
+    }
+
     if (path === "/auth/delete-account" && method === "POST") {
       if (!bearerPresent(route)) {
         await fulfillJson(route, { detail: "Not authenticated" }, 401);

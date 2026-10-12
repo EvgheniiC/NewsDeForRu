@@ -53,5 +53,6 @@ def init_database() -> None:
     from app.models import email_verification_token  # noqa: F401
     from app.models import push_subscription  # noqa: F401
     from app.models import user_library  # noqa: F401
+    from app.models import user_listening  # noqa: F401
 
     Base.metadata.create_all(bind=engine)

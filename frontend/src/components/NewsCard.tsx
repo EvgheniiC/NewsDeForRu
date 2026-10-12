@@ -7,6 +7,7 @@ import { readStoredUseful, setStoredUseful } from "../lib/usefulStorage";
 import type { FeedAnalyticsMode } from "../types/engagement";
 import { newsTopicLabelRu, type NewsFeedItem, type ProcessedNews } from "../types/news";
 import { NewsArticleBody } from "./NewsArticleBody";
+import { NewsListenControls } from "./NewsListenControls";
 import { NewsTopicCover } from "./NewsTopicCover";
 
 export type NewsCardVariant = "compact" | "immersive";
@@ -236,6 +237,15 @@ export function NewsCard({
           >
             {expanded ? "Свернуть" : "Раскрыть"}
           </button>
+          <NewsListenControls
+            actionItems={details?.action_items ?? null}
+            articleLoading={expanded && detailsLoading}
+            expanded={expanded}
+            newsId={item.id}
+            plainLanguage={details?.plain_language ?? null}
+            subtitle={item.subtitle}
+            title={item.title}
+          />
         </div>
       </div>
       <div className="news-card-topic-row">

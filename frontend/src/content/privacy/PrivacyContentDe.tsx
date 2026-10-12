@@ -9,7 +9,7 @@ export function PrivacyContentDe(): JSX.Element {
     <>
       <h1>Datenschutzerklärung</h1>
       <p className="muted">
-        Stand: September 2026 · DSGVO, TTDSG · Dienst:{" "}
+        Stand: Oktober 2026 · DSGVO, TTDSG · Dienst:{" "}
         <a href={legal.publicAppBaseUrl}>{legal.publicAppBaseUrl}</a>
       </p>
 
@@ -26,6 +26,10 @@ export function PrivacyContentDe(): JSX.Element {
         <li>
           Nutzungsanalyse nur nach Einwilligung im Banner (pseudonyme IDs,{" "}
           <code>/engagement/events</code>).
+        </li>
+        <li>
+          Vorlesen: Sprachsynthese auf dem Gerät. Der Nachrichtentext geht nicht an einen externen
+          TTS-Server. Im Konto liegen nur Nachrichten-ID und Fragmentnummer.
         </li>
         <li>
           Pipeline: RSS und Datenbank in DE; Textverarbeitung über OpenAI (USA); optional Telegram.
@@ -87,6 +91,11 @@ export function PrivacyContentDe(): JSX.Element {
               <td>Sitzung und Sync der Archive</td>
               <td>Art. 6 Abs. 1 lit. b für das Konto; ohne Login nur Gerät (lit. f)</td>
             </tr>
+            <tr>
+              <td>Hör-Warteschlange: Nachrichten-ID, Fragmentnummer, Zeitpunkt</td>
+              <td>Wiedergabe auf einem anderen Gerät fortsetzen</td>
+              <td>Art. 6 Abs. 1 lit. b</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -100,7 +109,7 @@ export function PrivacyContentDe(): JSX.Element {
           <code>nga_analytics_consent_at</code> (Zeitpunkt der Wahl).
         </li>
         <li>
-          <strong>Akzeptieren:</strong> pseudonyme IDs dürfen gesetzt werden; aggregierte Events (z. B.
+          <strong>Akzeptieren:</strong> pseudonyme IDs dürfen gesetzt werden; aggregierte Events (z. B.
           Artikel geöffnet, „nützlich“) werden an den Server in Deutschland gesendet.
         </li>
         <li>
@@ -121,6 +130,7 @@ export function PrivacyContentDe(): JSX.Element {
         <li>Android-Installationsdatensatz: solange die Download-Zahl geführt wird.</li>
         <li>Konto: bis zur Selbstlöschung in der App (Seite „Konto“); Refresh-Token max. 14 Tage.</li>
         <li>„Nützlich“ und „Gelesen“ am Konto: 60 bzw. 30 Tage.</li>
+        <li>Hör-Warteschlange: bis zur Kontolöschung.</li>
         <li>Passwort-Reset-Token: 60 Minuten.</li>
       </ul>
 
@@ -135,7 +145,7 @@ export function PrivacyContentDe(): JSX.Element {
       <p>
         Auskunft, Berichtigung, Löschung, Einschränkung, Widerspruch, Widerruf der Einwilligung.
         Das Konto können Sie selbst in der App löschen (Seite „Konto“, Passwortbestätigung).
-        Beschwerde bei der zuständigen Landesbehörde (z. B. Niedersachsen:{" "}
+        Beschwerde bei der zuständigen Landesbehörde (z. B. Niedersachsen:{" "}
         <a
           href="https://lfd.niedersachsen.de/startseite/themen/datenschutz/"
           rel="noopener noreferrer"

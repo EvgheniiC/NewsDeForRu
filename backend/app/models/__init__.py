@@ -12,6 +12,7 @@ from app.models.news import (
 from app.models.engagement import AppInstall, AppVisit, UserEngagementEvent
 from app.models.job_lock import AppJobLock
 from app.models.user_library import UserReadNews, UserSavedNews
+from app.models.user_listening import UserListeningState
 
 __all__ = [
     "ImpactPresentation",
@@ -29,4 +30,5 @@ __all__ = [
     "AppJobLock",
     "UserSavedNews",
     "UserReadNews",
+    "UserListeningState",
 ]

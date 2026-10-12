@@ -4,6 +4,7 @@ import { enqueueOne } from "../analytics/engagementQueue";
 import { ApiError, getNews } from "../api/client";
 import { markNewsAsRead } from "../lib/readStateStorage";
 import { NewsArticleBody } from "../components/NewsArticleBody";
+import { NewsListenControls } from "../components/NewsListenControls";
 import { NewsTopicCover } from "../components/NewsTopicCover";
 import { newsTopicChipClass } from "../lib/newsUi";
 import { SITE_NAME } from "../lib/seo";
@@ -165,6 +166,17 @@ export function NewsDetailsPage(): JSX.Element {
           </div>
         ) : null}
         <h1>{news.title}</h1>
+        <div className="news-card-actions news-detail-listen">
+          <NewsListenControls
+            actionItems={news.action_items}
+            articleLoading={false}
+            expanded
+            newsId={news.id}
+            plainLanguage={news.plain_language}
+            subtitle={news.one_sentence_summary}
+            title={news.title}
+          />
+        </div>
         <NewsTopicCover coverTag={news.cover_tag} newsId={news.id} topic={news.topic} variant="detail" />
         <NewsArticleBody news={news} />
       </article>

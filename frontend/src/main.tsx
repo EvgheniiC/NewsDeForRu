@@ -5,6 +5,7 @@ import { flushEngagementQueueSyncOnUnload } from "./analytics/engagementQueue";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import { LegalLocaleProvider } from "./context/LegalLocaleContext";
+import { ListeningProvider } from "./context/ListeningContext";
 import "./styles.css";
 
 flushEngagementQueueSyncOnUnload();
@@ -13,9 +14,11 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <LegalLocaleProvider>
-          <App />
-        </LegalLocaleProvider>
+        <ListeningProvider>
+          <LegalLocaleProvider>
+            <App />
+          </LegalLocaleProvider>
+        </ListeningProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>

@@ -17,6 +17,8 @@ import {
   authRegister,
 } from "../api/client";
 import { clearLibraryOwner, configureUserLibrarySync } from "../lib/userLibrarySync";
+import { clearListeningOwner, clearListeningState } from "../lib/listeningState";
+import { configureListeningSync } from "../lib/listeningSync";
 import type {
   RegisterResponse,
   UserLoginCredentials,
@@ -183,6 +185,8 @@ export function AuthProvider(props: Readonly<{ children: React.ReactNode }>): JS
         await authDeleteAccount(accessToken, password);
       });
       clearLibraryOwner();
+      clearListeningOwner();
+      clearListeningState();
       applyPairState(null, null);
     },
     [applyPairState, runWithTokenRetry],
@@ -195,6 +199,19 @@ export function AuthProvider(props: Readonly<{ children: React.ReactNode }>): JS
       return;
     }
     return configureUserLibrarySync({
+      userId,
+      runAuthenticated:
+        userId === null
+          ? null
+          : (task: (accessToken: string) => Promise<void>): Promise<void> => runWithTokenRetry(task),
+    });
+  }, [initializing, runWithTokenRetry, userId]);
+
+  useEffect(() => {
+    if (initializing) {
+      return;
+    }
+    return configureListeningSync({
       userId,
       runAuthenticated:
         userId === null

@@ -12,6 +12,7 @@ import type {
   UserLibraryPutResponse,
   UserLibrarySnapshot,
 } from "../types/userLibrary";
+import type { UserListeningPutResponse, UserListeningState } from "../types/userListening";
 import type { CoverTag, FeedPeriodKey, NewsFeedItem, NewsTopic, ProcessedNews } from "../types/news";
 import type { HealthResponse, PipelineRunResponse } from "../types/pipeline";
 
@@ -245,6 +246,21 @@ export async function putUserLibrary(
   payload: UserLibraryPutRequest,
 ): Promise<UserLibraryPutResponse> {
   return fetchJsonAuthorized<UserLibraryPutResponse>("/users/me/library", accessToken, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getUserListening(accessToken: string): Promise<UserListeningState> {
+  return fetchJsonAuthorized<UserListeningState>("/users/me/listening", accessToken, { method: "GET" });
+}
+
+export async function putUserListening(
+  accessToken: string,
+  payload: UserListeningState,
+): Promise<UserListeningPutResponse> {
+  return fetchJsonAuthorized<UserListeningPutResponse>("/users/me/listening", accessToken, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
