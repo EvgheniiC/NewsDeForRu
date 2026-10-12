@@ -76,7 +76,8 @@ export function PrivacyContentRu(): JSX.Element {
             <tr>
               <td>
                 <code>nga_anonymous_user_id</code>, <code>nga_session_id</code>, события и посещение
-                приложения (одна сессия в день)
+                приложения (одна сессия в день); на Android ещё <code>nga_install_id</code> — одно
+                первое открытие установки
               </td>
               <td>Статистика использования</td>
               <td>Согласие (a), баннер</td>
@@ -117,6 +118,7 @@ export function PrivacyContentRu(): JSX.Element {
       <ul>
         <li>Логи сервера: до ~90 дней.</li>
         <li>События engagement: 12 месяцев.</li>
+        <li>Запись об установке Android-приложения: пока считается число скачиваний.</li>
         <li>Аккаунт: до удаления в разделе «Аккаунт»; refresh-токен до 14 дней.</li>
         <li>«Полезные» и «Прочитанные» на аккаунте: 60 и 30 дней.</li>
         <li>Токен сброса пароля: 60 минут.</li>

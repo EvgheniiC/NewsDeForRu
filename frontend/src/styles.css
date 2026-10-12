@@ -1229,6 +1229,10 @@ a:visited {
   gap: 10px;
 }
 
+.moderation-daily-stats-grid-single {
+  grid-template-columns: minmax(180px, 320px);
+}
+
 .moderation-daily-stats-card {
   margin: 0;
   padding: 12px;

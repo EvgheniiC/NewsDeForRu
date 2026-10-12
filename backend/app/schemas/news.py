@@ -145,12 +145,17 @@ class ModerationActionRequest(BaseModel):
 
 
 class ModerationDailyStatsResponse(BaseModel):
-    """Daily counters for the moderator page (Europe/Berlin calendar day)."""
+    """Daily counters for the moderator page (Europe/Berlin calendar day).
+
+    ``download_count`` is the all-time unique Android install count and does not
+    depend on ``date``.
+    """
 
     date: date
     published_count: int
     moderation_count: int
     visit_count: int
+    download_count: int
 
 
 MODERATION_TITLE_MAX_LENGTH: int = 300

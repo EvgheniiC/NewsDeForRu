@@ -1,4 +1,4 @@
-"""Persist engagement/analytics batches and daily app visits."""
+"""Persist engagement/analytics batches, daily app visits, and Android installs."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models.engagement import AppVisit, UserEngagementEvent
+from app.models.engagement import AppInstall, AppVisit, UserEngagementEvent
 from app.schemas.engagement import RawEngagementEvent, payload_to_json
 
 
@@ -93,4 +93,27 @@ def count_app_visits_on(db: Session, visit_date: date) -> int:
     result: int | None = db.scalar(
         select(func.count(AppVisit.id)).where(AppVisit.visit_date == visit_date)
     )
+    return int(result or 0)
+
+
+def record_app_install(db: Session, install_id: str) -> bool:
+    """Insert one Android install. False when this install id was already stored."""
+    existing_id: int | None = db.scalar(
+        select(AppInstall.id).where(AppInstall.install_id == install_id)
+    )
+    if existing_id is not None:
+        return False
+
+    db.add(AppInstall(install_id=install_id))
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        return False
+    return True
+
+
+def count_app_installs(db: Session) -> int:
+    """All-time unique Android installs. Not limited to a calendar day."""
+    result: int | None = db.scalar(select(func.count(AppInstall.id)))
     return int(result or 0)

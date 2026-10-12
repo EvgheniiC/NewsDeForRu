@@ -78,3 +78,22 @@ class AppVisitRequest(BaseModel):
 class AppVisitResponse(BaseModel):
     recorded: bool
 
+
+class AppInstallRequest(BaseModel):
+    install_id: str = Field(min_length=36, max_length=36)
+
+    model_config = {"extra": "forbid"}
+
+    @field_validator("install_id")
+    @classmethod
+    def _install_must_be_uuid(cls, value: str) -> str:
+        try:
+            parsed: UUID = UUID(value)
+        except ValueError as exc:
+            raise ValueError("install_id must be a UUID") from exc
+        return str(parsed)
+
+
+class AppInstallResponse(BaseModel):
+    recorded: bool
+

@@ -25,6 +25,7 @@ export function StatisticsPage(): JSX.Element {
   const [publishedCount, setPublishedCount] = useState<number | null>(null);
   const [moderationCount, setModerationCount] = useState<number | null>(null);
   const [visitCount, setVisitCount] = useState<number | null>(null);
+  const [downloadCount, setDownloadCount] = useState<number | null>(null);
   const [statsLoading, setStatsLoading] = useState<boolean>(true);
   const [statsError, setStatsError] = useState<string>("");
   const todayYmd: string = berlinTodayYmd();
@@ -45,6 +46,7 @@ export function StatisticsPage(): JSX.Element {
         setPublishedCount(stats.published_count);
         setModerationCount(stats.moderation_count);
         setVisitCount(stats.visit_count);
+        setDownloadCount(typeof stats.download_count === "number" ? stats.download_count : null);
         setStatsError("");
       } catch (fetchError: unknown) {
         if (statsRequestIdRef.current !== requestId) {
@@ -59,12 +61,14 @@ export function StatisticsPage(): JSX.Element {
           setPublishedCount(null);
           setModerationCount(null);
           setVisitCount(null);
+          setDownloadCount(null);
           setStatsError("Сервер ещё не отдаёт статистику. Обновите backend и перезапустите его.");
           return;
         }
         setPublishedCount(null);
         setModerationCount(null);
         setVisitCount(null);
+        setDownloadCount(null);
         setStatsError(
           fetchError instanceof Error ? fetchError.message : "Не удалось загрузить статистику.",
         );
@@ -87,6 +91,20 @@ export function StatisticsPage(): JSX.Element {
   return (
     <section>
       <h1>Статистика</h1>
+      {statsError !== "" && <p className="error">{statsError}</p>}
+      <section className="moderation-daily-stats" aria-label="Скачивания приложения">
+        <h2 className="moderation-daily-stats-title">Приложение</h2>
+        <div className="moderation-daily-stats-grid moderation-daily-stats-grid-single">
+          <article className="moderation-daily-stats-card">
+            <p className="moderation-daily-stats-value">{formatCount(statsLoading, downloadCount)}</p>
+            <p className="moderation-daily-stats-label">Скачивания</p>
+            <p className="moderation-daily-stats-hint">
+              Сколько человек установили Android-приложение: первое открытие после согласия на статистику.
+              Повторный запуск не увеличивает число. От выбранной даты не зависит.
+            </p>
+          </article>
+        </div>
+      </section>
       <section className="moderation-daily-stats" aria-label="Счётчики за день">
         <div className="moderation-daily-stats-head">
           <div>
@@ -109,7 +127,6 @@ export function StatisticsPage(): JSX.Element {
             />
           </label>
         </div>
-        {statsError !== "" && <p className="error">{statsError}</p>}
         <div className="moderation-daily-stats-grid">
           <article className="moderation-daily-stats-card">
             <p className="moderation-daily-stats-value">{formatCount(statsLoading, publishedCount)}</p>

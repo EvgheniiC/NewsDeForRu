@@ -16,6 +16,7 @@ import { FeedPage } from "./pages/FeedPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ModerationPage } from "./pages/ModerationPage";
 import { StatisticsPage } from "./pages/StatisticsPage";
+import { InstallRecorder } from "./components/InstallRecorder";
 import { VisitRecorder } from "./components/VisitRecorder";
 import { NewsDetailsPage } from "./pages/NewsDetailsPage";
 import { AnalyticsConsentBanner } from "./components/AnalyticsConsentBanner";
@@ -77,6 +78,7 @@ function App(): JSX.Element {
       <AppHeader />
       <AnalyticsConsentBanner />
       <VisitRecorder />
+      <InstallRecorder />
       <Routes>
         <Route element={<FeedPage />} path="/" />
         <Route element={<NewsDetailsPage />} path="/news/:id" />

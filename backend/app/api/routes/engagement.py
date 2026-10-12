@@ -12,9 +12,12 @@ from app.core.database import get_db_session
 from app.repositories.engagement_repository import (
     find_existing_news_ids,
     insert_engagement_batch,
+    record_app_install,
     record_app_visit,
 )
 from app.schemas.engagement import (
+    AppInstallRequest,
+    AppInstallResponse,
     AppVisitRequest,
     AppVisitResponse,
     EngagementBatchRequest,
@@ -82,3 +85,12 @@ def post_app_visit(
 ) -> AppVisitResponse:
     recorded: bool = record_app_visit(db, body.session_id, berlin_today())
     return AppVisitResponse(recorded=recorded)
+
+
+@router.post("/installs", response_model=AppInstallResponse)
+def post_app_install(
+    body: AppInstallRequest,
+    db: Session = Depends(get_db_session),
+) -> AppInstallResponse:
+    recorded: bool = record_app_install(db, body.install_id)
+    return AppInstallResponse(recorded=recorded)

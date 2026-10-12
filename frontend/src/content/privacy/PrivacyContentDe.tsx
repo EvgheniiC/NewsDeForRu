@@ -76,7 +76,8 @@ export function PrivacyContentDe(): JSX.Element {
             <tr>
               <td>
                 <code>nga_anonymous_user_id</code>, <code>nga_session_id</code>, Events und App-Besuch
-                (eine Sitzung pro Tag)
+                (eine Sitzung pro Tag); auf Android zusätzlich <code>nga_install_id</code> — einmaliges
+                erstes Öffnen der Installation
               </td>
               <td>Nutzungsstatistik</td>
               <td>Art. 6 Abs. 1 lit. a (Einwilligung)</td>
@@ -117,6 +118,7 @@ export function PrivacyContentDe(): JSX.Element {
       <ul>
         <li>Server-Logs: bis ca. 90 Tage.</li>
         <li>Engagement-Events: 12 Monate.</li>
+        <li>Android-Installationsdatensatz: solange die Download-Zahl geführt wird.</li>
         <li>Konto: bis zur Selbstlöschung in der App (Seite „Konto“); Refresh-Token max. 14 Tage.</li>
         <li>„Nützlich“ und „Gelesen“ am Konto: 60 bzw. 30 Tage.</li>
         <li>Passwort-Reset-Token: 60 Minuten.</li>

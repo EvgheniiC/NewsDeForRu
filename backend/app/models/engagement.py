@@ -60,3 +60,14 @@ class AppVisit(Base):
     session_id: Mapped[str] = mapped_column(String(36), nullable=False)
     visit_date: Mapped[date] = mapped_column(Date, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class AppInstall(Base):
+    """One Android install: the first consented open of the native app."""
+
+    __tablename__ = "app_installs"
+    __table_args__ = (UniqueConstraint("install_id", name="uq_app_installs_install_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    install_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)

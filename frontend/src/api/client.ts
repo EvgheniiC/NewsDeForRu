@@ -281,6 +281,7 @@ export interface ModerationDailyStats {
   published_count: number;
   moderation_count: number;
   visit_count: number;
+  download_count: number;
 }
 
 export async function postAppVisit(sessionId: string): Promise<{ recorded: boolean }> {
@@ -288,6 +289,14 @@ export async function postAppVisit(sessionId: string): Promise<{ recorded: boole
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ session_id: sessionId }),
+  });
+}
+
+export async function postAppInstall(installId: string): Promise<{ recorded: boolean }> {
+  return fetchJson<{ recorded: boolean }>("/engagement/installs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ install_id: installId }),
   });
 }
 

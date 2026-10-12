@@ -263,6 +263,7 @@ def test_daily_stats_counts_feed_and_moderation_for_selected_day(
     assert before_body["published_count"] == 2
     assert before_body["moderation_count"] == 2
     assert before_body["visit_count"] == 0
+    assert before_body["download_count"] == 0
     assert waiting_id > 0
 
     approved = api_client.post(
@@ -328,6 +329,41 @@ def test_app_visit_is_counted_once_per_session_and_day(
     )
     assert after.status_code == 200
     assert int(after.json()["visit_count"]) == before_visits + 2
+
+
+def test_app_install_is_counted_once_per_install_id(
+    api_client: TestClient,
+    bearer_ops_headers: dict[str, str],
+) -> None:
+    install_id: str = "33333333-3333-4333-8333-333333333333"
+    other_install_id: str = "44444444-4444-4444-8444-444444444444"
+
+    before = api_client.get("/moderation/daily-stats", headers=bearer_ops_headers)
+    assert before.status_code == 200
+    before_downloads: int = int(before.json()["download_count"])
+
+    first = api_client.post("/engagement/installs", json={"install_id": install_id})
+    assert first.status_code == 200
+    assert first.json()["recorded"] is True
+
+    duplicate = api_client.post("/engagement/installs", json={"install_id": install_id})
+    assert duplicate.status_code == 200
+    assert duplicate.json()["recorded"] is False
+
+    second = api_client.post("/engagement/installs", json={"install_id": other_install_id})
+    assert second.status_code == 200
+    assert second.json()["recorded"] is True
+
+    invalid = api_client.post("/engagement/installs", json={"install_id": "not-a-uuid"})
+    assert invalid.status_code == 422
+
+    after = api_client.get(
+        "/moderation/daily-stats",
+        headers=bearer_ops_headers,
+        params={"date": "2020-01-15"},
+    )
+    assert after.status_code == 200
+    assert int(after.json()["download_count"]) == before_downloads + 2
 
 
 def test_daily_stats_requires_moderator(api_client: TestClient) -> None:
