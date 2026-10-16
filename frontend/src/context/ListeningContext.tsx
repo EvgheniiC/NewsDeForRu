@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { enqueueOne } from "../analytics/engagementQueue";
 import { useAuth } from "./AuthContext";
-import { getCardSpeaker } from "../lib/cardTts";
+import { getCardSpeaker } from "../lib/listeningSpeaker";
 import { getListenScript } from "../lib/listeningScripts";
 import {
   LISTENING_STATE_EVENT,

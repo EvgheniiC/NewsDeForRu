@@ -34,7 +34,7 @@ function listenLabel(
   return "Слушать";
 }
 
-/** Listen / queue controls. Guests get a link to sign in; playback stays on the device. */
+/** Listen controls. Guests get a link to sign in; playback stays on the device. */
 export function NewsListenControls({
   newsId,
   title,
@@ -45,19 +45,7 @@ export function NewsListenControls({
   expanded,
 }: NewsListenControlsProps): JSX.Element {
   const { user } = useAuth();
-  const {
-    activeNewsId,
-    error,
-    pause,
-    phase,
-    play,
-    resume,
-    setAutoNext,
-    state,
-    stop,
-    stopIfCurrent,
-    toggleQueue,
-  } = useListening();
+  const { activeNewsId, error, pause, phase, play, resume, state, stop, stopIfCurrent } = useListening();
   const chunks: readonly string[] = useMemo(
     (): readonly string[] =>
       buildListenChunks({
@@ -130,32 +118,9 @@ export function NewsListenControls({
       >
         {articleLoading ? "Загрузка…" : label}
       </button>
-      <button
-        aria-pressed={item !== undefined}
-        className={item !== undefined ? "news-listen-btn is-active" : "news-listen-btn"}
-        onClick={(): void => {
-          toggleQueue(newsId);
-        }}
-        type="button"
-      >
-        {item !== undefined ? "В очереди" : "В очередь"}
-      </button>
       {isSpeaking || isPaused ? (
         <button className="news-listen-btn" onClick={stop} type="button">
           Стоп
-        </button>
-      ) : null}
-      {isCurrent ? (
-        <button
-          aria-pressed={state.autoNext}
-          className={state.autoNext ? "news-listen-btn is-active" : "news-listen-btn"}
-          onClick={(): void => {
-            setAutoNext(!state.autoNext);
-          }}
-          title="Следующая новость из очереди"
-          type="button"
-        >
-          Авто
         </button>
       ) : null}
       {cardError !== "" ? (

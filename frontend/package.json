@@ -1,7 +1,7 @@
 {
   "name": "news-for-germany-ru-frontend",
   "private": true,
-  "version": "1.2.35",
+  "version": "1.2.36",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -19,6 +19,7 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
+    "@capacitor-community/text-to-speech": "^5.1.0",
     "@capacitor/android": "^6.2.0",
     "@capacitor/app": "^6.0.2",
     "@capacitor/cli": "^6.2.0",

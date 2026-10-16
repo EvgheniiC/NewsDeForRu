@@ -225,12 +225,3 @@ export function createBrowserSpeechEngine(): SpeechEngine {
     },
   };
 }
-
-let browserSpeaker: CardSpeaker | null = null;
-
-export function getCardSpeaker(): CardSpeaker {
-  if (browserSpeaker === null) {
-    browserSpeaker = createCardSpeaker(createBrowserSpeechEngine());
-  }
-  return browserSpeaker;
-}
