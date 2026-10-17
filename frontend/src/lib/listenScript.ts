@@ -2,6 +2,13 @@
 
 export const MAX_SPEECH_CHUNK_CHARS: number = 140;
 
+/** Silence after the headline, before the news body. */
+export const TITLE_PAUSE_MS: number = 1500;
+
+export type ListenChunk =
+  | { kind: "text"; text: string }
+  | { kind: "pause"; durationMs: number };
+
 export interface ListenScriptInput {
   title: string;
   subtitle: string;
@@ -84,14 +91,27 @@ export function splitSpeechText(text: string, maxChars: number = MAX_SPEECH_CHUN
   return chunks;
 }
 
-/** Preview is title + subtitle. Expanded article adds plain language and action items. */
-export function buildListenChunks(input: ListenScriptInput): string[] {
-  const parts: string[] = [input.title, input.subtitle];
-  if (typeof input.plainLanguage === "string" && input.plainLanguage.trim().length > 0) {
-    parts.push(input.plainLanguage);
+function textChunks(parts: readonly string[]): ListenChunk[] {
+  const spoken: string = parts.filter((part: string) => normalizeSpeechText(part).length > 0).join(" ");
+  return splitSpeechText(spoken).map((text: string): ListenChunk => ({ kind: "text", text }));
+}
+
+/** Title first, then a pause, then the news. Expanded article adds plain language and action items. */
+export function buildListenChunks(input: ListenScriptInput): ListenChunk[] {
+  const titleChunks: ListenChunk[] = textChunks([input.title]);
+  const bodyParts: string[] = [input.subtitle];
+  if (typeof input.plainLanguage === "string") {
+    bodyParts.push(input.plainLanguage);
   }
-  if (typeof input.actionItems === "string" && input.actionItems.trim().length > 0) {
-    parts.push(input.actionItems);
+  if (typeof input.actionItems === "string") {
+    bodyParts.push(input.actionItems);
   }
-  return splitSpeechText(parts.filter((part: string) => normalizeSpeechText(part).length > 0).join(" "));
+  const bodyChunks: ListenChunk[] = textChunks(bodyParts);
+  if (titleChunks.length === 0) {
+    return bodyChunks;
+  }
+  if (bodyChunks.length === 0) {
+    return titleChunks;
+  }
+  return [...titleChunks, { kind: "pause", durationMs: TITLE_PAUSE_MS }, ...bodyChunks];
 }

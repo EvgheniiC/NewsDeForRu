@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useListening, type ListenPhase } from "../context/ListeningContext";
-import { buildListenChunks } from "../lib/listenScript";
+import { buildListenChunks, type ListenChunk } from "../lib/listenScript";
 import { registerListenScript } from "../lib/listeningScripts";
 import type { ListenQueueItem } from "../lib/listeningState";
 
@@ -46,8 +46,8 @@ export function NewsListenControls({
 }: NewsListenControlsProps): JSX.Element {
   const { user } = useAuth();
   const { activeNewsId, error, pause, phase, play, resume, state, stop, stopIfCurrent } = useListening();
-  const chunks: readonly string[] = useMemo(
-    (): readonly string[] =>
+  const chunks: readonly ListenChunk[] = useMemo(
+    (): readonly ListenChunk[] =>
       buildListenChunks({
         title,
         subtitle,

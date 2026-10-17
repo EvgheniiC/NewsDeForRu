@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { buildListenChunks, splitSpeechText } from "./listenScript";
+import { TITLE_PAUSE_MS, buildListenChunks, splitSpeechText } from "./listenScript";
 
 describe("splitSpeechText", () => {
   test("splits long text on sentence boundaries", () => {
@@ -15,21 +15,38 @@ describe("splitSpeechText", () => {
 });
 
 describe("buildListenChunks", () => {
-  test("speaks the preview without the article extras", () => {
-    const chunks: string[] = buildListenChunks({
-      title: "Заголовок",
-      subtitle: "Суть новости",
-    });
-    expect(chunks.join(" ")).toBe("Заголовок Суть новости");
+  test("pauses one and a half seconds after the title before the news", () => {
+    expect(
+      buildListenChunks({
+        title: "Заголовок",
+        subtitle: "Суть новости",
+      }),
+    ).toEqual([
+      { kind: "text", text: "Заголовок" },
+      { kind: "pause", durationMs: TITLE_PAUSE_MS },
+      { kind: "text", text: "Суть новости" },
+    ]);
+    expect(TITLE_PAUSE_MS).toBe(1500);
   });
 
-  test("adds plain language and action items when the article is open", () => {
-    const chunks: string[] = buildListenChunks({
-      title: "Заголовок",
-      subtitle: "Суть",
-      plainLanguage: "Простым языком",
-      actionItems: "Что сделать",
-    });
-    expect(chunks.join(" ")).toBe("Заголовок Суть Простым языком Что сделать");
+  test("adds plain language and action items after the title pause", () => {
+    expect(
+      buildListenChunks({
+        title: "Заголовок",
+        subtitle: "Суть",
+        plainLanguage: "Простым языком",
+        actionItems: "Что сделать",
+      }),
+    ).toEqual([
+      { kind: "text", text: "Заголовок" },
+      { kind: "pause", durationMs: TITLE_PAUSE_MS },
+      { kind: "text", text: "Суть Простым языком Что сделать" },
+    ]);
+  });
+
+  test("skips the pause when there is no body", () => {
+    expect(buildListenChunks({ title: "Только заголовок", subtitle: "   " })).toEqual([
+      { kind: "text", text: "Только заголовок" },
+    ]);
   });
 });

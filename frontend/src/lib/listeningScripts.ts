@@ -1,8 +1,10 @@
 /** In-memory scripts so auto-next can speak a card that is already on screen. */
 
-const scripts: Map<number, readonly string[]> = new Map();
+import type { ListenChunk } from "./listenScript";
 
-export function registerListenScript(newsId: number, chunks: readonly string[]): void {
+const scripts: Map<number, readonly ListenChunk[]> = new Map();
+
+export function registerListenScript(newsId: number, chunks: readonly ListenChunk[]): void {
   if (chunks.length === 0) {
     scripts.delete(newsId);
     return;
@@ -10,7 +12,7 @@ export function registerListenScript(newsId: number, chunks: readonly string[]):
   scripts.set(newsId, chunks);
 }
 
-export function getListenScript(newsId: number): readonly string[] | null {
+export function getListenScript(newsId: number): readonly ListenChunk[] | null {
   return scripts.get(newsId) ?? null;
 }
 

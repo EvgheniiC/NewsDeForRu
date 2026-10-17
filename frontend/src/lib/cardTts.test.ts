@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   RUSSIAN_VOICE_MISSING_MESSAGE,
   SPEECH_UNAVAILABLE_MESSAGE,
@@ -8,6 +8,11 @@ import {
   type SpeechEngine,
   type SpeechRequestHandlers,
 } from "./cardTts";
+import type { ListenChunk } from "./listenScript";
+
+function text(value: string): ListenChunk {
+  return { kind: "text", text: value };
+}
 
 interface FakeEngine extends SpeechEngine {
   spoken: string[];
@@ -47,7 +52,7 @@ describe("createCardSpeaker", () => {
     const speaker: CardSpeaker = createCardSpeaker(engine);
     const seen: number[] = [];
     let ended: boolean = false;
-    speaker.speak(["раз", "два"], 0, {
+    speaker.speak([text("раз"), text("два")], 0, {
       onChunk: (index: number): void => {
         seen.push(index);
       },
@@ -70,7 +75,7 @@ describe("createCardSpeaker", () => {
   test("resumes the same chunk after pause", async () => {
     const engine: FakeEngine = createFakeEngine(true);
     const speaker: CardSpeaker = createCardSpeaker(engine);
-    speaker.speak(["раз", "два"], 0, {
+    speaker.speak([text("раз"), text("два")], 0, {
       onChunk: (): void => undefined,
       onEnd: (): void => undefined,
       onError: (): void => undefined,
@@ -87,7 +92,7 @@ describe("createCardSpeaker", () => {
     const engine: FakeEngine = createFakeEngine(false);
     const speaker: CardSpeaker = createCardSpeaker(engine);
     let message: string = "";
-    speaker.speak(["раз"], 0, {
+    speaker.speak([text("раз")], 0, {
       onChunk: (): void => undefined,
       onEnd: (): void => undefined,
       onError: (errorMessage: string): void => {
@@ -99,11 +104,54 @@ describe("createCardSpeaker", () => {
     expect(engine.spoken).toEqual([]);
   });
 
+  test("waits three seconds after the title before the news", async () => {
+    vi.useFakeTimers();
+    const engine: FakeEngine = createFakeEngine(true);
+    const speaker: CardSpeaker = createCardSpeaker(engine);
+    const seen: number[] = [];
+    speaker.speak([text("заголовок"), { kind: "pause", durationMs: 3000 }, text("новость")], 0, {
+      onChunk: (index: number): void => {
+        seen.push(index);
+      },
+      onEnd: (): void => undefined,
+      onError: (): void => undefined,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(engine.spoken).toEqual(["заголовок"]);
+    engine.finish();
+    expect(engine.spoken).toEqual(["заголовок"]);
+    expect(seen).toEqual([0, 1]);
+    await vi.advanceTimersByTimeAsync(2999);
+    expect(engine.spoken).toEqual(["заголовок"]);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(engine.spoken).toEqual(["заголовок", "новость"]);
+    expect(seen).toEqual([0, 1, 2]);
+  });
+
+  test("does not start the news if playback is paused during the title gap", async () => {
+    vi.useFakeTimers();
+    const engine: FakeEngine = createFakeEngine(true);
+    const speaker: CardSpeaker = createCardSpeaker(engine);
+    speaker.speak([text("заголовок"), { kind: "pause", durationMs: 3000 }, text("новость")], 0, {
+      onChunk: (): void => undefined,
+      onEnd: (): void => undefined,
+      onError: (): void => undefined,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    engine.finish();
+    speaker.pause();
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(engine.spoken).toEqual(["заголовок"]);
+    speaker.resume();
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(engine.spoken).toEqual(["заголовок", "новость"]);
+  });
+
   test("reports when speech synthesis is missing", () => {
     const engine: FakeEngine = createFakeEngine(true, false);
     const speaker: CardSpeaker = createCardSpeaker(engine);
     let message: string = "";
-    speaker.speak(["раз"], 0, {
+    speaker.speak([text("раз")], 0, {
       onChunk: (): void => undefined,
       onEnd: (): void => undefined,
       onError: (errorMessage: string): void => {
@@ -112,6 +160,10 @@ describe("createCardSpeaker", () => {
     });
     expect(message).toBe(SPEECH_UNAVAILABLE_MESSAGE);
   });
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe("pickRussianVoice", () => {

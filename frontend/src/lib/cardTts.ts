@@ -1,5 +1,7 @@
 /** Device speech playback. One speaker at a time; pause restarts the current chunk. */
 
+import type { ListenChunk } from "./listenScript";
+
 export interface SpeechRequestHandlers {
   onend: () => void;
   onerror: (message: string) => void;
@@ -19,7 +21,7 @@ export interface SpeakHandlers {
 }
 
 export interface CardSpeaker {
-  speak: (chunks: readonly string[], startIndex: number, handlers: SpeakHandlers) => void;
+  speak: (chunks: readonly ListenChunk[], startIndex: number, handlers: SpeakHandlers) => void;
   pause: () => void;
   resume: () => void;
   stop: () => void;
@@ -33,22 +35,42 @@ export const RUSSIAN_VOICE_MISSING_MESSAGE: string =
 export function createCardSpeaker(engine: SpeechEngine): CardSpeaker {
   let generation: number = 0;
   let paused: boolean = false;
-  let chunks: readonly string[] = [];
+  let chunks: readonly ListenChunk[] = [];
   let index: number = 0;
   let handlers: SpeakHandlers | null = null;
+  let silenceTimer: number | null = null;
+
+  const clearSilence = (): void => {
+    if (silenceTimer !== null) {
+      window.clearTimeout(silenceTimer);
+      silenceTimer = null;
+    }
+  };
 
   const beginChunk = (gen: number): void => {
     if (gen !== generation || paused || handlers === null) {
       return;
     }
-    const text: string | undefined = chunks[index];
-    if (text === undefined) {
+    const chunk: ListenChunk | undefined = chunks[index];
+    if (chunk === undefined) {
       const done: SpeakHandlers = handlers;
       handlers = null;
       done.onEnd();
       return;
     }
     handlers.onChunk(index);
+    if (chunk.kind === "pause") {
+      silenceTimer = window.setTimeout((): void => {
+        silenceTimer = null;
+        if (gen !== generation || paused) {
+          return;
+        }
+        index += 1;
+        beginChunk(gen);
+      }, chunk.durationMs);
+      return;
+    }
+    const text: string = chunk.text;
     engine.speak(text, {
       onend: (): void => {
         if (gen !== generation || paused) {
@@ -84,10 +106,11 @@ export function createCardSpeaker(engine: SpeechEngine): CardSpeaker {
   };
 
   return {
-    speak(nextChunks: readonly string[], startIndex: number, nextHandlers: SpeakHandlers): void {
+    speak(nextChunks: readonly ListenChunk[], startIndex: number, nextHandlers: SpeakHandlers): void {
       generation += 1;
       const gen: number = generation;
       paused = false;
+      clearSilence();
       engine.cancel();
       chunks = nextChunks;
       index = startIndex < 0 ? 0 : startIndex;
@@ -105,6 +128,7 @@ export function createCardSpeaker(engine: SpeechEngine): CardSpeaker {
       }
       paused = true;
       generation += 1;
+      clearSilence();
       engine.cancel();
     },
     resume(): void {
@@ -121,6 +145,7 @@ export function createCardSpeaker(engine: SpeechEngine): CardSpeaker {
       handlers = null;
       chunks = [];
       index = 0;
+      clearSilence();
       engine.cancel();
     },
   };

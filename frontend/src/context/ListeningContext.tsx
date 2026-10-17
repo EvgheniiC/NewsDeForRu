@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { enqueueOne } from "../analytics/engagementQueue";
 import { useAuth } from "./AuthContext";
 import { getCardSpeaker } from "../lib/listeningSpeaker";
+import type { ListenChunk } from "../lib/listenScript";
 import { getListenScript } from "../lib/listeningScripts";
 import {
   LISTENING_STATE_EVENT,
@@ -30,7 +31,7 @@ export interface ListeningContextValue {
   phase: ListenPhase;
   activeNewsId: number | null;
   error: ListenError | null;
-  play: (newsId: number, chunks: readonly string[]) => void;
+  play: (newsId: number, chunks: readonly ListenChunk[]) => void;
   pause: () => void;
   resume: () => void;
   stop: () => void;
@@ -57,8 +58,8 @@ export function ListeningProvider({ children }: { children: React.ReactNode }): 
   const stateRef: React.MutableRefObject<ListeningState> = useRef<ListeningState>(state);
   const phaseRef: React.MutableRefObject<ListenPhase> = useRef<ListenPhase>(phase);
   const playGenRef: React.MutableRefObject<number> = useRef<number>(0);
-  const playRef: React.MutableRefObject<(newsId: number, chunks: readonly string[]) => void> = useRef<
-    (newsId: number, chunks: readonly string[]) => void
+  const playRef: React.MutableRefObject<(newsId: number, chunks: readonly ListenChunk[]) => void> = useRef<
+    (newsId: number, chunks: readonly ListenChunk[]) => void
   >(() => undefined);
 
   useEffect((): void => {
@@ -77,7 +78,7 @@ export function ListeningProvider({ children }: { children: React.ReactNode }): 
     setActiveNewsId(null);
   }, []);
 
-  const play = useCallback((newsId: number, chunks: readonly string[]): void => {
+  const play = useCallback((newsId: number, chunks: readonly ListenChunk[]): void => {
     if (chunks.length === 0) {
       setError({ newsId, message: "Нечего озвучивать." });
       return;
@@ -122,7 +123,7 @@ export function ListeningProvider({ children }: { children: React.ReactNode }): 
           return;
         }
         const nextId: number | null = nextUnfinishedId({ ...finished, currentNewsId: newsId });
-        const script: readonly string[] | null = nextId === null ? null : getListenScript(nextId);
+        const script: readonly ListenChunk[] | null = nextId === null ? null : getListenScript(nextId);
         if (nextId === null || script === null || script.length === 0) {
           phaseRef.current = "idle";
           setPhase("idle");
