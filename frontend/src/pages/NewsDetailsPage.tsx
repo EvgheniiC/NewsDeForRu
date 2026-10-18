@@ -168,12 +168,10 @@ export function NewsDetailsPage(): JSX.Element {
         <h1>{news.title}</h1>
         <div className="news-card-actions news-detail-listen">
           <NewsListenControls
-            actionItems={news.action_items}
             articleLoading={false}
             expanded
             newsId={news.id}
             plainLanguage={news.plain_language}
-            subtitle={news.one_sentence_summary}
             title={news.title}
           />
         </div>

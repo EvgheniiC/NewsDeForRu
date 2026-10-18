@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { enqueueOne } from "../analytics/engagementQueue";
 import { ApiError, getNews } from "../api/client";
 import { newsCardClassName, newsTopicChipClass } from "../lib/newsUi";
@@ -133,6 +133,22 @@ export function NewsCard({
 
   const hasBadges: boolean = item.is_urgent || item.is_positive;
 
+  const loadPlainLanguage = useCallback(async (): Promise<string | null> => {
+    if (details !== null) {
+      return details.plain_language;
+    }
+    try {
+      const data: ProcessedNews = await getNews(item.id);
+      setDetails(data);
+      return data.plain_language;
+    } catch (error: unknown) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error(error instanceof Error ? error.message : "Не удалось загрузить текст для прослушивания.");
+    }
+  }, [details, item.id]);
+
   const handleUsefulClick = (): void => {
     const next: boolean = !useful;
     setUseful(next);
@@ -238,12 +254,11 @@ export function NewsCard({
             {expanded ? "Свернуть" : "Раскрыть"}
           </button>
           <NewsListenControls
-            actionItems={details?.action_items ?? null}
             articleLoading={expanded && detailsLoading}
             expanded={expanded}
+            loadPlainLanguage={loadPlainLanguage}
             newsId={item.id}
             plainLanguage={details?.plain_language ?? null}
-            subtitle={item.subtitle}
             title={item.title}
           />
         </div>

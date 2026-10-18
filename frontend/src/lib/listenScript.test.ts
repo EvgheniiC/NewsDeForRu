@@ -15,37 +15,22 @@ describe("splitSpeechText", () => {
 });
 
 describe("buildListenChunks", () => {
-  test("pauses one and a half seconds after the title before the news", () => {
+  test("pauses one and a half seconds after the title before the plain-language text", () => {
     expect(
       buildListenChunks({
         title: "Заголовок",
-        subtitle: "Суть новости",
+        plainLanguage: "Простым языком",
       }),
     ).toEqual([
       { kind: "text", text: "Заголовок" },
       { kind: "pause", durationMs: TITLE_PAUSE_MS },
-      { kind: "text", text: "Суть новости" },
+      { kind: "text", text: "Простым языком" },
     ]);
     expect(TITLE_PAUSE_MS).toBe(1500);
   });
 
-  test("adds plain language and action items after the title pause", () => {
-    expect(
-      buildListenChunks({
-        title: "Заголовок",
-        subtitle: "Суть",
-        plainLanguage: "Простым языком",
-        actionItems: "Что сделать",
-      }),
-    ).toEqual([
-      { kind: "text", text: "Заголовок" },
-      { kind: "pause", durationMs: TITLE_PAUSE_MS },
-      { kind: "text", text: "Суть Простым языком Что сделать" },
-    ]);
-  });
-
-  test("skips the pause when there is no body", () => {
-    expect(buildListenChunks({ title: "Только заголовок", subtitle: "   " })).toEqual([
+  test("skips the pause when there is no plain-language text", () => {
+    expect(buildListenChunks({ title: "Только заголовок", plainLanguage: "   " })).toEqual([
       { kind: "text", text: "Только заголовок" },
     ]);
   });

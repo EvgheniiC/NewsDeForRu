@@ -11,9 +11,7 @@ export type ListenChunk =
 
 export interface ListenScriptInput {
   title: string;
-  subtitle: string;
   plainLanguage?: string | null;
-  actionItems?: string | null;
 }
 
 function normalizeSpeechText(raw: string): string {
@@ -96,17 +94,11 @@ function textChunks(parts: readonly string[]): ListenChunk[] {
   return splitSpeechText(spoken).map((text: string): ListenChunk => ({ kind: "text", text }));
 }
 
-/** Title first, then a pause, then the news. Expanded article adds plain language and action items. */
+/** Title, a short pause, then the plain-language text. Summary, impact, and actions stay silent. */
 export function buildListenChunks(input: ListenScriptInput): ListenChunk[] {
   const titleChunks: ListenChunk[] = textChunks([input.title]);
-  const bodyParts: string[] = [input.subtitle];
-  if (typeof input.plainLanguage === "string") {
-    bodyParts.push(input.plainLanguage);
-  }
-  if (typeof input.actionItems === "string") {
-    bodyParts.push(input.actionItems);
-  }
-  const bodyChunks: ListenChunk[] = textChunks(bodyParts);
+  const plainLanguage: string = typeof input.plainLanguage === "string" ? input.plainLanguage : "";
+  const bodyChunks: ListenChunk[] = textChunks([plainLanguage]);
   if (titleChunks.length === 0) {
     return bodyChunks;
   }

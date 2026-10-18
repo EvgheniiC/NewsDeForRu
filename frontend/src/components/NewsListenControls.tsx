@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useListening, type ListenPhase } from "../context/ListeningContext";
@@ -9,11 +9,11 @@ import type { ListenQueueItem } from "../lib/listeningState";
 interface NewsListenControlsProps {
   newsId: number;
   title: string;
-  subtitle: string;
   plainLanguage: string | null;
-  actionItems: string | null;
   articleLoading: boolean;
   expanded: boolean;
+  /** Loads the plain-language text when the card has not been opened yet. */
+  loadPlainLanguage?: () => Promise<string | null>;
 }
 
 function listenLabel(
@@ -38,23 +38,22 @@ function listenLabel(
 export function NewsListenControls({
   newsId,
   title,
-  subtitle,
   plainLanguage,
-  actionItems,
   articleLoading,
   expanded,
+  loadPlainLanguage,
 }: NewsListenControlsProps): JSX.Element {
   const { user } = useAuth();
   const { activeNewsId, error, pause, phase, play, resume, state, stop, stopIfCurrent } = useListening();
+  const [preparing, setPreparing] = useState<boolean>(false);
+  const [prepareError, setPrepareError] = useState<string>("");
   const chunks: readonly ListenChunk[] = useMemo(
     (): readonly ListenChunk[] =>
       buildListenChunks({
         title,
-        subtitle,
         plainLanguage,
-        actionItems,
       }),
-    [actionItems, plainLanguage, subtitle, title],
+    [plainLanguage, title],
   );
   const wasExpandedRef: { current: boolean } = useRef<boolean>(expanded);
 
@@ -93,7 +92,11 @@ export function NewsListenControls({
   const isSpeaking: boolean = isCurrent && phase === "speaking" && activeNewsId === newsId;
   const isPaused: boolean = isCurrent && phase === "paused" && activeNewsId === newsId;
   const label: string = listenLabel(phase, isSpeaking, isPaused, isCurrent ? item : undefined);
-  const cardError: string = error !== null && error.newsId === newsId ? error.message : "";
+  const playbackError: string = error !== null && error.newsId === newsId ? error.message : "";
+  const cardError: string = playbackError !== "" ? playbackError : prepareError;
+  const busy: boolean = articleLoading || preparing;
+
+  const hasPlainLanguage: boolean = plainLanguage !== null && plainLanguage.trim().length > 0;
 
   const onListen = (): void => {
     if (isSpeaking) {
@@ -104,19 +107,45 @@ export function NewsListenControls({
       resume();
       return;
     }
-    play(newsId, chunks);
+    if (hasPlainLanguage || loadPlainLanguage === undefined) {
+      setPrepareError("");
+      play(newsId, chunks);
+      return;
+    }
+    setPreparing(true);
+    setPrepareError("");
+    void loadPlainLanguage()
+      .then((text: string | null): void => {
+        const nextChunks: readonly ListenChunk[] = buildListenChunks({
+          title,
+          plainLanguage: text,
+        });
+        if (nextChunks.length === 0) {
+          setPrepareError("Нечего озвучивать.");
+          return;
+        }
+        play(newsId, nextChunks);
+      })
+      .catch((loadError: unknown): void => {
+        const message: string =
+          loadError instanceof Error ? loadError.message : "Не удалось загрузить текст для прослушивания.";
+        setPrepareError(message);
+      })
+      .finally((): void => {
+        setPreparing(false);
+      });
   };
 
   return (
     <>
       <button
-        aria-busy={articleLoading}
+        aria-busy={busy}
         className={isSpeaking || isPaused ? "news-listen-btn is-active" : "news-listen-btn"}
-        disabled={articleLoading || chunks.length === 0}
+        disabled={busy || chunks.length === 0}
         onClick={onListen}
         type="button"
       >
-        {articleLoading ? "Загрузка…" : label}
+        {busy ? "Загрузка…" : label}
       </button>
       {isSpeaking || isPaused ? (
         <button className="news-listen-btn" onClick={stop} type="button">
