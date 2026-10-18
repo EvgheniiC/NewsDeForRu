@@ -26,6 +26,11 @@ export const projectGoalParagraphs: readonly string[] = [
  */
 export const projectNews: readonly ProjectNewsItem[] = [
   {
+    id: "2026-10-18-audio-listening",
+    publishedAt: "2026-10-18T19:24:00+02:00",
+    body: "Добавили аудиопрослушивание новостей. Слушать можно только после регистрации.",
+  },
+  {
     id: "2026-10-11-google-play",
     publishedAt: "2026-10-11T19:15:00+02:00",
     body: `Приложение активно и уже доступно для скачивания в [Google Play](${GOOGLE_PLAY_APP_URL}).`,
