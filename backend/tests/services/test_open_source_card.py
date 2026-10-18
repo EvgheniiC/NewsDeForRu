@@ -30,4 +30,5 @@ def test_open_card_instructions_ask_for_a_longer_lead() -> None:
     instructions: str = open_source_card_instructions()
     assert "2–3 коротких предложения" in instructions
     assert "что это значит" in instructions
+    assert "кого это касается сегодня" in instructions
     assert "Spiegel" not in instructions

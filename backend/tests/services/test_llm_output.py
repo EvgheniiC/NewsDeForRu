@@ -181,6 +181,7 @@ def test_denied_story_kinds_exclude_factual_reports() -> None:
 def test_system_prompt_requires_closed_story_kind() -> None:
     prompt: str = LLMNewsOutput.system_prompt_addendum()
     assert "story_kind MUST be exactly one of: report, match_color, personal_story." in prompt
+    assert "1–2 steps for today" in prompt
 
 
 def test_parse_llm_news_json_maps_cover_theme_alias() -> None:

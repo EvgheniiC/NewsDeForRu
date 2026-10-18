@@ -20,6 +20,7 @@ from app.schemas.news import (
 from app.services.news_attribution import build_processed_news_response, published_at_and_source_name
 from app.services.open_source_card import figures_from_bonus, meaning_for_open_card
 from app.services.top_news_scoring import total_top_score
+from app.services.urgent_brief import urgent_brief_lines
 
 router: APIRouter = APIRouter()
 
@@ -50,7 +51,10 @@ def list_news(
     ),
     urgent: bool = Query(
         default=False,
-        description="Only items flagged as urgent / breaking (⚡ Срочно).",
+        description=(
+            "Urgent tab: breaking items, plus official releases from the last 48 hours "
+            "that include a concrete step for today."
+        ),
     ),
     positive_only: bool = Query(
         default=False,
@@ -77,6 +81,17 @@ def list_news(
     for item in news_rows:
         pub_at, source_name = published_at_and_source_name(item)
         figures, meaning = _open_source_card_fields(item)
+        affects: str = ""
+        action_today: str = ""
+        if urgent:
+            affects, action_today = urgent_brief_lines(
+                impact_presentation=item.impact_presentation.value,
+                impact_unified=item.impact_unified,
+                impact_owner=item.impact_owner,
+                impact_tenant=item.impact_tenant,
+                impact_buyer=item.impact_buyer,
+                action_items=item.action_items,
+            )
         items_list.append(
             NewsFeedItem(
                 id=item.id,
@@ -93,6 +108,8 @@ def list_news(
                 created_at=item.created_at,
                 figures=figures,
                 meaning=meaning,
+                affects=affects,
+                action_today=action_today,
             )
         )
     next_cursor: int | None = items_list[-1].id if has_more and items_list else None

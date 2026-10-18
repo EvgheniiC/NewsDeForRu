@@ -1437,6 +1437,20 @@ a:visited {
   margin: 10px 0 0;
 }
 
+.news-card-urgent-brief__line {
+  margin: 0 0 10px;
+}
+
+.news-card-urgent-brief__label {
+  margin: 0;
+  font-weight: 700;
+}
+
+.news-card-urgent-brief__list {
+  margin: 4px 0 10px;
+  padding-left: 1.2rem;
+}
+
 .news-card-read-sentinel {
   height: 1px;
   width: 100%;

@@ -133,6 +133,10 @@ export interface NewsFeedItem {
   figures?: string;
   /** Short "what this means" paragraph. Empty for publishers. */
   meaning?: string;
+  /** Who the story touches. Filled on the urgent feed only. */
+  affects?: string;
+  /** Concrete steps for today. Filled on the urgent feed only. */
+  action_today?: string;
   rank?: TopNewsRankMeta;
 }
 

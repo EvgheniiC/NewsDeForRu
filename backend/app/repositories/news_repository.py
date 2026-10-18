@@ -26,6 +26,7 @@ from app.services.rss_sources import (
     is_source_allowed_for_publication,
     publication_allowed_sql_filter,
 )
+from app.services.urgent_brief import official_action_clause, official_action_published_after, qualifies_for_urgent_feed
 from app.services.urgent_news import is_breaking_news
 
 
@@ -461,7 +462,12 @@ class NewsRepository:
             .options(selectinload(ProcessedNews.raw_item).selectinload(RawNewsItem.source))
         )
         if urgent_only:
-            base = base.where(ProcessedNews.is_urgent.is_(True))
+            base = base.where(
+                or_(
+                    ProcessedNews.is_urgent.is_(True),
+                    official_action_clause(official_action_published_after()),
+                )
+            )
         elif positive_only:
             base = base.where(ProcessedNews.is_positive.is_(True))
         elif topic is not None:
@@ -475,7 +481,7 @@ class NewsRepository:
                 return [], False
             if not self.is_processed_visible_in_feed(anchor):
                 return [], False
-            if urgent_only and not anchor.is_urgent:
+            if urgent_only and not qualifies_for_urgent_feed(anchor):
                 return [], False
             if positive_only and not anchor.is_positive:
                 return [], False

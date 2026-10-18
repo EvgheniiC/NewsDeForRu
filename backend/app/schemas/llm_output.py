@@ -457,6 +457,8 @@ class LLMNewsOutput(BaseModel):
             "action_items lists concrete reader steps in Russian (bullet lines starting with \"- \"); "
             "use an empty string \"\" when the story has no actionable checklist (pure commentary, "
             "no practical steps — do not invent generic «check official sources» filler). "
+            "When residents must act or avoid something today, name who is affected in the impact text "
+            "and put 1–2 steps for today in action_items. "
             "bonus_block and spoiler may be empty strings \"\" when there is no separate editorial angle "
             "or hook beyond plain_language (no filler text)."
         )

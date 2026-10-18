@@ -16,6 +16,8 @@ interface TikTokFeedProps {
   scrollToRead?: boolean;
   /** Archive tabs (saved/read): stacked cards instead of fixed-height snap pages. */
   stackedLayout?: boolean;
+  /** Urgent tab: three-line brief instead of the cover and subtitle. */
+  briefLayout?: boolean;
 }
 
 /** Keep the same on-screen card (or its successor) after items are removed from the list. */
@@ -48,7 +50,8 @@ export function TikTokFeed({
   onLoadMore,
   swipeToRead = false,
   scrollToRead = false,
-  stackedLayout = false
+  stackedLayout = false,
+  briefLayout = false
 }: TikTokFeedProps): JSX.Element {
   const scrollRootRef = useRef<HTMLDivElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -198,7 +201,9 @@ export function TikTokFeed({
     <div className={feedClassName} aria-label="Вертикальная лента">
       <div className="tiktok-feed-scroll" ref={scrollRootRef}>
         {items.map((item: NewsFeedItem) => {
-          const card: JSX.Element = <NewsCard feedMode="tiktok" item={item} variant="immersive" />;
+          const card: JSX.Element = (
+            <NewsCard briefLayout={briefLayout} feedMode="tiktok" item={item} variant="immersive" />
+          );
           const snap: JSX.Element = (
             <div className="tiktok-feed-snap" data-news-id={String(item.id)} key={item.id}>
               {card}

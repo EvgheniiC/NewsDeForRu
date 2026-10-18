@@ -8,6 +8,7 @@ import type { FeedAnalyticsMode } from "../types/engagement";
 import { newsTopicLabelRu, type NewsFeedItem, type ProcessedNews } from "../types/news";
 import { NewsArticleBody } from "./NewsArticleBody";
 import { OpenSourceFigures, OpenSourceMeaning } from "./OpenSourceFigures";
+import { UrgentBrief } from "./UrgentBrief";
 import { NewsListenControls } from "./NewsListenControls";
 import { NewsTopicCover } from "./NewsTopicCover";
 
@@ -18,6 +19,8 @@ interface NewsCardProps {
   variant?: NewsCardVariant;
   /** Used in `navigate_next` payloads from parent feeds; card events include scroll/useful/open. */
   feedMode?: FeedAnalyticsMode;
+  /** Urgent tab: three-line brief instead of the cover and subtitle. */
+  briefLayout?: boolean;
 }
 
 /** Prefer the snap page wrapper so TikTok feed scroll restoration lands on the full card. */
@@ -29,7 +32,8 @@ function resolveScrollTarget(article: HTMLElement): HTMLElement {
 export function NewsCard({
   item,
   variant = "compact",
-  feedMode = "grid"
+  feedMode = "grid",
+  briefLayout = false
 }: NewsCardProps): JSX.Element {
   const [useful, setUseful] = useState<boolean>(() => readStoredUseful(item.id));
   const [expanded, setExpanded] = useState<boolean>(false);
@@ -220,7 +224,9 @@ export function NewsCard({
         ) : null}
       </p>
       <h3>{item.title}</h3>
-      <NewsTopicCover coverTag={item.cover_tag} newsId={item.id} topic={item.topic} variant="card" />
+      {briefLayout ? null : (
+        <NewsTopicCover coverTag={item.cover_tag} newsId={item.id} topic={item.topic} variant="card" />
+      )}
       {expanded ? (
         <div className="news-card-expanded-body">
           {detailsLoading ? <p className="muted">Загрузка…</p> : null}
@@ -229,11 +235,21 @@ export function NewsCard({
         </div>
       ) : (
         <div className={scrollClass} ref={scrollRootRef}>
-          <p className={variant === "immersive" ? "news-card-subtitle-immersive" : undefined}>
-            {item.subtitle}
-          </p>
-          <OpenSourceFigures figures={item.figures ?? ""} />
-          <OpenSourceMeaning meaning={item.meaning ?? ""} />
+          {briefLayout ? (
+            <UrgentBrief
+              actionToday={item.action_today ?? ""}
+              affects={item.affects ?? ""}
+              happened={item.subtitle}
+            />
+          ) : (
+            <>
+              <p className={variant === "immersive" ? "news-card-subtitle-immersive" : undefined}>
+                {item.subtitle}
+              </p>
+              <OpenSourceFigures figures={item.figures ?? ""} />
+              <OpenSourceMeaning meaning={item.meaning ?? ""} />
+            </>
+          )}
           <div aria-hidden="true" className="news-card-read-sentinel" ref={sentinelRef} />
         </div>
       )}

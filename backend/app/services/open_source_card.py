@@ -20,6 +20,11 @@ _OPEN_PARAPHRASE_SOURCE_KEYS: frozenset[str] = frozenset(
 _MAX_PROSE_FIGURES_CHARS: int = 240
 
 
+def open_paraphrase_source_keys() -> tuple[str, ...]:
+    """Stable key list for SQL filters. Same set as ``is_open_paraphrase_source``."""
+    return tuple(sorted(_OPEN_PARAPHRASE_SOURCE_KEYS))
+
+
 def is_open_paraphrase_source(source_key: str | None) -> bool:
     """True for licensed official statistics, not for publisher RSS."""
     return (source_key or "").strip().casefold() in _OPEN_PARAPHRASE_SOURCE_KEYS
@@ -40,7 +45,12 @@ def open_source_card_instructions() -> str:
         "impact_unified — один короткий абзац «что это значит» для жителей Германии, "
         "только вывод из этих цифр, без домыслов. "
         "impact_owner, impact_tenant и impact_buyer оставь пустыми строками.\n"
-        "spoiler оставь пустым. action_items оставь пустым, если нет конкретного шага для читателя.\n\n"
+        "spoiler оставь пустым.\n"
+        "Если в релизе есть срок, правило с сегодняшнего дня, предупреждение или сбой, "
+        "в impact_unified назови, кого это касается сегодня, и заполни action_items "
+        "1–2 строками, каждая начинается с \"- \". "
+        "Если конкретного шага на сегодня нет, action_items оставь пустым "
+        "и не подставляй общее «проверьте официальный сайт».\n\n"
     )
 
 

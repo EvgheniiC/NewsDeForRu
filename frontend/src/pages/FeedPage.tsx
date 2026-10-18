@@ -7,6 +7,7 @@ import { useInfiniteFeed } from "../hooks/useInfiniteFeed";
 import { useReadSavedFeed } from "../hooks/useReadSavedFeed";
 import { useUsefulSavedFeed } from "../hooks/useUsefulSavedFeed";
 import { useAuth } from "../context/AuthContext";
+import { feedEmptyStateCopy, type FeedEmptyStateCopy } from "../lib/feedEmptyState";
 import { filterActiveFeedItems, isFeedCaughtUp } from "../lib/feedVisibility";
 import { feedFilterPillClass } from "../lib/newsUi";
 import { READ_STATE_CHANGED_EVENT } from "../lib/readStateStorage";
@@ -104,6 +105,8 @@ export function FeedPage(): JSX.Element {
   const scrollToRead: boolean = !isArchiveTab && isWebScrollToReadEnabled();
   const swipeToRead: boolean = !isArchiveTab && isNativeApp;
   const showFeedReadHint: boolean = !isArchiveTab;
+  const emptyCopy: FeedEmptyStateCopy | null =
+    feedFilter === "saved_useful" || feedFilter === "read_saved" ? null : feedEmptyStateCopy(feedFilter);
   const feedReadHint: string = isNativeApp
     ? "Свайп вправо, если прочли новость, не открывая её."
     : "Пролистанные новости попадают в «Прочитанные» — открывать их не обязательно.";
@@ -216,10 +219,10 @@ export function FeedPage(): JSX.Element {
           </p>
         </div>
       ) : null}
-      {!feedLoading && !feedError && !isArchiveTab && !feedCaughtUp && visibleItems.length === 0 ? (
+      {!feedLoading && !feedError && emptyCopy !== null && !feedCaughtUp && visibleItems.length === 0 ? (
         <div className="feed-empty-state">
-          <p>Пока нет новостей в этой подборке.</p>
-          <p className="muted">Лента обновляется автоматически.</p>
+          <p>{emptyCopy.lead}</p>
+          <p className="muted">{emptyCopy.detail}</p>
         </div>
       ) : null}
       {isSavedUsefulTab && !feedLoading && visibleItems.length === 0 && !feedError ? (
@@ -244,6 +247,7 @@ export function FeedPage(): JSX.Element {
           key={`${feedFilter}-${feedPeriod}`}
           loadingMore={loadingMore}
           onLoadMore={loadMore}
+          briefLayout={feedFilter === "urgent"}
           stackedLayout={isArchiveTab}
           swipeToRead={swipeToRead}
           scrollToRead={scrollToRead}

@@ -115,6 +115,9 @@ class NewsFeedItem(BaseModel):
     # Filled only for open statistical sources. Publisher cards leave both empty.
     figures: str = ""
     meaning: str = ""
+    # Filled only on the urgent feed. "What happened" is ``subtitle``.
+    affects: str = ""
+    action_today: str = ""
 
     model_config = {"from_attributes": True}
 
