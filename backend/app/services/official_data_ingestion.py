@@ -496,7 +496,10 @@ def build_eurostat_summary(
     """Build explicit LLM context instead of passing opaque JSON-stat indexes."""
     lines: list[str] = [
         "EDITOR NOTES (open dataset, not a news article):",
-        '- Use 1–3 concrete values from "Key figures" in the Russian summary.',
+        "- Paraphrase freely in Russian. Do not translate sentence by sentence.",
+        "- one_sentence_summary: 2–3 short sentences, not a single sentence.",
+        '- Put 2–4 concrete values from "Key figures" into the figures block.',
+        "- Add one short paragraph on what the figures mean for residents of Germany.",
         "- Do not claim a breakdown that is excluded by the filters.",
         "- Do not invent statistics.",
         "",

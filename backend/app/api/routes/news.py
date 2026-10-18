@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db_session
-from app.models.news import FeedPeriod, ImpactPresentation, NewsTopic, ProcessedNews, UserRole
+from app.models.news import FeedPeriod, ImpactPresentation, NewsTopic, ProcessedNews, RawNewsItem, UserRole
 from app.repositories.news_repository import NewsRepository
 from app.utils.feed_period import period_start_utc_naive
 from app.schemas.news import (
@@ -18,9 +18,23 @@ from app.schemas.news import (
     normalize_one_sentence_for_api,
 )
 from app.services.news_attribution import build_processed_news_response, published_at_and_source_name
+from app.services.open_source_card import figures_from_bonus, meaning_for_open_card
 from app.services.top_news_scoring import total_top_score
 
 router: APIRouter = APIRouter()
+
+
+def _open_source_card_fields(item: ProcessedNews) -> tuple[str, str]:
+    """Figures and meaning for Destatis/Eurostat cards. Empty for publishers."""
+    raw: RawNewsItem | None = item.raw_item
+    source_key: str | None = None
+    if raw is not None and raw.source is not None:
+        source_key = raw.source.source_key
+    presentation: str = item.impact_presentation.value
+    return (
+        figures_from_bonus(source_key, item.bonus_block),
+        meaning_for_open_card(source_key, presentation, item.impact_unified),
+    )
 
 
 @router.get("", response_model=NewsFeedPageResponse)
@@ -62,6 +76,7 @@ def list_news(
     items_list: list[NewsFeedItem] = []
     for item in news_rows:
         pub_at, source_name = published_at_and_source_name(item)
+        figures, meaning = _open_source_card_fields(item)
         items_list.append(
             NewsFeedItem(
                 id=item.id,
@@ -76,6 +91,8 @@ def list_news(
                 published_at=pub_at,
                 source_name=source_name,
                 created_at=item.created_at,
+                figures=figures,
+                meaning=meaning,
             )
         )
     next_cursor: int | None = items_list[-1].id if has_more and items_list else None
@@ -98,7 +115,7 @@ def list_top_news_today(
     now_utc: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
     scored: list[tuple[int, int, ProcessedNews, TopNewsRankMeta]] = []
     for item in candidates:
-        raw = item.raw_item
+        raw: RawNewsItem | None = item.raw_item
         if raw is None:
             continue
         cluster_id: int | None = item.cluster_id
@@ -126,6 +143,7 @@ def list_top_news_today(
     items_out: list[TopNewsFeedItem] = []
     for _, _, row, meta in top:
         pub_at, source_name = published_at_and_source_name(row)
+        figures, meaning = _open_source_card_fields(row)
         items_out.append(
             TopNewsFeedItem(
                 id=row.id,
@@ -140,6 +158,8 @@ def list_top_news_today(
                 published_at=pub_at,
                 source_name=source_name,
                 created_at=row.created_at,
+                figures=figures,
+                meaning=meaning,
                 rank=meta,
             )
         )

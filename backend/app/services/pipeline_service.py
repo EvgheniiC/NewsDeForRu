@@ -329,6 +329,8 @@ class PipelineService:
                 and not has_concrete_statistic(
                     llm_output.one_sentence_summary,
                     llm_output.plain_language,
+                    llm_output.bonus_block,
+                    llm_output.impact_unified,
                 )
             ):
                 logger.warning(

@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 from app.models.news import ProcessedNews, RawNewsItem, Source, SourceUrlStatus
 from app.schemas.news import ProcessedNewsResponse
 from app.services.news_origin_policy import NewsOriginMode, resolve_news_origin_mode
+from app.services.open_source_card import figures_from_bonus, is_open_paraphrase_source
 
 UNKNOWN_SOURCE_NAME: str = "Неизвестный источник"
 
@@ -99,11 +100,14 @@ def build_processed_news_response(processed: ProcessedNews) -> ProcessedNewsResp
         NewsOriginMode.INDEPENDENT_PRIMARY,
         NewsOriginMode.MISSING_PRIMARY,
     }
+    key_figures: str = figures_from_bonus(source_key, processed.bonus_block)
     return ProcessedNewsResponse(
         id=processed.id,
         title=processed.title,
         one_sentence_summary=processed.one_sentence_summary,
         plain_language=processed.plain_language,
+        extended_card=is_open_paraphrase_source(source_key),
+        key_figures=key_figures,
         impact_presentation=processed.impact_presentation,
         impact_unified=processed.impact_unified,
         impact_owner=processed.impact_owner,

@@ -129,6 +129,10 @@ export interface NewsFeedItem {
   published_at: string;
   source_name: string;
   created_at: string;
+  /** Open statistical cards only. Empty for publishers. */
+  figures?: string;
+  /** Short "what this means" paragraph. Empty for publishers. */
+  meaning?: string;
   rank?: TopNewsRankMeta;
 }
 
@@ -140,6 +144,10 @@ export interface ProcessedNews {
   title: string;
   one_sentence_summary: string;
   plain_language: string;
+  /** True for Destatis, Eurostat and other open statistical sources. */
+  extended_card?: boolean;
+  /** Concrete figures. Empty when the release has no numbers. */
+  key_figures?: string;
   /** Omitted in older API responses; treat as "multi" if missing. */
   impact_presentation?: ImpactPresentation;
   impact_unified?: string;
@@ -189,6 +197,9 @@ export function processedNewsToFeedItem(p: ProcessedNews): NewsFeedItem {
     is_positive: p.is_positive,
     published_at: p.published_at,
     source_name: p.source_name,
-    created_at: p.created_at
+    created_at: p.created_at,
+    figures: p.key_figures ?? "",
+    meaning:
+      p.extended_card === true && p.impact_presentation === "single" ? (p.impact_unified ?? "") : ""
   };
 }

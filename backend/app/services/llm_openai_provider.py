@@ -17,6 +17,10 @@ from app.services.publisher_editorial import (
     is_sensitive_incident,
     publisher_editorial_instructions,
 )
+from app.services.open_source_card import (
+    is_open_paraphrase_source,
+    open_source_card_instructions,
+)
 from app.services.tabular_digest import (
     ensure_open_dataset_key_figures,
     is_open_dataset_summary,
@@ -122,14 +126,10 @@ class OpenAILLMProvider(LLMProvider):
         )
         summary_for_llm: str = ensure_open_dataset_key_figures(summary)
         open_data_hint: str = ""
-        if is_open_dataset_summary(summary_for_llm):
-            open_data_hint = (
-                "Это открытый госдатасет (не новостная статья). "
-                "В one_sentence_summary и plain_language обязательно опирайся на блок "
-                "\"Key figures\": укажи 1–3 конкретные цифры из превью/numeric highlights, "
-                "если они есть. Не выдумывай статистику. "
-                "impact_presentation обычно none или single.\n\n"
-            )
+        if not is_publisher and (
+            is_open_paraphrase_source(source_key) or is_open_dataset_summary(summary_for_llm)
+        ):
+            open_data_hint = open_source_card_instructions()
         if is_publisher:
             primary_url: str = (primary_source_url or "").strip()
             primary_line: str = ""

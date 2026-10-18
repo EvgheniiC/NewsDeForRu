@@ -11,10 +11,11 @@ from typing import Any
 
 _EDITOR_NOTES: str = (
     "EDITOR NOTES (open dataset, not a news article):\n"
-    "- Prefer concrete figures from \"Key figures\" in one_sentence_summary and "
-    "plain_language.\n"
-    "- Do not invent numbers that are not listed below.\n"
-    "- Explain briefly what the dataset means for residents of Germany."
+    "- Paraphrase freely in Russian. Do not translate sentence by sentence.\n"
+    "- one_sentence_summary: 2–3 short sentences, not a single sentence.\n"
+    "- Put 2–4 concrete values from \"Key figures\" into the figures block. "
+    "Do not invent numbers.\n"
+    "- Add one short paragraph on what the figures mean for residents of Germany."
 )
 
 _MAX_COLUMNS_LISTED: int = 12

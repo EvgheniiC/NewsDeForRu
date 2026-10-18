@@ -54,7 +54,10 @@ def test_openai_open_dataset_summary_adds_key_figures_hint() -> None:
 
     assert captured
     user_content: str = captured[0][1]["content"]
-    assert "открытый госдатасет" in user_content
+    assert "пересказывать свободно" in user_content
+    assert "2–3 коротких предложения" in user_content
+    assert "блок «цифры»" in user_content
+    assert "что это значит" in user_content
     assert "Key figures" in user_content
 
 
@@ -111,6 +114,7 @@ def test_publisher_source_uses_independent_editorial_prompt() -> None:
     system_content: str = captured[0][0]["content"]
     user_content: str = captured[0][1]["content"]
     assert "WELT" in system_content
+    assert "пересказывать свободно" not in user_content
     assert "Не переводи и не перефразируй" in system_content
     assert "подозреваемого преступником" in system_content
     assert "ручной модерации" in system_content
@@ -149,4 +153,41 @@ def test_licensed_publisher_uses_translation_prompt() -> None:
     system_content: str = captured[0][0]["content"]
     user_content: str = captured[0][1]["content"]
     assert "ручной модерации" not in system_content
+    assert "пересказывать свободно" not in user_content
     assert "переведи для полей в JSON" in user_content
+
+
+def test_destatis_source_uses_longer_open_card_prompt() -> None:
+    provider: OpenAILLMProvider = OpenAILLMProvider(
+        api_key="k",
+        model="m",
+        base_url="https://api.openai.com/v1",
+    )
+    captured: list[list[dict[str, str]]] = []
+    valid_json: str = (
+        '{"title":"Тест","one_sentence_summary":"Кратко.","plain_language":"Пояснение.",'
+        '"impact_presentation":"single","impact_unified":"Это значит рост цен.",'
+        '"impact_owner":"","impact_tenant":"","impact_buyer":"","action_items":"",'
+        '"bonus_block":"- 2,4 %","spoiler":"","topic":"economy","is_positive":false,'
+        '"confidence_score":0.7,"importance_score":5}'
+    )
+
+    def _fake_chat(messages: list[dict[str, str]]) -> str:
+        captured.append(messages)
+        return valid_json
+
+    with patch.object(provider, "_chat", side_effect=_fake_chat):
+        provider.process_news(
+            "Inflation steigt",
+            "Die Teuerung lag bei 2,4 Prozent.",
+            source_key="destatis",
+            rights_verified=True,
+            licence="Destatis general reuse terms",
+            licence_url="https://www.destatis.de/DE/Service/Impressum/copyright-allgemein.html",
+        )
+
+    user_content: str = captured[0][1]["content"]
+    system_content: str = captured[0][0]["content"]
+    assert "пересказывать свободно" in user_content
+    assert "ручной модерации" not in system_content
+    assert "Не переводи и не перефразируй" not in system_content

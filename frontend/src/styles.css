@@ -1419,6 +1419,24 @@ a:visited {
   margin: 0 0 10px;
 }
 
+.news-card-figures {
+  margin: 10px 0 0;
+}
+
+.news-card-figures__label {
+  margin: 0;
+  font-weight: 700;
+}
+
+.news-card-figures__list {
+  margin: 4px 0 0;
+  padding-left: 1.2rem;
+}
+
+.news-card-meaning {
+  margin: 10px 0 0;
+}
+
 .news-card-read-sentinel {
   height: 1px;
   width: 100%;

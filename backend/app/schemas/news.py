@@ -37,6 +37,9 @@ class ProcessedNewsResponse(BaseModel):
     title: str
     one_sentence_summary: str
     plain_language: str
+    # Open statistical cards (Destatis, Eurostat) may show a figures block and a longer lead.
+    extended_card: bool = False
+    key_figures: str = ""
     impact_presentation: ImpactPresentation
     impact_unified: str
     impact_owner: str
@@ -109,6 +112,9 @@ class NewsFeedItem(BaseModel):
     published_at: datetime
     source_name: str
     created_at: datetime
+    # Filled only for open statistical sources. Publisher cards leave both empty.
+    figures: str = ""
+    meaning: str = ""
 
     model_config = {"from_attributes": True}
 

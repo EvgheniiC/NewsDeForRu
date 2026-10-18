@@ -5,6 +5,7 @@ import {
   type ProcessedNews
 } from "../types/news";
 import { NewsAttributionBlock } from "./NewsAttributionBlock";
+import { OpenSourceFigures } from "./OpenSourceFigures";
 import { ShareNewsMobileSection } from "./ShareNewsMobileSection";
 
 const IMPACT_PERSPECTIVE_MODIFIERS: readonly string[] = [
@@ -104,18 +105,30 @@ export function NewsArticleBody({
   includeMobileExtras = true
 }: NewsArticleBodyProps): JSX.Element {
   const presentation: ImpactPresentation = news.impact_presentation ?? "multi";
-  const additionalText: string | null = formatAdditionalBlock(news.bonus_block, news.spoiler);
+  const extendedCard: boolean = news.extended_card === true;
+  const figuresText: string = (news.key_figures ?? "").trim();
+  const bonusForExtra: string =
+    figuresText !== "" && news.bonus_block.trim() === figuresText ? "" : news.bonus_block;
+  const additionalText: string | null = formatAdditionalBlock(bonusForExtra, news.spoiler);
 
   const handleOpenSourceClick = (): void => {
     enqueueOne(news.id, "open_source", {}, true);
   };
 
+  const plainLanguage: JSX.Element = (
+    <p className="news-detail-body">
+      <strong>Простым языком:</strong> {news.plain_language}
+    </p>
+  );
+  const impactBlock: JSX.Element | null = renderImpactBlock(presentation, news, headingIdPrefix);
+
   return (
     <>
-      <p className="news-detail-body">
-        <strong>Простым языком:</strong> {news.plain_language}
-      </p>
-      {renderImpactBlock(presentation, news, headingIdPrefix)}
+      {extendedCard ? <p className="news-detail-body">{news.one_sentence_summary}</p> : null}
+      {extendedCard ? <OpenSourceFigures figures={figuresText} /> : null}
+      {extendedCard ? impactBlock : null}
+      {plainLanguage}
+      {extendedCard ? null : impactBlock}
       {news.action_items.trim().length > 0 ? (
         <p className="news-detail-body">
           <strong>Что сделать:</strong> {news.action_items}

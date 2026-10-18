@@ -7,6 +7,7 @@ import { readStoredUseful, setStoredUseful } from "../lib/usefulStorage";
 import type { FeedAnalyticsMode } from "../types/engagement";
 import { newsTopicLabelRu, type NewsFeedItem, type ProcessedNews } from "../types/news";
 import { NewsArticleBody } from "./NewsArticleBody";
+import { OpenSourceFigures, OpenSourceMeaning } from "./OpenSourceFigures";
 import { NewsListenControls } from "./NewsListenControls";
 import { NewsTopicCover } from "./NewsTopicCover";
 
@@ -231,6 +232,8 @@ export function NewsCard({
           <p className={variant === "immersive" ? "news-card-subtitle-immersive" : undefined}>
             {item.subtitle}
           </p>
+          <OpenSourceFigures figures={item.figures ?? ""} />
+          <OpenSourceMeaning meaning={item.meaning ?? ""} />
           <div aria-hidden="true" className="news-card-read-sentinel" ref={sentinelRef} />
         </div>
       )}
