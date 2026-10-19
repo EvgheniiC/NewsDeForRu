@@ -2,8 +2,9 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { enqueueOne } from "../analytics/engagementQueue";
 import { useAuth } from "./AuthContext";
 import { getCardSpeaker } from "../lib/listeningSpeaker";
+import type { SpeechPlace } from "../lib/cardTts";
 import type { ListenChunk } from "../lib/listenScript";
-import { getListenScript } from "../lib/listeningScripts";
+import { getListenScript, preferListenScript, registerListenScript } from "../lib/listeningScripts";
 import {
   LISTENING_STATE_EVENT,
   ensurePlaying,
@@ -13,6 +14,7 @@ import {
   readListeningState,
   removeNews,
   setChunk,
+  setPosition,
   writeListeningState,
   type ListenQueueItem,
   type ListeningState,
@@ -63,29 +65,63 @@ export function ListeningProvider({ children }: { children: React.ReactNode }): 
   >(() => undefined);
 
   useEffect((): void => {
-    stateRef.current = state;
+    if (state.updatedAt >= stateRef.current.updatedAt) {
+      stateRef.current = state;
+    }
   }, [state]);
 
   useEffect((): void => {
     phaseRef.current = phase;
   }, [phase]);
 
+  const rememberPlace = useCallback((): void => {
+    if (phaseRef.current === "idle") {
+      return;
+    }
+    const newsId: number | null = stateRef.current.currentNewsId;
+    const place: SpeechPlace | null = getCardSpeaker().position();
+    if (newsId === null || place === null) {
+      return;
+    }
+    const next: ListeningState = setPosition(
+      stateRef.current,
+      newsId,
+      place.chunkIndex,
+      place.charOffset,
+      Date.now(),
+    );
+    stateRef.current = next;
+    commitListeningState(next);
+    setState(next);
+  }, []);
+
   const stop = useCallback((): void => {
+    rememberPlace();
     playGenRef.current += 1;
     getCardSpeaker().stop();
     phaseRef.current = "idle";
     setPhase("idle");
     setActiveNewsId(null);
-  }, []);
+  }, [rememberPlace]);
 
   const play = useCallback((newsId: number, chunks: readonly ListenChunk[]): void => {
-    if (chunks.length === 0) {
+    const script: readonly ListenChunk[] = preferListenScript(newsId, chunks);
+    if (script.length === 0) {
       setError({ newsId, message: "Нечего озвучивать." });
       return;
     }
+    const saved: ListenQueueItem | undefined = stateRef.current.items.find(
+      (row: ListenQueueItem) => row.newsId === newsId,
+    );
+    const savedIndex: number = saved !== undefined && !saved.finished ? saved.chunkIndex : 0;
+    const hasBody: boolean = script.some((chunk: ListenChunk) => chunk.kind === "pause");
+    if (saved !== undefined && !saved.finished && savedIndex >= script.length && !hasBody) {
+      return;
+    }
+    registerListenScript(newsId, script);
     playGenRef.current += 1;
     const generation: number = playGenRef.current;
-    const started: ListeningState = ensurePlaying(stateRef.current, newsId, Date.now(), chunks.length);
+    const started: ListeningState = ensurePlaying(stateRef.current, newsId, Date.now(), script.length);
     stateRef.current = started;
     commitListeningState(started);
     setState(started);
@@ -96,52 +132,66 @@ export function ListeningProvider({ children }: { children: React.ReactNode }): 
     const item: ListenQueueItem | undefined = started.items.find(
       (row: ListenQueueItem) => row.newsId === newsId,
     );
-    const startIndex: number = item?.chunkIndex ?? 0;
+    let startIndex: number = item?.chunkIndex ?? 0;
+    let startOffset: number = item?.charOffset ?? 0;
+    if (startIndex >= script.length) {
+      startIndex = 0;
+      startOffset = 0;
+      const restarted: ListeningState = setPosition(stateRef.current, newsId, 0, 0, Date.now());
+      stateRef.current = restarted;
+      commitListeningState(restarted);
+      setState(restarted);
+    }
     enqueueOne(newsId, "listen_start", { chunk_index: startIndex }, true);
-    getCardSpeaker().speak(chunks, startIndex, {
-      onChunk: (index: number): void => {
-        if (generation !== playGenRef.current) {
-          return;
-        }
-        const next: ListeningState = setChunk(stateRef.current, newsId, index, Date.now());
-        stateRef.current = next;
-        commitListeningState(next);
-        setState(next);
-      },
-      onEnd: (): void => {
-        if (generation !== playGenRef.current) {
-          return;
-        }
-        const finished: ListeningState = markFinished(stateRef.current, newsId, Date.now());
-        stateRef.current = finished;
-        commitListeningState(finished);
-        setState(finished);
-        if (!finished.autoNext) {
+    getCardSpeaker().speak(
+      script,
+      startIndex,
+      {
+        onChunk: (index: number): void => {
+          if (generation !== playGenRef.current) {
+            return;
+          }
+          const next: ListeningState = setChunk(stateRef.current, newsId, index, Date.now());
+          stateRef.current = next;
+          commitListeningState(next);
+          setState(next);
+        },
+        onEnd: (): void => {
+          if (generation !== playGenRef.current) {
+            return;
+          }
+          const finished: ListeningState = markFinished(stateRef.current, newsId, Date.now());
+          stateRef.current = finished;
+          commitListeningState(finished);
+          setState(finished);
+          if (!finished.autoNext) {
+            phaseRef.current = "idle";
+            setPhase("idle");
+            setActiveNewsId(null);
+            return;
+          }
+          const nextId: number | null = nextUnfinishedId({ ...finished, currentNewsId: newsId });
+          const nextScript: readonly ListenChunk[] | null = nextId === null ? null : getListenScript(nextId);
+          if (nextId === null || nextScript === null || nextScript.length === 0) {
+            phaseRef.current = "idle";
+            setPhase("idle");
+            setActiveNewsId(null);
+            return;
+          }
+          playRef.current(nextId, nextScript);
+        },
+        onError: (message: string): void => {
+          if (generation !== playGenRef.current) {
+            return;
+          }
           phaseRef.current = "idle";
           setPhase("idle");
           setActiveNewsId(null);
-          return;
-        }
-        const nextId: number | null = nextUnfinishedId({ ...finished, currentNewsId: newsId });
-        const script: readonly ListenChunk[] | null = nextId === null ? null : getListenScript(nextId);
-        if (nextId === null || script === null || script.length === 0) {
-          phaseRef.current = "idle";
-          setPhase("idle");
-          setActiveNewsId(null);
-          return;
-        }
-        playRef.current(nextId, script);
+          setError({ newsId, message });
+        },
       },
-      onError: (message: string): void => {
-        if (generation !== playGenRef.current) {
-          return;
-        }
-        phaseRef.current = "idle";
-        setPhase("idle");
-        setActiveNewsId(null);
-        setError({ newsId, message });
-      },
-    });
+      startOffset,
+    );
   }, []);
 
   useEffect((): void => {
@@ -152,13 +202,22 @@ export function ListeningProvider({ children }: { children: React.ReactNode }): 
     if (phaseRef.current !== "speaking") {
       return;
     }
+    rememberPlace();
     getCardSpeaker().pause();
     phaseRef.current = "paused";
     setPhase("paused");
-  }, []);
+  }, [rememberPlace]);
 
   const resume = useCallback((): void => {
     if (phaseRef.current !== "paused") {
+      return;
+    }
+    if (getCardSpeaker().position() === null) {
+      const newsId: number | null = stateRef.current.currentNewsId;
+      const savedScript: readonly ListenChunk[] | null = newsId === null ? null : getListenScript(newsId);
+      if (newsId !== null && savedScript !== null) {
+        playRef.current(newsId, savedScript);
+      }
       return;
     }
     getCardSpeaker().resume();

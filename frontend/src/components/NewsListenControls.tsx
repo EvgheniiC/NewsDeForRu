@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useListening, type ListenPhase } from "../context/ListeningContext";
 import { buildListenChunks, type ListenChunk } from "../lib/listenScript";
-import { registerListenScript } from "../lib/listeningScripts";
+import { preferListenScript, registerListenScript } from "../lib/listeningScripts";
 import type { ListenQueueItem } from "../lib/listeningState";
 
 interface NewsListenControlsProps {
@@ -28,7 +28,12 @@ function listenLabel(
   if (isPaused) {
     return "Продолжить";
   }
-  if (phase === "idle" && item !== undefined && !item.finished && item.chunkIndex > 0) {
+  if (
+    phase === "idle" &&
+    item !== undefined &&
+    !item.finished &&
+    (item.chunkIndex > 0 || item.charOffset > 0)
+  ) {
     return "Продолжить";
   }
   return "Слушать";
@@ -109,7 +114,7 @@ export function NewsListenControls({
     }
     if (hasPlainLanguage || loadPlainLanguage === undefined) {
       setPrepareError("");
-      play(newsId, chunks);
+      play(newsId, preferListenScript(newsId, chunks));
       return;
     }
     setPreparing(true);
@@ -124,7 +129,7 @@ export function NewsListenControls({
           setPrepareError("Нечего озвучивать.");
           return;
         }
-        play(newsId, nextChunks);
+        play(newsId, preferListenScript(newsId, nextChunks));
       })
       .catch((loadError: unknown): void => {
         const message: string =

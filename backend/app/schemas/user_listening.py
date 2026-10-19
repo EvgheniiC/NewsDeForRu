@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 class ListeningItem(BaseModel):
     news_id: int = Field(gt=0)
     chunk_index: int = Field(ge=0, le=500)
+    char_offset: int = Field(default=0, ge=0, le=5000)
     finished: bool = False
 
 

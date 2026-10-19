@@ -1,10 +1,17 @@
-/** Device speech playback. One speaker at a time; pause restarts the current chunk. */
+/** Device speech playback. One speaker at a time; pause continues inside the current chunk. */
 
 import type { ListenChunk } from "./listenScript";
+
+export interface SpeechPlace {
+  chunkIndex: number;
+  charOffset: number;
+}
 
 export interface SpeechRequestHandlers {
   onend: () => void;
   onerror: (message: string) => void;
+  /** Character index inside the utterance that just started being spoken. */
+  onprogress?: (charIndex: number) => void;
 }
 
 export interface SpeechEngine {
@@ -16,15 +23,23 @@ export interface SpeechEngine {
 
 export interface SpeakHandlers {
   onChunk: (index: number) => void;
+  onProgress?: (index: number, charOffset: number) => void;
   onEnd: () => void;
   onError: (message: string) => void;
 }
 
 export interface CardSpeaker {
-  speak: (chunks: readonly ListenChunk[], startIndex: number, handlers: SpeakHandlers) => void;
+  speak: (
+    chunks: readonly ListenChunk[],
+    startIndex: number,
+    handlers: SpeakHandlers,
+    charOffset?: number,
+  ) => void;
   pause: () => void;
   resume: () => void;
   stop: () => void;
+  /** Place inside the active script. Null when nothing is loaded. */
+  position: () => SpeechPlace | null;
 }
 
 export const SPEECH_UNAVAILABLE_MESSAGE: string = "Озвучка на этом устройстве недоступна.";
@@ -37,6 +52,7 @@ export function createCardSpeaker(engine: SpeechEngine): CardSpeaker {
   let paused: boolean = false;
   let chunks: readonly ListenChunk[] = [];
   let index: number = 0;
+  let offset: number = 0;
   let handlers: SpeakHandlers | null = null;
   let silenceTimer: number | null = null;
 
@@ -60,23 +76,39 @@ export function createCardSpeaker(engine: SpeechEngine): CardSpeaker {
     }
     handlers.onChunk(index);
     if (chunk.kind === "pause") {
+      offset = 0;
       silenceTimer = window.setTimeout((): void => {
         silenceTimer = null;
         if (gen !== generation || paused) {
           return;
         }
         index += 1;
+        offset = 0;
         beginChunk(gen);
       }, chunk.durationMs);
       return;
     }
-    const text: string = chunk.text;
+    const startAt: number = offset > 0 && offset < chunk.text.length ? offset : 0;
+    offset = startAt;
+    const text: string = chunk.text.slice(startAt);
     engine.speak(text, {
+      onprogress: (charIndex: number): void => {
+        if (gen !== generation || paused || handlers === null) {
+          return;
+        }
+        const place: number = startAt + charIndex;
+        if (place < 0 || place >= chunk.text.length) {
+          return;
+        }
+        offset = place;
+        handlers.onProgress?.(index, offset);
+      },
       onend: (): void => {
         if (gen !== generation || paused) {
           return;
         }
         index += 1;
+        offset = 0;
         beginChunk(gen);
       },
       onerror: (message: string): void => {
@@ -106,7 +138,12 @@ export function createCardSpeaker(engine: SpeechEngine): CardSpeaker {
   };
 
   return {
-    speak(nextChunks: readonly ListenChunk[], startIndex: number, nextHandlers: SpeakHandlers): void {
+    speak(
+      nextChunks: readonly ListenChunk[],
+      startIndex: number,
+      nextHandlers: SpeakHandlers,
+      charOffset: number = 0,
+    ): void {
       generation += 1;
       const gen: number = generation;
       paused = false;
@@ -114,6 +151,7 @@ export function createCardSpeaker(engine: SpeechEngine): CardSpeaker {
       engine.cancel();
       chunks = nextChunks;
       index = startIndex < 0 ? 0 : startIndex;
+      offset = charOffset > 0 ? charOffset : 0;
       handlers = nextHandlers;
       if (chunks.length === 0 || index >= chunks.length) {
         handlers = null;
@@ -145,8 +183,15 @@ export function createCardSpeaker(engine: SpeechEngine): CardSpeaker {
       handlers = null;
       chunks = [];
       index = 0;
+      offset = 0;
       clearSilence();
       engine.cancel();
+    },
+    position(): SpeechPlace | null {
+      if (handlers === null) {
+        return null;
+      }
+      return { chunkIndex: index, charOffset: offset };
     },
   };
 }

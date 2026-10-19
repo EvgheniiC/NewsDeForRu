@@ -90,6 +90,14 @@ async function speakWithRetry(text: string, lang: string): Promise<void> {
 export function createNativeSpeechEngine(): SpeechEngine {
   let token: number = 0;
   let lang: string = "ru-RU";
+  let onRange: ((charIndex: number) => void) | null = null;
+
+  void TextToSpeech.addListener("onRangeStart", (info: { start: number }): void => {
+    if (onRange === null || typeof info.start !== "number") {
+      return;
+    }
+    onRange(info.start);
+  });
 
   return {
     available: true,
@@ -104,6 +112,12 @@ export function createNativeSpeechEngine(): SpeechEngine {
     speak: (text: string, handlers: SpeechRequestHandlers): void => {
       token += 1;
       const myToken: number = token;
+      onRange = (charIndex: number): void => {
+        if (myToken !== token) {
+          return;
+        }
+        handlers.onprogress?.(charIndex);
+      };
       void speakWithRetry(text, lang)
         .then((): void => {
           if (myToken !== token) {
@@ -129,6 +143,7 @@ export function createNativeSpeechEngine(): SpeechEngine {
     },
     cancel: (): void => {
       token += 1;
+      onRange = null;
       void TextToSpeech.stop();
     },
   };

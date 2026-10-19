@@ -17,6 +17,7 @@ function text(value: string): ListenChunk {
 interface FakeEngine extends SpeechEngine {
   spoken: string[];
   finish: () => void;
+  progress: (charIndex: number) => void;
 }
 
 function createFakeEngine(ready: boolean, available: boolean = true): FakeEngine {
@@ -38,6 +39,9 @@ function createFakeEngine(ready: boolean, available: boolean = true): FakeEngine
       current = null;
       handlers?.onend();
     },
+    progress: (charIndex: number): void => {
+      current?.onprogress?.(charIndex);
+    },
   };
 }
 
@@ -47,6 +51,18 @@ async function flushMicrotasks(): Promise<void> {
 }
 
 describe("createCardSpeaker", () => {
+  test("starts from a saved chunk and character offset", async () => {
+    const engine: FakeEngine = createFakeEngine(true);
+    const speaker: CardSpeaker = createCardSpeaker(engine);
+    speaker.speak([text("раз"), text("заголовок новости")], 1, {
+      onChunk: (): void => undefined,
+      onEnd: (): void => undefined,
+      onError: (): void => undefined,
+    }, 4);
+    await flushMicrotasks();
+    expect(engine.spoken).toEqual(["ловок новости"]);
+  });
+
   test("speaks chunks in order and reports the end", async () => {
     const engine: FakeEngine = createFakeEngine(true);
     const speaker: CardSpeaker = createCardSpeaker(engine);
@@ -86,6 +102,38 @@ describe("createCardSpeaker", () => {
     speaker.resume();
     await flushMicrotasks();
     expect(engine.spoken).toEqual(["раз", "раз"]);
+  });
+
+  test("does not replay the first chunk when paused on the second", async () => {
+    const engine: FakeEngine = createFakeEngine(true);
+    const speaker: CardSpeaker = createCardSpeaker(engine);
+    speaker.speak([text("раз"), text("два")], 0, {
+      onChunk: (): void => undefined,
+      onEnd: (): void => undefined,
+      onError: (): void => undefined,
+    });
+    await flushMicrotasks();
+    engine.finish();
+    speaker.pause();
+    speaker.resume();
+    await flushMicrotasks();
+    expect(engine.spoken).toEqual(["раз", "два", "два"]);
+  });
+
+  test("resumes inside the current chunk after speech progress", async () => {
+    const engine: FakeEngine = createFakeEngine(true);
+    const speaker: CardSpeaker = createCardSpeaker(engine);
+    speaker.speak([text("заголовок новости")], 0, {
+      onChunk: (): void => undefined,
+      onEnd: (): void => undefined,
+      onError: (): void => undefined,
+    });
+    await flushMicrotasks();
+    engine.progress(4);
+    speaker.pause();
+    speaker.resume();
+    await flushMicrotasks();
+    expect(engine.spoken.at(-1)).toBe("ловок новости");
   });
 
   test("reports a missing Russian voice without speaking", async () => {

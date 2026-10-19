@@ -3,6 +3,7 @@
 export interface UserListeningItem {
   news_id: number;
   chunk_index: number;
+  char_offset: number;
   finished: boolean;
 }
 

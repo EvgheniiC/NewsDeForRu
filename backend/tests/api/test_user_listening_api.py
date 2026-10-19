@@ -113,7 +113,9 @@ def test_listening_put_get_last_write_wins_and_skips_unknown(api_client: TestCli
     body: dict[str, Any] = put.json()
     assert body["applied"] is True
     assert body["skipped_news_ids"] == []
-    assert body["state"]["items"] == [{"news_id": news_id, "chunk_index": 2, "finished": False}]
+    assert body["state"]["items"] == [
+        {"news_id": news_id, "chunk_index": 2, "char_offset": 0, "finished": False}
+    ]
 
     got = api_client.get("/users/me/listening", headers=headers)
     assert got.status_code == 200

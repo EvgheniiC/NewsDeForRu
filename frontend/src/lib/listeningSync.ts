@@ -3,6 +3,7 @@
 import { getUserListening, putUserListening } from "../api/client";
 import type { UserListeningPutResponse, UserListeningState } from "../types/userListening";
 import {
+  chooseListeningState,
   clearListeningState,
   emptyListeningState,
   fromApiListeningState,
@@ -20,6 +21,7 @@ const FLUSH_MS: number = 850;
 
 let flushTimer: number | null = null;
 let flushing: boolean = false;
+let flushAgain: boolean = false;
 let flushHandler: ListeningSyncFlushHandler | null = null;
 
 export function setListeningSyncFlushHandler(handler: ListeningSyncFlushHandler | null): void {
@@ -30,7 +32,14 @@ export function setListeningSyncFlushHandler(handler: ListeningSyncFlushHandler 
 }
 
 export function scheduleListeningSyncFlush(): void {
-  if (flushHandler === null || flushTimer !== null) {
+  if (flushHandler === null) {
+    return;
+  }
+  if (flushing) {
+    flushAgain = true;
+    return;
+  }
+  if (flushTimer !== null) {
     return;
   }
   flushTimer = window.setTimeout((): void => {
@@ -41,24 +50,33 @@ export function scheduleListeningSyncFlush(): void {
 
 export async function flushListeningSyncQueue(): Promise<void> {
   if (flushHandler === null || flushing) {
+    flushAgain = true;
     return;
   }
   flushing = true;
   try {
-    await flushHandler();
+    do {
+      flushAgain = false;
+      await flushHandler();
+    } while (flushAgain);
   } finally {
     flushing = false;
   }
 }
 
 export async function flushListeningToServer(accessToken: string): Promise<void> {
-  const local: ListeningState = readListeningState();
-  if (local.updatedAt <= 0 && local.items.length === 0) {
+  const sent: ListeningState = readListeningState();
+  if (sent.updatedAt <= 0 && sent.items.length === 0) {
     return;
   }
-  const response: UserListeningPutResponse = await putUserListening(accessToken, toApiListeningState(local));
+  const response: UserListeningPutResponse = await putUserListening(accessToken, toApiListeningState(sent));
+  const latest: ListeningState = readListeningState();
+  if (latest.updatedAt !== sent.updatedAt) {
+    scheduleListeningSyncFlush();
+    return;
+  }
   if (!response.applied) {
-    writeListeningState(fromApiListeningState(response.state));
+    writeListeningState(chooseListeningState(latest, fromApiListeningState(response.state)));
   }
 }
 

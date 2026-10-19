@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, test } from "vitest";
 import {
+  chooseListeningState,
   enqueueNews,
   ensurePlaying,
   markFinished,
   nextUnfinishedId,
   readListeningState,
   removeNews,
+  setPosition,
   writeListeningState,
   type ListeningState,
   emptyListeningState,
@@ -37,11 +39,29 @@ describe("listening queue", () => {
     state = markFinished(state, 4, 4);
     expect(nextUnfinishedId(state)).toBe(9);
     const again: ListeningState = ensurePlaying(state, 4, 5, 2);
-    const restarted: { newsId: number; chunkIndex: number; finished: boolean } | undefined = again.items.find(
+    const restarted: { newsId: number; chunkIndex: number; charOffset: number; finished: boolean } | undefined =
+      again.items.find((item: { newsId: number }) => item.newsId === 4);
+    expect(restarted?.chunkIndex).toBe(0);
+    expect(restarted?.charOffset).toBe(0);
+    expect(restarted?.finished).toBe(false);
+  });
+
+  test("keeps a saved place when playback starts again before the item is finished", () => {
+    let state: ListeningState = ensurePlaying(emptyListeningState(), 4, 1, 8);
+    state = setPosition(state, 4, 3, 12, 2);
+    const again: ListeningState = ensurePlaying(state, 4, 3, 2);
+    const kept: { chunkIndex: number; charOffset: number } | undefined = again.items.find(
       (item: { newsId: number }) => item.newsId === 4,
     );
-    expect(restarted?.chunkIndex).toBe(0);
-    expect(restarted?.finished).toBe(false);
+    expect(kept?.chunkIndex).toBe(3);
+    expect(kept?.charOffset).toBe(12);
+  });
+
+  test("keeps the newer listen place when two copies disagree", () => {
+    const older: ListeningState = setPosition(ensurePlaying(emptyListeningState(), 4, 1, 4), 4, 0, 0, 1);
+    const newer: ListeningState = setPosition(older, 4, 2, 8, 9);
+    expect(chooseListeningState(newer, older).items[0]?.chunkIndex).toBe(2);
+    expect(chooseListeningState(older, newer).items[0]?.charOffset).toBe(8);
   });
 
   test("round-trips through local storage", () => {
@@ -52,13 +72,13 @@ describe("listening queue", () => {
     );
     writeListeningState({
       ...state,
-      items: [{ newsId: 3, chunkIndex: 1, finished: false }],
+      items: [{ newsId: 3, chunkIndex: 1, charOffset: 4, finished: false }],
       currentNewsId: 3,
       autoNext: true,
       updatedAt: 12,
     });
     expect(readListeningState()).toEqual({
-      items: [{ newsId: 3, chunkIndex: 1, finished: false }],
+      items: [{ newsId: 3, chunkIndex: 1, charOffset: 4, finished: false }],
       currentNewsId: 3,
       autoNext: true,
       updatedAt: 12,

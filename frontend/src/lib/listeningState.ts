@@ -11,6 +11,8 @@ export const MAX_LISTEN_QUEUE: number = 50;
 export interface ListenQueueItem {
   newsId: number;
   chunkIndex: number;
+  /** Character offset inside the current text chunk. 0 speaks the chunk from its start. */
+  charOffset: number;
   finished: boolean;
 }
 
@@ -30,6 +32,9 @@ function isQueueItem(value: unknown): value is ListenQueueItem {
     return false;
   }
   const rec: Record<string, unknown> = value as Record<string, unknown>;
+  const offsetOk: boolean =
+    rec.charOffset === undefined ||
+    (typeof rec.charOffset === "number" && Number.isFinite(rec.charOffset) && rec.charOffset >= 0);
   return (
     typeof rec.newsId === "number" &&
     Number.isFinite(rec.newsId) &&
@@ -37,8 +42,16 @@ function isQueueItem(value: unknown): value is ListenQueueItem {
     typeof rec.chunkIndex === "number" &&
     Number.isFinite(rec.chunkIndex) &&
     rec.chunkIndex >= 0 &&
+    offsetOk &&
     typeof rec.finished === "boolean"
   );
+}
+
+function readCharOffset(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    return 0;
+  }
+  return Math.min(Math.floor(value), 5000);
 }
 
 export function sanitizeListeningState(value: unknown): ListeningState {
@@ -53,6 +66,7 @@ export function sanitizeListeningState(value: unknown): ListeningState {
         items.push({
           newsId: item.newsId,
           chunkIndex: Math.min(Math.floor(item.chunkIndex), 500),
+          charOffset: readCharOffset(item.charOffset),
           finished: item.finished,
         });
       }
@@ -169,7 +183,10 @@ export function enqueueNews(state: ListeningState, newsId: number, now: number):
   }
   return {
     ...state,
-    items: trimQueue([...state.items, { newsId, chunkIndex: 0, finished: false }], state.currentNewsId),
+    items: trimQueue(
+      [...state.items, { newsId, chunkIndex: 0, charOffset: 0, finished: false }],
+      state.currentNewsId,
+    ),
     updatedAt: now,
   };
 }
@@ -195,12 +212,20 @@ export function ensurePlaying(
   );
   let items: ListenQueueItem[];
   if (existing === undefined) {
-    items = trimQueue([...state.items, { newsId, chunkIndex: 0, finished: false }], newsId);
+    items = trimQueue(
+      [...state.items, { newsId, chunkIndex: 0, charOffset: 0, finished: false }],
+      newsId,
+    );
   } else {
-    const restart: boolean = existing.finished || existing.chunkIndex >= chunkCount;
+    const restart: boolean = existing.finished;
     items = state.items.map((item: ListenQueueItem) =>
       item.newsId === newsId
-        ? { ...item, finished: false, chunkIndex: restart ? 0 : existing.chunkIndex }
+        ? {
+            ...item,
+            finished: false,
+            chunkIndex: restart ? 0 : existing.chunkIndex,
+            charOffset: restart ? 0 : existing.charOffset,
+          }
         : item,
     );
   }
@@ -212,10 +237,45 @@ export function setChunk(state: ListeningState, newsId: number, chunkIndex: numb
     ...state,
     currentNewsId: newsId,
     updatedAt: now,
+    items: state.items.map((item: ListenQueueItem) => {
+      if (item.newsId !== newsId) {
+        return item;
+      }
+      const sameChunk: boolean = item.chunkIndex === chunkIndex;
+      return {
+        ...item,
+        chunkIndex,
+        charOffset: sameChunk ? item.charOffset : 0,
+        finished: false,
+      };
+    }),
+  };
+}
+
+export function setPosition(
+  state: ListeningState,
+  newsId: number,
+  chunkIndex: number,
+  charOffset: number,
+  now: number,
+): ListeningState {
+  const offset: number = readCharOffset(charOffset);
+  return {
+    ...state,
+    currentNewsId: newsId,
+    updatedAt: now,
     items: state.items.map((item: ListenQueueItem) =>
-      item.newsId === newsId ? { ...item, chunkIndex, finished: false } : item,
+      item.newsId === newsId ? { ...item, chunkIndex, charOffset: offset, finished: false } : item,
     ),
   };
+}
+
+/** Keeps the copy that was written later. Equal timestamps keep the local copy. */
+export function chooseListeningState(local: ListeningState, incoming: ListeningState): ListeningState {
+  if (incoming.updatedAt > local.updatedAt) {
+    return incoming;
+  }
+  return local;
 }
 
 export function markFinished(state: ListeningState, newsId: number, now: number): ListeningState {
@@ -245,6 +305,7 @@ export function toApiListeningState(state: ListeningState): UserListeningState {
     items: clean.items.map((item: ListenQueueItem) => ({
       news_id: item.newsId,
       chunk_index: item.chunkIndex,
+      char_offset: item.charOffset,
       finished: item.finished,
     })),
     current_news_id: clean.currentNewsId,
@@ -258,6 +319,7 @@ export function fromApiListeningState(state: UserListeningState): ListeningState
     items: state.items.map((item: UserListeningState["items"][number]) => ({
       newsId: item.news_id,
       chunkIndex: item.chunk_index,
+      charOffset: item.char_offset,
       finished: item.finished,
     })),
     currentNewsId: state.current_news_id,
