@@ -101,7 +101,7 @@
 - [x] **Защита публичного API:** `POST /pipeline/run` требует JWT и флаг `can_run_pipeline` (без токена **401**, без права **403**). Кнопка в модерации — для сотрудников; по расписанию пайплайн запускает планировщик на сервере.
 - [x] **Бэкапы PostgreSQL:** ежедневный **`pg_dump`** через systemd **`news-db-backup.timer`** (не cron root). Файлы в `/var/backups/newsforgermanyru/`, на 18.10.2026 есть дампы за 11–18 октября, последний ~170 МБ. Лежат на том же диске, что и сервер.
 - [x] **Снимки диска Hetzner:** 18.10.2026 включены **Backups** для `news-prod`. Первый снимок появляется в течение суток на вкладке **Backups**.
-- [ ] **Копия дампа вне сервера:** файлы из `/var/backups/newsforgermanyru/` на другой диск ещё не уезжают. Дальше — Storage Box и `news-db-offsite.timer`.
+- [x] **Копия дампа вне сервера:** с 18.10.2026 `news-db-offsite.timer` в 03:30 UTC копирует `/var/backups/newsforgermanyru/` на Storage Box `u694531.your-storagebox.de` (BX11, Falkenstein). На боксе лежат дампы за 11–18 октября, последний 171 МБ.
 - [ ] **Наблюдаемость в проде:** при желании **`LOG_JSON=true`** и **Sentry** (`SENTRY_DSN`). В коде оба выключены по умолчанию. На сервере 18.10.2026 не смотрели `.env`.
 - [x] **Внутренние маршруты:** `GET /internal/provenance/*` без ключа `X-Internal-Api-Key` (или при пустом `PROVENANCE_API_KEY`) отвечает **404**. `GET /metrics` отвечает **404**, пока `PROMETHEUS_METRICS_ENABLED` выключен (так и есть по умолчанию).
 - [ ] **Обновления ОС:** после **`apt upgrade`** при запросе ядра — контролируемый **`reboot`**; проверить автозапуск **Docker**, **nginx**, **news-api**.
