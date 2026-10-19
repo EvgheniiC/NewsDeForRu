@@ -5,7 +5,8 @@
       "namespace": "android_app",
       "package_name": "de.simplenewsapp.app",
       "sha256_cert_fingerprints": [
-        "REPLACE_WITH_RELEASE_OR_DEBUG_SHA256"
+        "EA:15:77:93:62:F8:3E:A5:A1:4A:7C:96:5C:68:6A:0A:3F:08:D7:4F:07:EA:2D:AA:30:D5:09:47:1D:3D:8D:E5",
+        "BD:C5:00:8D:9E:CA:FA:FF:DB:B9:D4:75:9C:3B:EE:68:27:54:A1:DB:88:59:3F:40:ED:34:06:D4:7C:0E:D3:FB"
       ]
     }
   }
