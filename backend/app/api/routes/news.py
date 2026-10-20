@@ -3,8 +3,11 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from app.api.deps.auth import get_optional_current_user
 from app.core.database import get_db_session
-from app.models.news import FeedPeriod, ImpactPresentation, NewsTopic, ProcessedNews, RawNewsItem, UserRole
+from app.models.app_user import AppUser
+from app.models.news import CoverTag, FeedPeriod, ImpactPresentation, NewsTopic, ProcessedNews, RawNewsItem, UserRole
+from app.repositories.user_feed_preference_repository import UserFeedPreferenceRepository
 from app.repositories.news_repository import NewsRepository
 from app.utils.feed_period import period_start_utc_naive
 from app.schemas.news import (
@@ -64,18 +67,30 @@ def list_news(
         default=None,
         description="Lower bound on RSS publication time: today, last 3 calendar days, this ISO week, or this month (Europe/Berlin).",
     ),
+    for_me: bool = Query(
+        default=False,
+        description="Personal feed: chosen cover tags first, then the rest by date. Requires a user token.",
+    ),
     db_session: Session = Depends(get_db_session),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ) -> NewsFeedPageResponse:
+    if for_me and current_user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     repository = NewsRepository(db_session)
-    topic_filter: NewsTopic | None = None if urgent or positive_only else topic
+    preferred_tags: frozenset[CoverTag] | None = None
+    if for_me and current_user is not None:
+        chosen: frozenset[CoverTag] = UserFeedPreferenceRepository(db_session).interest_tags(current_user.id)
+        preferred_tags = chosen or None
+    topic_filter: NewsTopic | None = None if urgent or positive_only or for_me else topic
     since = period_start_utc_naive(period)
     news_rows, has_more = repository.list_published(
         limit=limit,
         topic=topic_filter,
         urgent_only=urgent,
-        positive_only=positive_only,
+        positive_only=positive_only and not for_me,
         cursor_id=cursor,
         published_at_since=since,
+        preferred_cover_tags=preferred_tags,
     )
     items_list: list[NewsFeedItem] = []
     for item in news_rows:

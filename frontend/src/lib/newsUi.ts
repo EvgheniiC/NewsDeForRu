@@ -14,6 +14,7 @@ const FEED_FILTER_ACCENT_CLASS: Partial<Record<FeedFilterKey, string>> = {
   politics: "is-accent-politics",
   economy: "is-accent-economy",
   life: "is-accent-life",
+  for_me: "is-accent-life",
   urgent: "is-accent-urgent",
   positive: "is-accent-positive",
   saved_useful: "is-accent-saved",

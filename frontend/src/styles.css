@@ -1955,6 +1955,49 @@ a:visited {
   line-height: 1.5;
 }
 
+.account-interests {
+  margin: 0 0 16px;
+}
+
+.account-interests h2 {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+}
+
+.account-interests .muted {
+  margin: 0 0 10px;
+}
+
+.account-interest-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.account-interest-chip {
+  width: auto;
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-card);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.account-interest-chip.is-on {
+  border-color: var(--text-primary);
+  background: var(--bg-page);
+  font-weight: 600;
+}
+
+.account-interest-chip:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .account-session-link {
   margin: 0 0 4px;
   font-size: 0.95rem;

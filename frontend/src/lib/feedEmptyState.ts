@@ -30,6 +30,11 @@ export function feedEmptyStateCopy(filter: ActiveFeedFilter): FeedEmptyStateCopy
         lead: "Сейчас нет ничего, что нужно сделать сегодня.",
         detail: "Срочные карточки появляются по официальным сообщениям. Лента обновляется автоматически."
       };
+    case "for_me":
+      return {
+        lead: "По выбранным темам пока пусто.",
+        detail: "Карточки с этими темами появятся с ближайшим релизом. Остальные новости тоже остаются в этой ленте."
+      };
     case "life":
     case "positive":
     case "top_today":

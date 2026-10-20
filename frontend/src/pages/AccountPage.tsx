@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { DeleteAccountSection } from "../components/DeleteAccountSection";
+import { AccountInterests } from "../components/AccountInterests";
 import { PasswordField } from "../components/PasswordField";
 import { useAuth } from "../context/AuthContext";
 
@@ -129,7 +130,8 @@ export function AccountPage(): JSX.Element {
           <p className="account-session-email">{user.email}</p>
           <p className="muted account-session-note">
             «Полезные» и «Прочитанные» синхронизируются с аккаунтом на всех устройствах. Голосовое
-            прослушивание сохраняет очередь и место остановки. Умная лента — в разработке.
+            прослушивание сохраняет очередь и место остановки. Выбранные темы идут во вкладке «Моя»
+            первыми.
             {user.can_moderate ? " У вашего аккаунта есть доступ к модерации." : ""}
           </p>
           {user.can_moderate ? (
@@ -137,6 +139,7 @@ export function AccountPage(): JSX.Element {
               <Link to="/moderation">Очередь модерации</Link>
             </p>
           ) : null}
+          <AccountInterests />
           <button className="account-logout-wide" onClick={() => void logout()} type="button">
             Выйти из аккаунта
           </button>
@@ -170,7 +173,7 @@ export function AccountPage(): JSX.Element {
           <h2>Зачем регистрироваться</h2>
           <ul>
             <li>
-              <strong>Умная лента</strong> — темы и приоритеты под ваши интересы (когда эта функция будет включена).
+              <strong>Умная лента</strong> — включите темы, и карточки по ним пойдут в ленте первыми.
             </li>
             <li>
               <strong>Один профиль на всех устройствах</strong> — «Полезные» и «Прочитанные» не привязаны
@@ -180,7 +183,7 @@ export function AccountPage(): JSX.Element {
               <strong>Голосовое прослушивание</strong> — очередь и место остановки сохраняются между сессиями.
             </li>
             <li>
-              <strong>Без жёсткой подписки на рассылку</strong> — вход только для функций приложения, спам не обещаем.
+              <strong>Без жёсткой подписки на рассылку</strong> — вход только для функций приложения, без спама.
             </li>
           </ul>
         </div>

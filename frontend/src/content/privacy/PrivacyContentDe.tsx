@@ -31,6 +31,7 @@ export function PrivacyContentDe(): JSX.Element {
           Vorlesen: Sprachsynthese auf dem Gerät. Der Nachrichtentext geht nicht an einen externen
           TTS-Server. Im Konto liegen nur Nachrichten-ID und Fragmentnummer.
         </li>
+        <li>Gewählte Feed-Themen bleiben im Konto, bis Sie es löschen.</li>
         <li>
           Pipeline: RSS und Datenbank in DE; Textverarbeitung über OpenAI (USA); optional Telegram.
         </li>
@@ -96,6 +97,11 @@ export function PrivacyContentDe(): JSX.Element {
               <td>Wiedergabe auf einem anderen Gerät fortsetzen</td>
               <td>Art. 6 Abs. 1 lit. b</td>
             </tr>
+            <tr>
+              <td>Gewählte Feed-Themen</td>
+              <td>Diese Themen im Feed zuerst zeigen</td>
+              <td>Art. 6 Abs. 1 lit. b</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -131,6 +137,7 @@ export function PrivacyContentDe(): JSX.Element {
         <li>Konto: bis zur Selbstlöschung in der App (Seite „Konto“); Refresh-Token max. 14 Tage.</li>
         <li>„Nützlich“ und „Gelesen“ am Konto: 60 bzw. 30 Tage.</li>
         <li>Hör-Warteschlange: bis zur Kontolöschung.</li>
+        <li>Gewählte Feed-Themen: bis zur Kontolöschung.</li>
         <li>Passwort-Reset-Token: 60 Minuten.</li>
       </ul>
 

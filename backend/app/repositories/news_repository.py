@@ -2,8 +2,9 @@ import json
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
 
-from sqlalchemy import Select, and_, exists, func, or_, select
+from sqlalchemy import Select, and_, case, exists, func, or_, select
 from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.sql.elements import ColumnElement
 
 import numpy as np
 
@@ -444,13 +445,22 @@ class NewsRepository:
         positive_only: bool = False,
         cursor_id: int | None = None,
         published_at_since: datetime | None = None,
+        preferred_cover_tags: frozenset[CoverTag] | None = None,
     ) -> tuple[list[ProcessedNews], bool]:
-        """Return published items (newest RSS publication first) and whether another page exists.
+        """Return published items and whether another page exists.
 
-        Optional ``cursor_id`` is the ``id`` of the last item from the previous page;
-        this page continues with strictly older rows in (published_at desc, id desc) order.
+        Default order is newest RSS publication first. When ``preferred_cover_tags`` is set,
+        matching cards come first and the rest follow, each group still by publication time.
+        Optional ``cursor_id`` is the ``id`` of the last item from the previous page.
         """
         fetch_limit: int = limit + 1
+        interest_tags: frozenset[CoverTag] = preferred_cover_tags or frozenset()
+        interest_rank: ColumnElement[int] | None = None
+        if interest_tags:
+            interest_rank = case(
+                (ProcessedNews.cover_tag.in_(tuple(interest_tags)), 0),
+                else_=1,
+            )
         base: Select[tuple[ProcessedNews]] = (
             select(ProcessedNews)
             .join(RawNewsItem, ProcessedNews.raw_item_id == RawNewsItem.id)
@@ -470,7 +480,7 @@ class NewsRepository:
             )
         elif positive_only:
             base = base.where(ProcessedNews.is_positive.is_(True))
-        elif topic is not None:
+        elif topic is not None and not interest_tags:
             base = base.where(ProcessedNews.topic == topic)
         if published_at_since is not None:
             base = base.where(RawNewsItem.published_at >= published_at_since)
@@ -485,7 +495,7 @@ class NewsRepository:
                 return [], False
             if positive_only and not anchor.is_positive:
                 return [], False
-            if topic is not None and anchor.topic != topic:
+            if topic is not None and not interest_tags and anchor.topic != topic:
                 return [], False
             raw_anchor: RawNewsItem | None = anchor.raw_item
             if raw_anchor is None:
@@ -495,14 +505,29 @@ class NewsRepository:
 
             pub_at: datetime = raw_anchor.published_at
             aid: int = anchor.id
-            base = base.where(
-                or_(
-                    RawNewsItem.published_at < pub_at,
-                    and_(RawNewsItem.published_at == pub_at, ProcessedNews.id < aid),
-                )
+            older_than_anchor: ColumnElement[bool] = or_(
+                RawNewsItem.published_at < pub_at,
+                and_(RawNewsItem.published_at == pub_at, ProcessedNews.id < aid),
             )
+            if interest_rank is not None:
+                anchor_rank: int = 0 if anchor.cover_tag in interest_tags else 1
+                base = base.where(
+                    or_(
+                        interest_rank > anchor_rank,
+                        and_(interest_rank == anchor_rank, older_than_anchor),
+                    )
+                )
+            else:
+                base = base.where(older_than_anchor)
 
-        query = base.order_by(RawNewsItem.published_at.desc(), ProcessedNews.id.desc()).limit(fetch_limit)
+        if interest_rank is not None:
+            query: Select[tuple[ProcessedNews]] = base.order_by(
+                interest_rank.asc(),
+                RawNewsItem.published_at.desc(),
+                ProcessedNews.id.desc(),
+            ).limit(fetch_limit)
+        else:
+            query = base.order_by(RawNewsItem.published_at.desc(), ProcessedNews.id.desc()).limit(fetch_limit)
         rows: list[ProcessedNews] = list(self.db_session.execute(query).scalars().all())
         has_more: bool = len(rows) > limit
         if has_more:

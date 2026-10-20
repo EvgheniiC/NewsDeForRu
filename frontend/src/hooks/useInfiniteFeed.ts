@@ -1,35 +1,58 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ApiError, getFeed, getTopNewsToday, NetworkError, type GetFeedOptions } from "../api/client";
-import type { FeedFilterKey, FeedPeriodKey, NewsFeedItem } from "../types/news";
+import { ApiError, getFeed, getTopNewsToday, NetworkError, type GetFeedOptions, type NewsFeedPageResponse } from "../api/client";
+import type { FeedFilterKey, FeedPeriodKey, NewsFeedItem, NewsTopic } from "../types/news";
 
 const PAGE_SIZE: number = 20;
+
+type AuthorizedLoader = <T>(run: (accessToken: string) => Promise<T>) => Promise<T>;
 
 function buildFeedRequestOptions(
   feedFilter: Exclude<FeedFilterKey, "top_today" | "saved_useful">,
   period: FeedPeriodKey
 ): Omit<GetFeedOptions, "cursor"> {
   const base: Omit<GetFeedOptions, "cursor"> =
-    feedFilter === "urgent"
-      ? { urgent: true, limit: PAGE_SIZE }
-      : feedFilter === "positive"
-        ? { positive_only: true, limit: PAGE_SIZE }
-        : { topic: feedFilter, limit: PAGE_SIZE };
+    feedFilter === "for_me"
+      ? { for_me: true, limit: PAGE_SIZE }
+      : feedFilter === "urgent"
+        ? { urgent: true, limit: PAGE_SIZE }
+        : feedFilter === "positive"
+          ? { positive_only: true, limit: PAGE_SIZE }
+          : { topic: feedFilter as NewsTopic, limit: PAGE_SIZE };
   if (period === "all") {
     return base;
   }
   return { ...base, period };
 }
 
-async function loadFeedFirstPage(
+async function loadFeedPage(
   feedFilter: Exclude<FeedFilterKey, "saved_useful" | "read_saved">,
-  period: FeedPeriodKey
+  period: FeedPeriodKey,
+  cursor: number | undefined,
+  loadAuthorized: AuthorizedLoader | undefined,
 ): Promise<{ items: NewsFeedItem[]; next_cursor: number | null }> {
   if (feedFilter === "top_today") {
     const top = await getTopNewsToday(5);
     return { items: top.items, next_cursor: null };
   }
-  const response = await getFeed(buildFeedRequestOptions(feedFilter, period));
-  return normalizeFeedItems(response as { items?: unknown; next_cursor?: unknown });
+  const options: GetFeedOptions = {
+    ...buildFeedRequestOptions(feedFilter, period),
+    ...(cursor !== undefined ? { cursor } : {}),
+  };
+  const response: NewsFeedPageResponse =
+    feedFilter === "for_me"
+      ? await loadPersonalFeed(options, loadAuthorized)
+      : await getFeed(options);
+  return normalizeFeedItems(response);
+}
+
+async function loadPersonalFeed(
+  options: GetFeedOptions,
+  loadAuthorized: AuthorizedLoader | undefined,
+): Promise<NewsFeedPageResponse> {
+  if (loadAuthorized === undefined) {
+    throw new Error("Для ленты «Моя» нужен вход.");
+  }
+  return loadAuthorized((accessToken: string) => getFeed(options, accessToken));
 }
 
 function feedErrorMessage(e: unknown): string {
@@ -68,6 +91,8 @@ function normalizeFeedItems(response: { items?: unknown; next_cursor?: unknown }
 export interface UseInfiniteFeedOptions {
   /** When false, no fetches run (for alternate tabs like saved useful). */
   enabled?: boolean;
+  /** Attaches the user token. Required for the personal feed. */
+  loadAuthorized?: AuthorizedLoader;
 }
 
 export interface UseInfiniteFeedResult {
@@ -88,6 +113,7 @@ export function useInfiniteFeed(
   options: UseInfiniteFeedOptions = {}
 ): UseInfiniteFeedResult {
   const enabled: boolean = options.enabled !== false;
+  const loadAuthorized: AuthorizedLoader | undefined = options.loadAuthorized;
   const [items, setItems] = useState<NewsFeedItem[]>([]);
   const [nextCursor, setNextCursor] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -108,7 +134,7 @@ export function useInfiniteFeed(
   const loadMoreSeqRef: { current: number } = useRef<number>(0);
 
   useEffect(() => {
-    if (!enabled) {
+    if (!enabled || (feedFilter === "for_me" && loadAuthorized === undefined)) {
       setItems([]);
       setNextCursor(null);
       setFeedError("");
@@ -126,7 +152,7 @@ export function useInfiniteFeed(
 
     void (async (): Promise<void> => {
       try {
-        const normalized = await loadFeedFirstPage(feedFilter, period);
+        const normalized = await loadFeedPage(feedFilter, period, undefined, loadAuthorized);
         if (fetchId !== fetchGenRef.current) {
           return;
         }
@@ -143,10 +169,10 @@ export function useInfiniteFeed(
         }
       }
     })();
-  }, [feedFilter, period, enabled]);
+  }, [feedFilter, period, enabled, loadAuthorized]);
 
   const reload = useCallback(async (): Promise<void> => {
-    if (!enabledRef.current) {
+    if (!enabledRef.current || (feedFilterRef.current === "for_me" && loadAuthorized === undefined)) {
       return;
     }
     fetchGenRef.current += 1;
@@ -157,7 +183,7 @@ export function useInfiniteFeed(
     setFeedError("");
     setLoading(true);
     try {
-      const normalized = await loadFeedFirstPage(snapshotFilter, snapshotPeriod);
+      const normalized = await loadFeedPage(snapshotFilter, snapshotPeriod, undefined, loadAuthorized);
       if (fetchId !== fetchGenRef.current) {
         return;
       }
@@ -173,10 +199,16 @@ export function useInfiniteFeed(
         setLoading(false);
       }
     }
-  }, []);
+  }, [loadAuthorized]);
 
   const loadMore = useCallback(async (): Promise<void> => {
-    if (!enabledRef.current || feedFilter === "top_today" || nextCursor === null || loadingMore) {
+    if (
+      !enabledRef.current ||
+      feedFilter === "top_today" ||
+      (feedFilter === "for_me" && loadAuthorized === undefined) ||
+      nextCursor === null ||
+      loadingMore
+    ) {
       return;
     }
     loadMoreSeqRef.current += 1;
@@ -187,7 +219,8 @@ export function useInfiniteFeed(
         ...buildFeedRequestOptions(feedFilter, period),
         cursor: nextCursor
       };
-      const response = await getFeed(options);
+      const response: NewsFeedPageResponse =
+        feedFilter === "for_me" ? await loadPersonalFeed(options, loadAuthorized) : await getFeed(options);
       if (seq !== loadMoreSeqRef.current) {
         return;
       }
@@ -202,7 +235,7 @@ export function useInfiniteFeed(
     } finally {
       setLoadingMore(false);
     }
-  }, [feedFilter, period, nextCursor, loadingMore]);
+  }, [feedFilter, period, nextCursor, loadingMore, loadAuthorized]);
 
   return {
     items,

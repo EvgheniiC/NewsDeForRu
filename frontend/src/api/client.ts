@@ -86,10 +86,16 @@ export async function getHealth(): Promise<HealthResponse> {
   return fetchJson<HealthResponse>("/health");
 }
 
+export interface FeedPreferencesBody {
+  interests: CoverTag[];
+}
+
 export interface GetFeedOptions {
   topic?: NewsTopic;
   urgent?: boolean;
   positive_only?: boolean;
+  /** Personal order: chosen cover tags first. Sends the user token. */
+  for_me?: boolean;
   /** Calendar window on server (Europe/Berlin); omit when ``all``. */
   period?: Exclude<FeedPeriodKey, "all">;
   /** Page size (default 30 on server). */
@@ -107,9 +113,11 @@ export interface TopNewsTodayResponse {
   items: NewsFeedItem[];
 }
 
-export async function getFeed(options?: GetFeedOptions): Promise<NewsFeedPageResponse> {
+export async function getFeed(options?: GetFeedOptions, accessToken?: string): Promise<NewsFeedPageResponse> {
   const params: URLSearchParams = new URLSearchParams();
-  if (options?.urgent) {
+  if (options?.for_me) {
+    params.set("for_me", "true");
+  } else if (options?.urgent) {
     params.set("urgent", "true");
   } else if (options?.positive_only) {
     params.set("positive_only", "true");
@@ -126,7 +134,11 @@ export async function getFeed(options?: GetFeedOptions): Promise<NewsFeedPageRes
     params.set("cursor", String(options.cursor));
   }
   const q: string = params.toString();
-  const raw: unknown = await fetchJson<unknown>(`/news${q ? `?${q}` : ""}`);
+  const path: string = `/news${q ? `?${q}` : ""}`;
+  const raw: unknown =
+    accessToken !== undefined && accessToken !== ""
+      ? await fetchJsonAuthorized<unknown>(path, accessToken)
+      : await fetchJson<unknown>(path);
   if (Array.isArray(raw)) {
     return { items: raw as NewsFeedItem[], next_cursor: null as number | null };
   }
@@ -249,6 +261,21 @@ export async function putUserLibrary(
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
+  });
+}
+
+export async function getFeedPreferences(accessToken: string): Promise<FeedPreferencesBody> {
+  return fetchJsonAuthorized<FeedPreferencesBody>("/users/me/feed-preferences", accessToken, { method: "GET" });
+}
+
+export async function putFeedPreferences(
+  accessToken: string,
+  interests: readonly CoverTag[],
+): Promise<FeedPreferencesBody> {
+  return fetchJsonAuthorized<FeedPreferencesBody>("/users/me/feed-preferences", accessToken, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ interests }),
   });
 }
 

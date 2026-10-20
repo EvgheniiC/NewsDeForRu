@@ -40,6 +40,7 @@ interface AuthState {
   deleteAccount: (password: string) => Promise<void>;
   withModerationAccess: <T>(run: (accessToken: string) => Promise<T>) => Promise<T>;
   withPipelineAccess: <T>(run: (accessToken: string) => Promise<T>) => Promise<T>;
+  withAccountAccess: <T>(run: (accessToken: string) => Promise<T>) => Promise<T>;
 }
 
 const AuthContext: React.Context<AuthState | undefined> = createContext<AuthState | undefined>(
@@ -179,6 +180,13 @@ export function AuthProvider(props: Readonly<{ children: React.ReactNode }>): JS
     [runWithTokenRetry, user],
   );
 
+  const withAccountAccess = useCallback(
+    async <T,>(run: (accessToken: string) => Promise<T>): Promise<T> => {
+      return runWithTokenRetry(run);
+    },
+    [runWithTokenRetry],
+  );
+
   const deleteAccount = useCallback(
     async (password: string): Promise<void> => {
       await runWithTokenRetry(async (accessToken: string): Promise<void> => {
@@ -259,6 +267,7 @@ export function AuthProvider(props: Readonly<{ children: React.ReactNode }>): JS
       deleteAccount,
       withModerationAccess,
       withPipelineAccess,
+      withAccountAccess,
     }),
     [
       deleteAccount,
@@ -270,6 +279,7 @@ export function AuthProvider(props: Readonly<{ children: React.ReactNode }>): JS
       user,
       withModerationAccess,
       withPipelineAccess,
+      withAccountAccess,
     ],
   );
 

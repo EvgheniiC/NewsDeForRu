@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import { CompactSelect } from "../components/CompactSelect";
@@ -13,7 +13,8 @@ import { feedFilterPillClass } from "../lib/newsUi";
 import { READ_STATE_CHANGED_EVENT } from "../lib/readStateStorage";
 import { flushPendingScrollRead, isWebScrollToReadEnabled } from "../lib/scrollToRead";
 import { USEFUL_STORAGE_CHANGED_EVENT } from "../lib/usefulStorage";
-import type { FeedFilterKey, FeedPeriodKey } from "../types/news";
+import { getFeedPreferences } from "../api/client";
+import type { CoverTag, FeedFilterKey, FeedPeriodKey } from "../types/news";
 
 const FEED_TOPIC_ROWS: readonly (readonly { key: FeedFilterKey; label: string }[])[] = [
   [
@@ -45,7 +46,7 @@ interface FeedLocationState {
 export function FeedPage(): JSX.Element {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, withAccountAccess } = useAuth();
   const feedLocationState = location.state as FeedLocationState | null | undefined;
   const verificationPendingEmail: string = feedLocationState?.verificationPendingEmail?.trim() ?? "";
   const devVerificationLink: string | null =
@@ -53,19 +54,56 @@ export function FeedPage(): JSX.Element {
       ? feedLocationState.devVerificationLink
       : null;
   const [feedFilter, setFeedFilter] = useState<FeedFilterKey>("life");
+  const [myInterests, setMyInterests] = useState<CoverTag[]>([]);
+  const userPickedFilter: { current: boolean } = useRef<boolean>(false);
   const [feedPeriod, setFeedPeriod] = useState<FeedPeriodKey>("all");
   /** Bumped on read/useful storage changes so visibleItems re-filters; must not be in TikTokFeed key. */
   const [, setFeedVisibilityRevision] = useState<number>(0);
+
+  useEffect(() => {
+    if (user === null) {
+      setMyInterests([]);
+      userPickedFilter.current = false;
+      setFeedFilter((current: FeedFilterKey) => (current === "for_me" ? "life" : current));
+      return;
+    }
+    let cancelled: boolean = false;
+    void withAccountAccess((accessToken: string) => getFeedPreferences(accessToken))
+      .then((body) => {
+        if (cancelled) {
+          return;
+        }
+        setMyInterests(body.interests);
+        if (body.interests.length === 0) {
+          setFeedFilter((current: FeedFilterKey) => (current === "for_me" ? "life" : current));
+          return;
+        }
+        if (!userPickedFilter.current) {
+          setFeedFilter("for_me");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMyInterests([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, withAccountAccess]);
 
   const isSavedUsefulTab: boolean = feedFilter === "saved_useful";
   const isReadSavedTab: boolean = feedFilter === "read_saved";
   const isArchiveTab: boolean = isSavedUsefulTab || isReadSavedTab;
   /** Placeholder topic when archive tabs disable infinite scrolling; no requests are sent (`enabled: false`). */
   const infiniteFeedFilter: Exclude<FeedFilterKey, "saved_useful" | "read_saved"> =
-    isArchiveTab ? "life" : feedFilter;
+    feedFilter === "saved_useful" || feedFilter === "read_saved" ? "life" : feedFilter;
 
   const { items: infiniteItems, loading: infiniteLoading, loadingMore, feedError: infiniteFeedError, nextCursor, loadMore } =
-    useInfiniteFeed(infiniteFeedFilter, feedPeriod, { enabled: !isArchiveTab });
+    useInfiniteFeed(infiniteFeedFilter, feedPeriod, {
+      enabled: !isArchiveTab,
+      loadAuthorized: user !== null ? withAccountAccess : undefined,
+    });
 
   const {
     items: savedItems,
@@ -158,9 +196,14 @@ export function FeedPage(): JSX.Element {
       ) : null}
 
       <div className="feed-topic-bar" role="tablist" aria-label="Темы ленты">
-        {FEED_TOPIC_ROWS.map((row, rowIndex: number) => (
+        {FEED_TOPIC_ROWS.map((row, rowIndex: number) => {
+          const pills: readonly { key: FeedFilterKey; label: string }[] =
+            rowIndex === 0 && myInterests.length > 0
+              ? [{ key: "for_me", label: "Моя" }, ...row]
+              : row;
+          return (
           <div key={rowIndex} className="feed-topic-row">
-            {row.map((opt) => (
+            {pills.map((opt) => (
               <button
                 key={opt.key}
                 type="button"
@@ -168,6 +211,7 @@ export function FeedPage(): JSX.Element {
                 role="tab"
                 aria-selected={feedFilter === opt.key}
                 onClick={() => {
+                  userPickedFilter.current = true;
                   setFeedFilter(opt.key);
                 }}
               >
@@ -175,7 +219,8 @@ export function FeedPage(): JSX.Element {
               </button>
             ))}
           </div>
-        ))}
+          );
+        })}
         {showFeedReadHint ? (
           <p className="feed-swipe-hint muted">{feedReadHint}</p>
         ) : null}
@@ -210,6 +255,7 @@ export function FeedPage(): JSX.Element {
             <button
               className="feed-empty-state-link"
               onClick={() => {
+                userPickedFilter.current = true;
                 setFeedFilter("read_saved");
               }}
               type="button"

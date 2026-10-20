@@ -11,6 +11,8 @@ export function activeFeedMaxAgeDays(filter: FeedFilterKey): number {
       return 1;
     case "urgent":
       return 2;
+    case "for_me":
+      return 3;
     case "saved_useful":
     case "read_saved":
       return 0;

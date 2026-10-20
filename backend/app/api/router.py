@@ -10,6 +10,7 @@ from app.api.routes import (
     pipeline,
     provenance,
     push,
+    user_feed_preferences,
     user_library,
     user_listening,
 )
@@ -19,6 +20,7 @@ api_router.include_router(health.router, tags=["health"])
 api_router.include_router(auth.router)
 api_router.include_router(user_library.router)
 api_router.include_router(user_listening.router)
+api_router.include_router(user_feed_preferences.router)
 api_router.include_router(feedback.router)
 api_router.include_router(engagement.router, prefix="/engagement", tags=["engagement"])
 api_router.include_router(push.router, prefix="/push", tags=["push"])
