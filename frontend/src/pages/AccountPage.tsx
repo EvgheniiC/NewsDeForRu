@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { DeleteAccountSection } from "../components/DeleteAccountSection";
@@ -113,6 +113,13 @@ export function AccountPage(): JSX.Element {
     }
   };
 
+  useEffect(() => {
+    if (user === null || location.hash !== "#feed-topics") {
+      return;
+    }
+    document.getElementById("feed-topics")?.scrollIntoView({ block: "start" });
+  }, [location.hash, user]);
+
   if (initializing) {
     return (
       <section>
@@ -125,6 +132,9 @@ export function AccountPage(): JSX.Element {
     return (
       <section className="account-page">
         <h1>Аккаунт</h1>
+        <div className="account-form-card account-form-single account-interests-card" id="feed-topics">
+          <AccountInterests />
+        </div>
         <div className="account-form-card account-form-single account-session-card">
           <p className="account-session-label">Вы вошли как</p>
           <p className="account-session-email">{user.email}</p>
@@ -139,7 +149,6 @@ export function AccountPage(): JSX.Element {
               <Link to="/moderation">Очередь модерации</Link>
             </p>
           ) : null}
-          <AccountInterests />
           <button className="account-logout-wide" onClick={() => void logout()} type="button">
             Выйти из аккаунта
           </button>

@@ -97,6 +97,9 @@ export function ProfileMenu(): JSX.Element {
                 <Link className="profile-menu-link" onClick={closeMenu} role="menuitem" to="/account">
                   Аккаунт
                 </Link>
+                <Link className="profile-menu-link" onClick={closeMenu} role="menuitem" to="/account#feed-topics">
+                  Темы ленты
+                </Link>
                 {user.can_moderate ? (
                   <>
                     <Link className="profile-menu-link" onClick={closeMenu} role="menuitem" to="/moderation">

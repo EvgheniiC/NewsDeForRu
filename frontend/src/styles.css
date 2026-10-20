@@ -1955,8 +1955,8 @@ a:visited {
   line-height: 1.5;
 }
 
-.account-interests {
-  margin: 0 0 16px;
+.account-interests-card .account-interests {
+  margin: 0;
 }
 
 .account-interests h2 {
