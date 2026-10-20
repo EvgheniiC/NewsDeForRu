@@ -196,14 +196,9 @@ export function FeedPage(): JSX.Element {
       ) : null}
 
       <div className="feed-topic-bar" role="tablist" aria-label="Темы ленты">
-        {FEED_TOPIC_ROWS.map((row, rowIndex: number) => {
-          const pills: readonly { key: FeedFilterKey; label: string }[] =
-            rowIndex === 0 && myInterests.length > 0
-              ? [{ key: "for_me", label: "Моя" }, ...row]
-              : row;
-          return (
-          <div key={rowIndex} className="feed-topic-row">
-            {pills.map((opt) => (
+        {FEED_TOPIC_ROWS.map((row, rowIndex: number) => (
+          <div key={rowIndex} className={row.length === 3 ? "feed-topic-row" : "feed-topic-row feed-topic-row--pair"}>
+            {row.map((opt) => (
               <button
                 key={opt.key}
                 type="button"
@@ -219,8 +214,23 @@ export function FeedPage(): JSX.Element {
               </button>
             ))}
           </div>
-          );
-        })}
+        ))}
+        {myInterests.length > 0 ? (
+          <div className="feed-topic-row feed-topic-row--single">
+            <button
+              type="button"
+              className={feedFilterPillClass("for_me", feedFilter === "for_me")}
+              role="tab"
+              aria-selected={feedFilter === "for_me"}
+              onClick={() => {
+                userPickedFilter.current = true;
+                setFeedFilter("for_me");
+              }}
+            >
+              Моя лента
+            </button>
+          </div>
+        ) : null}
         {showFeedReadHint ? (
           <p className="feed-swipe-hint muted">{feedReadHint}</p>
         ) : null}

@@ -50,7 +50,7 @@ async function loadPersonalFeed(
   loadAuthorized: AuthorizedLoader | undefined,
 ): Promise<NewsFeedPageResponse> {
   if (loadAuthorized === undefined) {
-    throw new Error("Для ленты «Моя» нужен вход.");
+    throw new Error("Для «Моя лента» нужен вход.");
   }
   return loadAuthorized((accessToken: string) => getFeed(options, accessToken));
 }

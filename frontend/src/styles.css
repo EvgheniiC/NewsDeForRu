@@ -789,8 +789,40 @@ a:visited {
   cursor: pointer;
   text-decoration: none;
   white-space: nowrap;
+  width: auto;
+  text-align: center;
   flex-shrink: 0;
   box-shadow: var(--shadow-card);
+}
+
+.feed-topic-row--single .feed-topic-pill {
+  width: auto;
+  padding: 6px 14px;
+}
+
+@media (max-width: 640px) {
+  .feed-topic-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .feed-topic-row--pair {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .feed-topic-row--single {
+    grid-template-columns: max-content;
+  }
+
+  .feed-topic-pill {
+    width: 100%;
+    padding: 5px 8px;
+  }
+
+  .feed-topic-row--single .feed-topic-pill {
+    width: auto;
+    padding: 5px 14px;
+  }
 }
 
 .feed-topic-pill:hover {
