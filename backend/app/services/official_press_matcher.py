@@ -19,16 +19,28 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 _TOKEN_RE: re.Pattern[str] = re.compile(r"[a-z0-9äöüß]+", re.IGNORECASE)
 _MAX_RELEASES_PER_FEED: int = 40
-_INSTITUTION_WORDS: tuple[str, ...] = (
-    "polizei",
-    "ministerium",
-    "minister",
-    "gericht",
-    "staatsanwaltschaft",
-    "bundesregierung",
-    "bundeskanzler",
-    "landesregierung",
-    "bundesamt",
+# Longer phrases first so "bundespolizei" is not labelled as Polizei.
+_INSTITUTIONS: tuple[tuple[str, str], ...] = (
+    ("bundespolizei", "Bundespolizei"),
+    ("polizei", "Polizei"),
+    ("deutsche bahn", "Deutsche Bahn"),
+    ("bundesagentur", "Bundesagentur für Arbeit"),
+    ("arbeitsagentur", "Bundesagentur für Arbeit"),
+    ("robert koch", "Robert Koch-Institut"),
+    ("koch-institut", "Robert Koch-Institut"),
+    ("gkv-spitzenverband", "GKV-Spitzenverband"),
+    ("spitzenverband", "GKV-Spitzenverband"),
+    ("krankenkasse", "Krankenkasse"),
+    ("bundestag", "Bundestag"),
+    ("bundesrat", "Bundesrat"),
+    ("bundesregierung", "Bundesregierung"),
+    ("bundeskanzler", "Bundesregierung"),
+    ("landesregierung", "Landesregierung"),
+    ("staatsanwaltschaft", "Staatsanwaltschaft"),
+    ("bundesamt", "Bundesamt"),
+    ("gericht", "Gericht"),
+    ("ministerium", "Ministerium"),
+    ("minister", "Ministerium"),
 )
 _STOPWORDS: frozenset[str] = frozenset(
     {
@@ -134,9 +146,13 @@ def _as_utc(value: datetime) -> datetime:
     return value.astimezone(timezone.utc)
 
 
-def mentions_institution(text: str) -> bool:
+def institution_label(text: str) -> str | None:
+    """Return the public authority name named in the text, if one is recognised."""
     folded: str = text.casefold()
-    return any(word in folded for word in _INSTITUTION_WORDS)
+    for phrase, label in _INSTITUTIONS:
+        if phrase in folded:
+            return label
+    return None
 
 
 def _is_same_release(left: OfficialRelease, right: OfficialRelease) -> bool:
@@ -201,14 +217,19 @@ def release_from_entry(entry: Mapping[str, Any], feed: OfficialPressFeed) -> Off
     normalized = normalize_feedparser_entry(entry)
     if normalized is None or not normalized.url or not normalized.title:
         return None
-    if feed.require_institution_word and not mentions_institution(
-        f"{normalized.title}\n{normalized.summary}"
-    ):
-        return None
+    text: str = f"{normalized.title}\n{normalized.summary}"
+    label: str | None = institution_label(text)
+    public_name: str
+    if feed.require_institution_word:
+        if label is None:
+            return None
+        public_name = label
+    else:
+        public_name = feed.name
     return OfficialRelease(
         title=normalized.title,
         url=normalized.url,
-        name=feed.name,
+        name=public_name,
         published_at=normalized.published_at,
     )
 

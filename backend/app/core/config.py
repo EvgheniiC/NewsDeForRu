@@ -22,7 +22,9 @@ class Settings(BaseSettings):
     # Match publisher items to recent Presseportal police and authority releases.
     official_press_lookup_enabled: bool = True
     official_press_min_shared_tokens: int = Field(default=3, ge=2, le=8)
-    official_press_min_title_coverage: float = Field(default=0.55, ge=0.3, le=1.0)
+    # Share of the official title that must appear in the publisher text.
+    # 0.48 still requires a clear event match and accepts long official headlines.
+    official_press_min_title_coverage: float = Field(default=0.48, ge=0.3, le=1.0)
     official_press_max_age_hours: int = Field(default=48, ge=1, le=168)
     genesis_base_url: str = "https://genesis.destatis.de/genesisWS/rest/2020"
     genesis_api_token: str = ""

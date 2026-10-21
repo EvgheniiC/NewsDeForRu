@@ -11,7 +11,7 @@ from app.core.database import Base
 from app.models import app_user as _app_user_models
 from app.models.news import RawNewsItem
 from app.repositories.news_repository import NewsRepository
-from app.services.official_press_feeds import OfficialPressFeed
+from app.services.official_press_feeds import OFFICIAL_PRESS_FEEDS, OfficialPressFeed
 from app.services.official_press_matcher import (
     OfficialPressCatalog,
     OfficialRelease,
@@ -130,7 +130,81 @@ def test_politics_feed_keeps_only_authority_releases() -> None:
     assert release_from_entry(party, feed) is None
     kept: OfficialRelease | None = release_from_entry(ministry, feed)
     assert kept is not None
-    assert kept.name == "Behörde"
+    assert kept.name == "Ministerium"
+
+
+def test_topic_feed_names_bahn_and_drops_a_company_release() -> None:
+    feed: OfficialPressFeed = OfficialPressFeed(
+        key="presseportal_verkehr",
+        name="Behörde",
+        url="https://www.presseportal.de/rss/auto-verkehr.rss2",
+        require_institution_word=True,
+    )
+    company: dict[str, str] = {
+        "title": "Neuer Kombi mit mehr Reichweite kommt in den Handel",
+        "link": "https://www.presseportal.de/pm/car",
+        "published": "Fri, 09 Oct 2026 08:00:00 GMT",
+    }
+    railway: dict[str, str] = {
+        "title": "Deutsche Bahn: Bauarbeiten verschieben Fernverkehr ab Hannover",
+        "link": "https://www.presseportal.de/pm/bahn",
+        "published": "Fri, 09 Oct 2026 08:00:00 GMT",
+    }
+
+    assert release_from_entry(company, feed) is None
+    kept: OfficialRelease | None = release_from_entry(railway, feed)
+    assert kept is not None
+    assert kept.name == "Deutsche Bahn"
+
+
+def test_half_of_a_long_official_title_still_matches() -> None:
+    release: OfficialRelease = _release(
+        "Bundestag beschliesst Wohngeld Reform Mieterhaushalte sofort",
+        "https://www.bundestag.de/presse/1",
+        name="Bundestag",
+    )
+
+    matched: OfficialRelease | None = find_official_release(
+        "Bundestag beschliesst Wohngeld heute",
+        "",
+        _NOW,
+        [release],
+        min_shared_tokens=3,
+        min_title_coverage=0.48,
+        max_age_hours=48,
+    )
+    too_strict: OfficialRelease | None = find_official_release(
+        "Bundestag beschliesst Wohngeld heute",
+        "",
+        _NOW,
+        [release],
+        min_shared_tokens=3,
+        min_title_coverage=0.55,
+        max_age_hours=48,
+    )
+
+    assert matched is not None
+    assert matched.name == "Bundestag"
+    assert too_strict is None
+
+
+def test_catalog_includes_authority_feeds_beyond_police() -> None:
+    keys: set[str] = {feed.key for feed in OFFICIAL_PRESS_FEEDS}
+    assert len(keys) == len(OFFICIAL_PRESS_FEEDS)
+    for key in (
+        "bundestag_press",
+        "bundesregierung_press",
+        "bmas_news",
+        "bmg_press",
+        "bmf_press",
+        "gkv_press",
+        "presseportal_soziales",
+        "presseportal_gesundheit",
+        "presseportal_wirtschaft",
+        "presseportal_wohnen",
+        "presseportal_verkehr",
+    ):
+        assert key in keys
 
 
 def test_ingestion_stores_matched_primary_source() -> None:
