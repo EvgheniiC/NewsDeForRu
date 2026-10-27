@@ -30,7 +30,7 @@ from app.services.publisher_editorial import is_publisher_editorial_source
 from app.services.publisher_text_guard import guard_llm_output
 from app.services.telegram_notifier import send_auto_published_notice
 from app.services.push_notifier import send_urgent_push_notice
-from app.services.relevance_filter_service import RelevanceFilterService
+from app.services.relevance_filter_service import RelevanceFilterService, RelevanceResult
 from app.services.rss_ingestion_service import IngestionStats, RSSIngestionService
 from app.services.rss_sources import is_source_allowed_for_publication
 from app.services.urgent_news import ev_is_urgent_news
@@ -310,9 +310,20 @@ class PipelineService:
                     cluster_key=dedup_result.cluster_key,
                 )
                 continue
+            # The publisher bypass marks every catalog item relevant so it can be
+            # drafted. Auto-publish without a primary source still requires a real
+            # life-impact score, otherwise sport and celebrity items would pass.
+            publication_relevance: RelevanceResult = relevance
+            if publisher_item and not has_primary_source:
+                publication_relevance = self.context.relevance_filter.evaluate(
+                    raw_item.title,
+                    raw_item.summary,
+                    source_key=source_key,
+                    apply_publisher_bypass=False,
+                )
             decision_inp = PublicationDecisionInput(
                 confidence_score=llm_output.confidence_score,
-                relevance_score=relevance.score,
+                relevance_score=publication_relevance.score,
                 is_new_cluster=dedup_result.is_new_cluster,
                 title=raw_item.title,
                 summary=raw_item.summary,

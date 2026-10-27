@@ -83,6 +83,21 @@ def test_relevance_filter_rejects_publisher_news_when_google_test_off(
     assert result.is_relevant is False
 
 
+def test_publisher_life_impact_check_ignores_catalog_bypass(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "rss_allow_unverified_catalog_sources", True)
+    service = RelevanceFilterService()
+    result = service.evaluate(
+        title="Bundesliga Spieltag",
+        summary="Sportnachrichten ohne direkten Alltagsnutzen.",
+        source_key="bild",
+        apply_publisher_bypass=False,
+    )
+    assert result.is_relevant is False
+    assert result.reason == "Denied by topic keyword."
+
+
 def test_relevance_filter_bypasses_publisher_sources_during_google_test(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

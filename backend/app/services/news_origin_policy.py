@@ -7,8 +7,10 @@
    item is only a signal that something happened. The card is a short original
    draft based on the primary source, cites only that source, and may be
    auto-published when the usual quality gates pass.
-3. Unlicensed publisher without a primary source. The card must not invent a
-   source and always goes to moderation.
+3. Unlicensed publisher without a primary source. The card is an original
+   factual summary, names no source, and may be auto-published when the usual
+   quality gates pass. Violence and other sensitive incidents still go to
+   moderation, because those claims need a person when no authority is cited.
 """
 
 from enum import StrEnum

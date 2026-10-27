@@ -64,7 +64,8 @@ def publisher_editorial_instructions(
 
     When the RSS item links a primary source, the draft must follow that source
     instead of the publisher and may be published. When it does not, the draft
-    must not name a source and stays a moderation item.
+    must not name a source. Ordinary factual cards may still be published.
+    Sensitive incidents without a primary source stay moderation drafts.
     """
     source_name: str = publisher_source_name(source_key)
     primary_name: str = (primary_source_name or "").strip()
@@ -102,11 +103,18 @@ def publisher_editorial_instructions(
             "что сведения требуют проверки по первичному источнику. "
         )
     )
-    publication_rule: str = (
-        "Если факты подтверждены первоисточником, карточку можно публиковать."
-        if primary_url
-        else "Материал всегда является черновиком для ручной модерации."
-    )
+    publication_rule: str
+    if primary_url:
+        publication_rule = "Если факты подтверждены первоисточником, карточку можно публиковать."
+    elif sensitive:
+        publication_rule = (
+            "Сообщения о насилии без первоисточника всегда остаются черновиком для ручной модерации."
+        )
+    else:
+        publication_rule = (
+            "Ссылки на первоисточник нет, но карточку можно публиковать как самостоятельную "
+            "сводку по явно указанным фактам. Не выдумывай источник."
+        )
     return (
         f"Входные данные — RSS-анонс издателя {source_name}, а не официальный первоисточник. "
         "Создай самостоятельный редакционный черновик на русском языке только по явно "

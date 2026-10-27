@@ -4,6 +4,7 @@ from enum import StrEnum
 from app.core.config import Settings, settings
 from app.models.news import PipelineStatus
 from app.services.news_origin_policy import NewsOriginMode, resolve_news_origin_mode
+from app.services.publisher_editorial import is_sensitive_incident
 
 
 @dataclass(frozen=True)
@@ -53,13 +54,17 @@ class PublicationService:
             licence_url=inp.licence_url,
             has_primary_source=inp.has_primary_source,
         )
-        # Rule 3: no primary source, so a person must decide.
-        if origin_mode is NewsOriginMode.MISSING_PRIMARY:
+        # Rule 3: an ordinary factual card may publish without a cited source.
+        # A sensitive incident still needs a person when no authority is cited.
+        if origin_mode is NewsOriginMode.MISSING_PRIMARY and is_sensitive_incident(
+            inp.title, inp.summary
+        ):
             return PipelineStatus.NEEDS_REVIEW, PublicationReviewReason.NO_PRIMARY_SOURCE
         # Unlicensed non-publisher items stay out of the public feed.
         if origin_mode is None:
             return PipelineStatus.NEEDS_REVIEW, PublicationReviewReason.LICENCE
-        # Rules 1 and 2 may pass the quality gates below. Rule 2 cites only the primary source.
+        # Rules 1, 2, and ordinary rule 3 pass the quality gates below.
+        # Rule 2 cites only the primary source. Rule 3 cites nobody.
 
         text_lower: str = f"{inp.title}\n{inp.summary}".lower()
         for kw in _parse_review_keywords(self._s.moderation_extra_review_keywords):

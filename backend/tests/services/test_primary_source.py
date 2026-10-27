@@ -146,4 +146,5 @@ def test_editorial_prompt_hides_source_when_primary_link_is_missing() -> None:
 
     assert "Не пиши «по данным»" in text
     assert "по данным BILD" not in text
-    assert "ручной модерации" in text
+    assert "самостоятельную сводку" in text
+    assert "ручной модерации" not in text

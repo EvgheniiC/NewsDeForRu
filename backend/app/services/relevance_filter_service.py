@@ -20,6 +20,10 @@ POSITIVE_ANCHORS: tuple[str, ...] = (
     "Wohnungseigentum, Eigentümergemeinschaft und Beschlüsse der WEG.",
     "Heizkosten, Heizungsgesetz und energetische Sanierung mit Förderung.",
     "Arbeitsrecht, Kündigungsschutz, Urlaubsanspruch und Arbeitszeit.",
+    "Minijob, Midijob, Mindestlohn und Bürgergeld für Beschäftigte in Deutschland.",
+    "Kindergeld, Elterngeld, Kita und Schule für Familien in Deutschland.",
+    "Bahn, ÖPNV, Ticketpreise und Pendeln zur Arbeit in Deutschland.",
+    "Strom, Gas und Energiepreise für Haushalte in Deutschland.",
 )
 
 NEGATIVE_ANCHORS: tuple[str, ...] = (
@@ -56,6 +60,7 @@ class RelevanceFilterService:
         summary: str,
         *,
         source_key: str | None = None,
+        apply_publisher_bypass: bool = True,
     ) -> RelevanceResult:
         if source_key is not None and source_key in OFFICIAL_DATA_SOURCE_KEYS:
             return RelevanceResult(
@@ -64,8 +69,10 @@ class RelevanceFilterService:
                 reason="Official statistics source bypass.",
             )
 
-        if settings.rss_allow_unverified_catalog_sources and is_publisher_editorial_source(
-            source_key
+        if (
+            apply_publisher_bypass
+            and settings.rss_allow_unverified_catalog_sources
+            and is_publisher_editorial_source(source_key)
         ):
             return RelevanceResult(
                 is_relevant=True,

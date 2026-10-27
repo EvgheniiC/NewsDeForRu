@@ -195,7 +195,35 @@ def test_unlicensed_publisher_with_primary_source_still_reviews_low_confidence()
     assert reason == PublicationReviewReason.LOW_CONFIDENCE
 
 
-def test_publisher_without_primary_source_always_needs_review() -> None:
+def test_publisher_without_primary_source_can_auto_publish() -> None:
+    service: PublicationService = PublicationService(
+        app_settings=Settings(
+            auto_publish_threshold=0.85,
+            auto_publish_min_relevance=0.5,
+            auto_publish_review_on_duplicate_cluster=False,
+            rss_allow_unverified_catalog_sources=True,
+        )
+    )
+    status, reason = service.decide_status(
+        PublicationDecisionInput(
+            confidence_score=0.99,
+            relevance_score=0.9,
+            is_new_cluster=True,
+            title="Mindestlohn steigt",
+            summary="Die Minijob-Grenze wird angepasst.",
+            licence=None,
+            licence_url=None,
+            rights_verified=False,
+            source_key="welt",
+            has_primary_source=False,
+        )
+    )
+
+    assert status == PipelineStatus.PUBLISHED
+    assert reason is None
+
+
+def test_sensitive_publisher_without_primary_source_needs_review() -> None:
     service: PublicationService = PublicationService(
         app_settings=Settings(
             auto_publish_threshold=0.1,
@@ -204,20 +232,47 @@ def test_publisher_without_primary_source_always_needs_review() -> None:
             rss_allow_unverified_catalog_sources=True,
         )
     )
-    unsafe: PublicationDecisionInput = PublicationDecisionInput(
-        confidence_score=0.99,
-        relevance_score=0.9,
-        is_new_cluster=True,
-        title="Titel",
-        summary="Kurz",
-        licence=None,
-        licence_url=None,
-        rights_verified=False,
-        source_key="welt",
-        has_primary_source=False,
+    status, reason = service.decide_status(
+        PublicationDecisionInput(
+            confidence_score=0.99,
+            relevance_score=0.9,
+            is_new_cluster=True,
+            title="Messerangriff in Berlin",
+            summary="Die Polizei sucht den Täter.",
+            licence=None,
+            licence_url=None,
+            rights_verified=False,
+            source_key="welt",
+            has_primary_source=False,
+        )
     )
-
-    status, reason = service.decide_status(unsafe)
 
     assert status == PipelineStatus.NEEDS_REVIEW
     assert reason == PublicationReviewReason.NO_PRIMARY_SOURCE
+
+
+def test_sensitive_publisher_with_primary_source_can_auto_publish() -> None:
+    service: PublicationService = PublicationService(
+        app_settings=Settings(
+            auto_publish_threshold=0.85,
+            auto_publish_min_relevance=0.5,
+            auto_publish_review_on_duplicate_cluster=False,
+        )
+    )
+    status, reason = service.decide_status(
+        PublicationDecisionInput(
+            confidence_score=0.99,
+            relevance_score=0.9,
+            is_new_cluster=True,
+            title="Messerangriff in Berlin",
+            summary="Die Polizei sucht den Täter.",
+            licence=None,
+            licence_url=None,
+            rights_verified=False,
+            source_key="welt",
+            has_primary_source=True,
+        )
+    )
+
+    assert status == PipelineStatus.PUBLISHED
+    assert reason is None
