@@ -24,7 +24,13 @@ class RSSSource:
     contact_email: str | None = None
 
 
-def _publisher_rss(key: str, name: str, url: str) -> RSSSource:
+def _publisher_rss(
+    key: str,
+    name: str,
+    url: str,
+    *,
+    pending_permission: bool = False,
+) -> RSSSource:
     """Catalog publisher feed: text-only, no rights claim, German RSS hook."""
     return RSSSource(
         key=key,
@@ -33,6 +39,7 @@ def _publisher_rss(key: str, name: str, url: str) -> RSSSource:
         original_language="de",
         rights_verified=False,
         text_only=True,
+        pending_permission=pending_permission,
     )
 
 
@@ -43,9 +50,28 @@ DEFAULT_RSS_SOURCES: tuple[RSSSource, ...] = (
         "https://www.tagesschau.de/infoservices/alle-meldungen-100~rss2.xml",
     ),
     _publisher_rss("spiegel", "Spiegel", "https://www.spiegel.de/schlagzeilen/index.rss"),
-    _publisher_rss("die_zeit", "Die Zeit", "https://newsfeed.zeit.de/news/index"),
-    _publisher_rss("zdf", "ZDF", "https://www.zdfheute.de/rss/zdf/nachrichten"),
-    _publisher_rss("welt", "WELT", "https://www.welt.de/feeds/latest.rss"),
+    # Written permission is still outstanding. These feeds stay out of ingestion
+    # and the public feed even when listed in RSS_ENABLED_SOURCE_KEYS and the
+    # Google Test unverified flag is on. Clear pending_permission only after
+    # that publisher replies.
+    _publisher_rss(
+        "die_zeit",
+        "Die Zeit",
+        "https://newsfeed.zeit.de/news/index",
+        pending_permission=True,
+    ),
+    _publisher_rss(
+        "zdf",
+        "ZDF",
+        "https://www.zdfheute.de/rss/zdf/nachrichten",
+        pending_permission=True,
+    ),
+    _publisher_rss(
+        "welt",
+        "WELT",
+        "https://www.welt.de/feeds/latest.rss",
+        pending_permission=True,
+    ),
     _publisher_rss("bild", "BILD", "https://www.bild.de/feed/alles.xml"),
     RSSSource(
         key="destatis",

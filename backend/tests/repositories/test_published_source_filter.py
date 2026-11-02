@@ -121,23 +121,58 @@ def test_moderator_approval_shows_unlicensed_publisher(monkeypatch: pytest.Monke
         repo: NewsRepository = NewsRepository(db)
         published: ProcessedNews = _make_published(
             repo,
-            source_key="welt",
-            name="WELT",
-            guid="welt-approved",
-            title="Approved Welt story",
+            source_key="bild",
+            name="BILD",
+            guid="bild-approved",
+            title="Approved Bild story",
             rights_verified=False,
         )
         hidden, _has_more = repo.list_published(limit=20)
-        assert "Approved Welt story" not in {row.title for row in hidden}
+        assert "Approved Bild story" not in {row.title for row in hidden}
 
         db.add(ModerationEvent(processed_news_id=published.id, action="approve"))
         db.commit()
 
         shown, _shown_more = repo.list_published(limit=20)
-        assert "Approved Welt story" in {row.title for row in shown}
+        assert "Approved Bild story" in {row.title for row in shown}
         loaded: ProcessedNews | None = repo.get_processed_by_id_with_raw(published.id)
         assert loaded is not None
         assert repo.is_processed_visible_in_feed(loaded) is True
+
+
+def test_pending_publishers_stay_hidden_during_google_test(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "rss_enabled_source_keys", "die_zeit,welt,zdf,bild")
+    monkeypatch.setattr(settings, "rss_allow_unverified_catalog_sources", True)
+    with SessionLocal() as db:
+        repo: NewsRepository = NewsRepository(db)
+        for source_key, name, title in (
+            ("die_zeit", "Die Zeit", "Zeit story"),
+            ("welt", "WELT", "Welt story"),
+            ("zdf", "ZDF", "ZDF story"),
+        ):
+            published: ProcessedNews = _make_published(
+                repo,
+                source_key=source_key,
+                name=name,
+                guid=f"{source_key}-pending",
+                title=title,
+                rights_verified=False,
+            )
+            db.add(ModerationEvent(processed_news_id=published.id, action="approve"))
+        _make_published(
+            repo,
+            source_key="bild",
+            name="BILD",
+            guid="bild-1",
+            title="Bild story",
+            rights_verified=False,
+        )
+        db.commit()
+
+        rows, _has_more = repo.list_published(limit=20)
+        assert {row.title for row in rows} == {"Bild story"}
 
 
 def test_pending_permission_stays_hidden_after_approval(monkeypatch: pytest.MonkeyPatch) -> None:

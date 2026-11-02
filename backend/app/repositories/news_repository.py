@@ -386,7 +386,10 @@ class NewsRepository:
         """Re-open recently filtered publisher RSS after Google Test bypass is enabled."""
         if not settings.rss_allow_unverified_catalog_sources:
             return 0
-        publisher_keys: tuple[str, ...] = tuple(PUBLISHER_EDITORIAL_SOURCE_KEYS)
+        pending_keys: frozenset[str] = frozenset(self._pending_permission_source_keys())
+        publisher_keys: tuple[str, ...] = tuple(
+            key for key in PUBLISHER_EDITORIAL_SOURCE_KEYS if key not in pending_keys
+        )
         if not publisher_keys:
             return 0
         since: datetime = datetime.now(timezone.utc) - lookback

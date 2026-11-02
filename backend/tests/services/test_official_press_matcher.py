@@ -243,7 +243,7 @@ def test_ingestion_stores_matched_primary_source() -> None:
     with session_factory() as session:
         service: RSSIngestionService = RSSIngestionService(NewsRepository(session), official_press=catalog)
         with (
-            patch.object(settings, "rss_enabled_source_keys", "welt"),
+            patch.object(settings, "rss_enabled_source_keys", "bild"),
             patch.object(settings, "rss_allow_unverified_catalog_sources", True),
             patch("app.services.rss_ingestion_service.httpx.Client", return_value=client_cm),
         ):

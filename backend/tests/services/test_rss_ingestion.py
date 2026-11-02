@@ -145,9 +145,9 @@ def test_unverified_rss_sources_remain_disabled_even_when_requested() -> None:
 
 def test_unverified_rss_sources_enabled_for_google_test() -> None:
     sources = enabled_rss_sources(
-        "tagesschau,spiegel,welt,bild",
+        "tagesschau,spiegel,welt,bild,die_zeit,zdf",
         allow_unverified=True,
     )
-    assert {source.key for source in sources} == {"tagesschau", "spiegel", "welt", "bild"}
+    assert {source.key for source in sources} == {"tagesschau", "spiegel", "bild"}
     assert all(source.text_only for source in sources)
     assert all(not source.rights_verified for source in sources)
