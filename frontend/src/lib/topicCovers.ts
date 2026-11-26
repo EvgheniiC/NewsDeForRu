@@ -5,8 +5,8 @@ type TopicCoverManifest = Record<string, readonly string[]>;
 
 const MANIFEST: TopicCoverManifest = topicCoversManifest as TopicCoverManifest;
 
-/** Shown under topic covers (not publisher photos). */
-export const TOPIC_COVER_AI_DISCLAIMER_RU: string = "Иллюстрация: ИИ";
+/** Credit shown under topic-pool photos (not publisher photos). */
+export const TOPIC_COVER_CREDIT_RU: string = "Фото: Pexels";
 
 function pickCoverPath(poolKey: string, newsId: number): string | null {
   const files: readonly string[] = MANIFEST[poolKey] ?? [];

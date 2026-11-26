@@ -2,7 +2,7 @@ import type { FeedFilterKey, NewsFeedItem, NewsTopic } from "../types/news";
 
 export type NewsCardLayoutVariant = "compact" | "immersive";
 
-export { newsTopicCoverSrc, TOPIC_COVER_AI_DISCLAIMER_RU } from "./topicCovers";
+export { newsTopicCoverSrc, TOPIC_COVER_CREDIT_RU } from "./topicCovers";
 
 /** BEM-style chip class for topic-colored labels. */
 export function newsTopicChipClass(topic: NewsTopic): string {

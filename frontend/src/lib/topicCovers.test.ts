@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { newsTopicCoverSrc } from "./topicCovers";
+import { TOPIC_COVER_CREDIT_RU, newsTopicCoverSrc } from "./topicCovers";
 
 describe("newsTopicCoverSrc", () => {
   it("picks a stable file from the topic pool", () => {
@@ -15,5 +15,9 @@ describe("newsTopicCoverSrc", () => {
 
   it("falls back to the topic folder when the tag is missing", () => {
     expect(newsTopicCoverSrc("life", 10)).toBe("/topic-covers/life/001.jpg");
+  });
+
+  it("credits Pexels under topic-pool photos", () => {
+    expect(TOPIC_COVER_CREDIT_RU).toBe("Фото: Pexels");
   });
 });

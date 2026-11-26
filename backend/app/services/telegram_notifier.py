@@ -21,7 +21,7 @@ _MAX_MESSAGE_CHARS: Final[int] = 3900
 _MAX_CAPTION_CHARS: Final[int] = 1024
 
 _READ_IN_APP_LABEL: Final[str] = "Читать в приложении"
-_AI_COVER_DISCLAIMER: Final[str] = "Иллюстрация: ИИ"
+_COVER_CREDIT: Final[str] = "Фото: Pexels"
 
 _DIGEST_HEADERS_BY_HOUR: Final[dict[int, str]] = {
     7: "🕖 07:00 — важное за сегодня",
@@ -136,7 +136,7 @@ def _format_published_html(
             "",
             html.escape(changes_notice.strip() or "Неофициальная AI-суммаризация на русском языке."),
             "",
-            html.escape(_AI_COVER_DISCLAIMER),
+            html.escape(_COVER_CREDIT),
         ]
     )
     body: str = "\n".join(lines)

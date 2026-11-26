@@ -1,4 +1,4 @@
-import { TOPIC_COVER_AI_DISCLAIMER_RU, newsTopicCoverSrc } from "../lib/topicCovers";
+import { TOPIC_COVER_CREDIT_RU, newsTopicCoverSrc } from "../lib/topicCovers";
 import type { CoverTag, NewsTopic } from "../types/news";
 
 interface NewsTopicCoverProps {
@@ -9,7 +9,7 @@ interface NewsTopicCoverProps {
   variant?: "card" | "detail";
 }
 
-/** Topic-pool illustration with AI disclaimer (not a publisher photo). */
+/** Topic-pool photo with a Pexels credit (not a publisher photo). */
 export function NewsTopicCover({
   topic,
   newsId,
@@ -29,7 +29,7 @@ export function NewsTopicCover({
         loading="lazy"
         src={newsTopicCoverSrc(topic, newsId, coverTag)}
       />
-      <figcaption className="news-topic-cover__disclaimer">{TOPIC_COVER_AI_DISCLAIMER_RU}</figcaption>
+      <figcaption className="news-topic-cover__disclaimer">{TOPIC_COVER_CREDIT_RU}</figcaption>
     </figure>
   );
 }
