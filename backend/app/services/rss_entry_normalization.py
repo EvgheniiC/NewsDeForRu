@@ -6,7 +6,7 @@ import html
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from time import mktime
 from typing import Any
@@ -14,6 +14,12 @@ from typing import Any
 from app.schemas.llm_output import meaningful_feed_text
 from app.services.preview_image_service import normalize_image_url
 from app.services.primary_source import PrimarySourceLink, extract_primary_source
+
+# A feed once delivered 1 Apr 2926 for an article published 1 Apr 2026.
+# The year is 900 too high, and that date sorts to the top of the feed.
+_YEAR_DIGIT_ERROR: int = 900
+_MIN_PUBLISHED_YEAR: int = 1990
+_MAX_FUTURE: timedelta = timedelta(hours=36)
 
 # Match DB column limits
 _MAX_GUID_LEN: int = 512
@@ -158,16 +164,66 @@ def _parse_rfc822_to_utc(value: Any) -> datetime | None:
         return None
 
 
+def earliest_implausible_published_at() -> datetime:
+    """Naive UTC instant at which a stored year is 900 above a real publication year."""
+    return datetime(_MIN_PUBLISHED_YEAR + _YEAR_DIGIT_ERROR, 1, 1)
+
+
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def _same_awareness(original: datetime, utc_value: datetime) -> datetime:
+    if original.tzinfo is None:
+        return utc_value.replace(tzinfo=None)
+    return utc_value.astimezone(original.tzinfo)
+
+
+def _replace_year(value: datetime, year: int) -> datetime | None:
+    try:
+        return value.replace(year=year)
+    except ValueError:
+        return None
+
+
+def correct_published_at(published_at: datetime, *, now: datetime | None = None) -> datetime:
+    """Return a publication time that can appear in the feed.
+
+    A year 900 ahead (2026 stored as 2926) is shifted back when that lands on a
+    real date. Any other time still far in the future, or before 1990, becomes
+    ``now`` so it cannot stay pinned first.
+    """
+    current: datetime = now if now is not None else datetime.now(timezone.utc)
+    current_utc: datetime = _as_utc(current)
+    candidate_utc: datetime = _as_utc(published_at)
+    latest: datetime = current_utc + _MAX_FUTURE
+    if candidate_utc <= latest and candidate_utc.year >= _MIN_PUBLISHED_YEAR:
+        return published_at
+
+    shifted: datetime | None = _replace_year(
+        candidate_utc, candidate_utc.year - _YEAR_DIGIT_ERROR
+    )
+    if (
+        shifted is not None
+        and shifted.year >= _MIN_PUBLISHED_YEAR
+        and shifted <= latest
+    ):
+        return _same_awareness(published_at, shifted)
+    return _same_awareness(published_at, current_utc)
+
+
 def parse_entry_published_at(entry: Mapping[str, Any]) -> datetime:
     """Pick the best available timestamp; default to now (UTC)."""
     for parsed_key in ("published_parsed", "updated_parsed"):
         dt: datetime | None = _parse_struct_time_to_utc(entry.get(parsed_key))
         if dt is not None:
-            return dt
+            return correct_published_at(dt)
     for header_key in ("published", "updated"):
         dt = _parse_rfc822_to_utc(entry.get(header_key))
         if dt is not None:
-            return dt
+            return correct_published_at(dt)
     return datetime.now(timezone.utc)
 
 
