@@ -3,14 +3,10 @@
 1. Licensed source. The source has written permission or an open licence.
    The card cites that source and may be auto-published when the usual
    quality gates pass.
-2. Unlicensed publisher with a primary source, for example BILD. The publisher
-   item is only a signal that something happened. The card is a short original
-   draft based on the primary source, cites only that source, and may be
-   auto-published when the usual quality gates pass.
-3. Unlicensed publisher without a primary source. The card is an original
-   factual summary, names no source, and may be auto-published when the usual
-   quality gates pass. Violence and other sensitive incidents still go to
-   moderation, because those claims need a person when no authority is cited.
+2. Unlicensed publisher, whether or not the RSS item names a primary source.
+   The card is an original factual draft, names nobody, contains no source link,
+   and always goes to moderation. The title stays short. The body is a little
+   longer than a licensed card.
 """
 
 from enum import StrEnum

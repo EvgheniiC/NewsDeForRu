@@ -148,6 +148,13 @@ def test_unverified_rss_sources_enabled_for_google_test() -> None:
         "tagesschau,spiegel,welt,bild,die_zeit,zdf",
         allow_unverified=True,
     )
-    assert {source.key for source in sources} == {"tagesschau", "spiegel", "bild"}
+    assert {source.key for source in sources} == {
+        "tagesschau",
+        "spiegel",
+        "bild",
+        "welt",
+        "die_zeit",
+        "zdf",
+    }
     assert all(source.text_only for source in sources)
     assert all(not source.rights_verified for source in sources)

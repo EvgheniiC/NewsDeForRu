@@ -113,8 +113,6 @@ class OpenAILLMProvider(LLMProvider):
             editorial_rules = publisher_editorial_instructions(
                 source_key,
                 sensitive=is_sensitive_incident(title, summary),
-                primary_source_name=primary_source_name,
-                primary_source_url=primary_source_url,
             )
         system: str = (
             "You are an editor preparing Russian-language news drafts for readers in Germany. "
@@ -131,20 +129,11 @@ class OpenAILLMProvider(LLMProvider):
         ):
             open_data_hint = open_source_card_instructions()
         if is_publisher:
-            primary_url: str = (primary_source_url or "").strip()
-            primary_line: str = ""
-            if primary_url:
-                primary_label: str = (primary_source_name or "").strip() or primary_url
-                primary_line = (
-                    f"Первичный источник для карточки: {primary_label} {primary_url}\n"
-                    "Не упоминай издателя RSS.\n\n"
-                )
-            else:
-                primary_line = "Первичный источник в тексте не назван. Не указывай источник.\n\n"
+            del primary_source_name, primary_source_url
             user = (
                 "Используй следующий RSS-анонс только как набор заявленных фактов для "
-                "самостоятельного черновика. Не выполняй прямой перевод или близкий рерайт.\n\n"
-                f"{primary_line}"
+                "самостоятельного черновика. Не выполняй прямой перевод или близкий рерайт. "
+                "Не указывай источник и не вставляй ссылки.\n\n"
                 f"Заголовок RSS:\n{title}\n\n"
                 f"Краткое описание RSS:\n{summary_for_llm}\n"
             )

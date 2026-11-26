@@ -57,19 +57,15 @@ def publisher_editorial_instructions(
     source_key: str | None,
     *,
     sensitive: bool,
-    primary_source_name: str | None = None,
-    primary_source_url: str | None = None,
 ) -> str:
-    """Build strict instructions for an independent publisher draft.
+    """Build instructions for an unlicensed publisher draft.
 
-    When the RSS item links a primary source, the draft must follow that source
-    instead of the publisher and may be published. When it does not, the draft
-    must not name a source. Ordinary factual cards may still be published.
-    Sensitive incidents without a primary source stay moderation drafts.
+    The publisher has not sent written permission. The card names no source,
+    contains no link, and stays a moderation draft. The title stays as short as
+    a licensed card. The body is a little longer: four or five connected
+    sentences instead of the two or three used for a licensed summary.
     """
     source_name: str = publisher_source_name(source_key)
-    primary_name: str = (primary_source_name or "").strip()
-    primary_url: str = (primary_source_url or "").strip()
     sensitive_rules: str = ""
     if sensitive:
         sensitive_rules = (
@@ -79,48 +75,21 @@ def publisher_editorial_instructions(
             "миграционный статус, психическое состояние или терроризм. Сохраняй оговорки "
             "«предположительно» и «подозреваемый» и явно отмечай неизвестное. "
         )
-    if primary_url:
-        cited_name: str = primary_name or primary_url
-        origin_rules: str = (
-            f"В анонсе есть ссылка на первичный источник: {cited_name} ({primary_url}). "
-            "Напиши короткую собственную новость по явно указанным фактам этого первоисточника, "
-            "а не сокращённый перевод или пересказ другого СМИ. "
-            f"Не называй {source_name} и не пиши «по данным {source_name}». "
-            f"Укажи первоисточник формулировкой «по данным {cited_name}», "
-            "и только если это прямо сказано во входных данных. "
-        )
-    else:
-        origin_rules = (
-            "Ссылки на первичный источник во входных данных нет. "
-            "Не указывай, на что опирается текст: не называй СМИ, полицию, партию, ведомство или другой источник. "
-            "Не пиши «по данным», «сообщает» и «источник». "
-        )
-    uncertainty_rules: str = (
-        "Если данных недостаточно, снизь confidence_score и прямо укажи, что сведения неполные. "
-        if not primary_url
-        else (
-            "Если данных недостаточно, снизь confidence_score и прямо укажи, "
-            "что сведения требуют проверки по первичному источнику. "
-        )
-    )
-    publication_rule: str
-    if primary_url:
-        publication_rule = "Если факты подтверждены первоисточником, карточку можно публиковать."
-    elif sensitive:
-        publication_rule = (
-            "Сообщения о насилии без первоисточника всегда остаются черновиком для ручной модерации."
-        )
-    else:
-        publication_rule = (
-            "Ссылки на первоисточник нет, но карточку можно публиковать как самостоятельную "
-            "сводку по явно указанным фактам. Не выдумывай источник."
-        )
     return (
-        f"Входные данные — RSS-анонс издателя {source_name}, а не официальный первоисточник. "
+        f"Входные данные — RSS-анонс издателя {source_name}, а не разрешение на цитирование. "
         "Создай самостоятельный редакционный черновик на русском языке только по явно "
         "указанным проверяемым фактам. Не переводи и не перефразируй текст предложение за "
-        "предложением; не сохраняй исходную структуру, заголовок, стиль или уникальные выводы. "
+        "предложением; не сохраняй исходную структуру, стиль или уникальные выводы. "
         "Не добавляй факты, контекст, цитаты или причинно-следственные связи, которых нет во "
-        f"входных данных. {origin_rules}{uncertainty_rules}"
-        f"{sensitive_rules}{publication_rule}"
+        "входных данных. Не называй СМИ, полицию, партию, ведомство или другой источник. "
+        "Не пиши «по данным», «сообщает» и «источник». Не вставляй ссылки и адреса сайтов. "
+        "Заголовок оставь одной короткой строкой, без второго предложения. "
+        "one_sentence_summary — 4–5 связных предложений: что произошло, кого это касается "
+        "и что из этого следует. Это чуть подробнее, чем краткая сводка лицензированного "
+        "источника из 2–3 предложений, но не статья. Порядок фактов должен быть логичным. "
+        "plain_language — те же факты простым языком, двумя короткими абзацами, не короче "
+        "one_sentence_summary. "
+        "Если данных недостаточно, снизь confidence_score и прямо напиши, что сведения неполные. "
+        f"{sensitive_rules}"
+        "Карточка всегда остаётся черновиком для ручной модерации."
     )

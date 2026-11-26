@@ -138,7 +138,7 @@ def test_licensed_publisher_can_auto_publish() -> None:
     assert reason is None
 
 
-def test_unlicensed_publisher_with_primary_source_can_auto_publish() -> None:
+def test_unlicensed_publisher_with_primary_source_stays_in_moderation() -> None:
     service: PublicationService = PublicationService(
         app_settings=Settings(
             auto_publish_threshold=0.1,
@@ -164,8 +164,8 @@ def test_unlicensed_publisher_with_primary_source_can_auto_publish() -> None:
             )
         )
 
-        assert status == PipelineStatus.PUBLISHED
-        assert reason is None
+        assert status == PipelineStatus.NEEDS_REVIEW
+        assert reason == PublicationReviewReason.LICENCE
 
 
 def test_unlicensed_publisher_with_primary_source_still_reviews_low_confidence() -> None:
@@ -192,10 +192,10 @@ def test_unlicensed_publisher_with_primary_source_still_reviews_low_confidence()
     )
 
     assert status == PipelineStatus.NEEDS_REVIEW
-    assert reason == PublicationReviewReason.LOW_CONFIDENCE
+    assert reason == PublicationReviewReason.LICENCE
 
 
-def test_publisher_without_primary_source_can_auto_publish() -> None:
+def test_publisher_without_primary_source_stays_in_moderation() -> None:
     service: PublicationService = PublicationService(
         app_settings=Settings(
             auto_publish_threshold=0.85,
@@ -219,8 +219,8 @@ def test_publisher_without_primary_source_can_auto_publish() -> None:
         )
     )
 
-    assert status == PipelineStatus.PUBLISHED
-    assert reason is None
+    assert status == PipelineStatus.NEEDS_REVIEW
+    assert reason == PublicationReviewReason.LICENCE
 
 
 def test_sensitive_publisher_without_primary_source_needs_review() -> None:
@@ -248,10 +248,10 @@ def test_sensitive_publisher_without_primary_source_needs_review() -> None:
     )
 
     assert status == PipelineStatus.NEEDS_REVIEW
-    assert reason == PublicationReviewReason.NO_PRIMARY_SOURCE
+    assert reason == PublicationReviewReason.LICENCE
 
 
-def test_sensitive_publisher_with_primary_source_can_auto_publish() -> None:
+def test_sensitive_publisher_with_primary_source_stays_in_moderation() -> None:
     service: PublicationService = PublicationService(
         app_settings=Settings(
             auto_publish_threshold=0.85,
@@ -274,5 +274,5 @@ def test_sensitive_publisher_with_primary_source_can_auto_publish() -> None:
         )
     )
 
-    assert status == PipelineStatus.PUBLISHED
-    assert reason is None
+    assert status == PipelineStatus.NEEDS_REVIEW
+    assert reason == PublicationReviewReason.LICENCE

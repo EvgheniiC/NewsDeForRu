@@ -140,7 +140,7 @@ def test_moderator_approval_shows_unlicensed_publisher(monkeypatch: pytest.Monke
         assert repo.is_processed_visible_in_feed(loaded) is True
 
 
-def test_pending_publishers_stay_hidden_during_google_test(
+def test_approved_unlicensed_publishers_show_without_auto_publish(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(settings, "rss_enabled_source_keys", "die_zeit,welt,zdf,bild")
@@ -172,7 +172,7 @@ def test_pending_publishers_stay_hidden_during_google_test(
         db.commit()
 
         rows, _has_more = repo.list_published(limit=20)
-        assert {row.title for row in rows} == {"Bild story"}
+        assert {row.title for row in rows} == {"Zeit story", "Welt story", "ZDF story"}
 
 
 def test_pending_permission_stays_hidden_after_approval(monkeypatch: pytest.MonkeyPatch) -> None:

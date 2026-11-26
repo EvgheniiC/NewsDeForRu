@@ -1,7 +1,6 @@
 """Resolve publication date and the source name shown to readers."""
 
 from datetime import datetime
-from urllib.parse import urlparse
 
 from app.models.news import ProcessedNews, RawNewsItem, Source, SourceUrlStatus
 from app.schemas.news import ProcessedNewsResponse
@@ -24,30 +23,24 @@ def public_source_fields(
 ) -> tuple[str, str]:
     """Return the source name and URL readers should see.
 
-    A licensed source keeps its own name and URL. An unlicensed publisher item
-    names a primary source when the RSS text contains one. Without that link
-    the publisher is not named, but the original article URL stays clickable.
+    A licensed source keeps its own name and URL. A publisher that has not
+    replied keeps neither a name nor a link, including any primary-source URL
+    found in the RSS item.
     """
-    primary_url: str = (primary_source_url or "").strip()
+    del primary_source_url, primary_source_name
     origin_mode: NewsOriginMode | None = resolve_news_origin_mode(
         source_key=source_key,
         rights_verified=rights_verified,
         licence=licence,
         licence_url=licence_url,
-        has_primary_source=bool(primary_url),
+        has_primary_source=False,
     )
-    cites_publisher: bool = origin_mode not in {
+    if origin_mode in {
         NewsOriginMode.INDEPENDENT_PRIMARY,
         NewsOriginMode.MISSING_PRIMARY,
-    }
-    if cites_publisher:
-        return publisher_name, publisher_url
-    if not primary_url:
-        return "", publisher_url
-    primary_name: str = (primary_source_name or "").strip()
-    if not primary_name:
-        primary_name = (urlparse(primary_url).hostname or "").removeprefix("www.") or "Источник"
-    return primary_name, primary_url
+    }:
+        return "", ""
+    return publisher_name, publisher_url
 
 
 def attribution_from_processed(processed: ProcessedNews) -> tuple[datetime, str, str]:

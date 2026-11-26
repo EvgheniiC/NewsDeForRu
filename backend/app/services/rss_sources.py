@@ -50,28 +50,11 @@ DEFAULT_RSS_SOURCES: tuple[RSSSource, ...] = (
         "https://www.tagesschau.de/infoservices/alle-meldungen-100~rss2.xml",
     ),
     _publisher_rss("spiegel", "Spiegel", "https://www.spiegel.de/schlagzeilen/index.rss"),
-    # Written permission is still outstanding. These feeds stay out of ingestion
-    # and the public feed even when listed in RSS_ENABLED_SOURCE_KEYS and the
-    # Google Test unverified flag is on. Clear pending_permission only after
-    # that publisher replies.
-    _publisher_rss(
-        "die_zeit",
-        "Die Zeit",
-        "https://newsfeed.zeit.de/news/index",
-        pending_permission=True,
-    ),
-    _publisher_rss(
-        "zdf",
-        "ZDF",
-        "https://www.zdfheute.de/rss/zdf/nachrichten",
-        pending_permission=True,
-    ),
-    _publisher_rss(
-        "welt",
-        "WELT",
-        "https://www.welt.de/feeds/latest.rss",
-        pending_permission=True,
-    ),
+    # No written reply yet. Listed feeds are still drafted, but the card has no
+    # source link and stays in moderation until a person approves it.
+    _publisher_rss("die_zeit", "Die Zeit", "https://newsfeed.zeit.de/news/index"),
+    _publisher_rss("zdf", "ZDF", "https://www.zdfheute.de/rss/zdf/nachrichten"),
+    _publisher_rss("welt", "WELT", "https://www.welt.de/feeds/latest.rss"),
     _publisher_rss("bild", "BILD", "https://www.bild.de/feed/alles.xml"),
     RSSSource(
         key="destatis",
@@ -149,14 +132,52 @@ def allowed_rss_source_keys(
     *,
     allow_unverified: bool = False,
 ) -> frozenset[str]:
-    """Keys of RSS sources that may be ingested and shown publicly."""
+    """Keys that may appear in the public feed without a moderator.
+
+    Unlicensed publishers can still be ingested when ``allow_unverified`` is on.
+    Their cards stay out of this set and wait in moderation.
+    """
     return frozenset(
         source.key
         for source in enabled_rss_sources(
             enabled_source_keys,
             allow_unverified=allow_unverified,
         )
+        if source.rights_verified
     )
+
+
+def is_source_eligible_for_processing(
+    source_key: str | None,
+    *,
+    rights_verified: bool,
+    enabled_source_keys: str,
+    allow_unverified: bool = False,
+) -> bool:
+    """Whether a raw item may be drafted.
+
+    Licensed catalog sources and official data need ``rights_verified``.
+    An unlicensed publisher listed in ``RSS_ENABLED_SOURCE_KEYS`` may be drafted
+    into moderation when unverified ingestion is on. ``pending_permission`` stays out.
+    """
+    if source_key is None:
+        return False
+    normalized: str = source_key.strip().casefold()
+    if not normalized:
+        return False
+    if normalized in {key.casefold() for key in OFFICIAL_DATA_SOURCE_KEYS}:
+        return rights_verified
+    catalog: frozenset[str] = frozenset(key.casefold() for key in RSS_CATALOG_SOURCE_KEYS)
+    if normalized in catalog:
+        eligible: frozenset[str] = frozenset(
+            source.key.casefold()
+            for source in enabled_rss_sources(
+                enabled_source_keys,
+                allow_unverified=allow_unverified,
+            )
+        )
+        return normalized in eligible
+    return rights_verified
 
 
 def is_source_allowed_for_publication(
@@ -172,7 +193,8 @@ def is_source_allowed_for_publication(
     - Official statistics sources are always allowed when verified.
     - Known RSS catalog keys require membership in ``RSS_ENABLED_SOURCE_KEYS``.
     - Sources with ``pending_permission`` stay blocked even when listed and unverified ingestion is on.
-    - Catalog publishers also need ``rights_verified`` unless ``allow_unverified``.
+    - Unlicensed catalog publishers are drafted separately and stay out of the public feed until a moderator approves them.
+    - Catalog sources in this public check also need ``rights_verified``.
     - Non-catalog keys (tests / other providers) only need ``rights_verified``.
     """
     if source_key is None:

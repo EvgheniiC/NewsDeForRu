@@ -32,7 +32,7 @@ from app.services.telegram_notifier import send_auto_published_notice
 from app.services.push_notifier import send_urgent_push_notice
 from app.services.relevance_filter_service import RelevanceFilterService, RelevanceResult
 from app.services.rss_ingestion_service import IngestionStats, RSSIngestionService
-from app.services.rss_sources import is_source_allowed_for_publication
+from app.services.rss_sources import is_source_eligible_for_processing
 from app.services.urgent_news import ev_is_urgent_news
 from app.utils.url_fingerprint import url_fingerprint
 
@@ -136,7 +136,7 @@ class PipelineService:
             source_key: str | None = (
                 raw_item.source.source_key if raw_item.source is not None else None
             )
-            if not is_source_allowed_for_publication(
+            if not is_source_eligible_for_processing(
                 source_key,
                 rights_verified=raw_item.rights_verified,
                 enabled_source_keys=app_settings.rss_enabled_source_keys,
@@ -376,7 +376,7 @@ class PipelineService:
                 action_items=llm_output.action_items,
                 bonus_block=llm_output.bonus_block,
                 spoiler=llm_output.spoiler,
-                source_url=public_url or raw_item.url,
+                source_url=public_url if publisher_item else (public_url or raw_item.url),
                 original_title=raw_item.title,
                 original_language=raw_item.original_language,
                 retrieved_at=raw_item.retrieved_at,

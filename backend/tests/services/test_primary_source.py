@@ -95,7 +95,7 @@ def test_public_source_keeps_official_publisher() -> None:
     assert url == "https://www.destatis.de/example"
 
 
-def test_public_source_uses_primary_link_for_publisher() -> None:
+def test_unlicensed_publisher_hides_primary_link() -> None:
     name: str
     url: str
     name, url = public_source_fields(
@@ -106,11 +106,11 @@ def test_public_source_uses_primary_link_for_publisher() -> None:
         primary_source_name="CDU",
     )
 
-    assert name == "CDU"
-    assert url == "https://www.cdu.de/aktuelles/statement"
+    assert name == ""
+    assert url == ""
 
 
-def test_original_article_stays_linked_when_primary_source_is_missing() -> None:
+def test_unlicensed_publisher_hides_original_article_link() -> None:
     name: str
     url: str
     name, url = public_source_fields(
@@ -122,29 +122,21 @@ def test_original_article_stays_linked_when_primary_source_is_missing() -> None:
     )
 
     assert name == ""
-    assert url == "https://www.welt.de/article"
+    assert url == ""
 
 
-def test_editorial_prompt_follows_primary_source() -> None:
-    text: str = publisher_editorial_instructions(
-        "die_zeit",
-        sensitive=False,
-        primary_source_name="Polizei Berlin",
-        primary_source_url="https://polizei.berlin.de/pressemitteilung",
-    )
+def test_editorial_prompt_hides_source_and_asks_for_longer_body() -> None:
+    text: str = publisher_editorial_instructions("die_zeit", sensitive=False)
 
-    assert "Polizei Berlin" in text
-    assert "короткую собственную новость" in text
-    assert "не сокращённый перевод или пересказ другого СМИ" in text
-    assert "Не называй ZEIT" in text
-    assert "карточку можно публиковать" in text
-    assert "ручной модерации" not in text
+    assert "4–5 связных предложений" in text
+    assert "одной короткой строкой" in text
+    assert "Не вставляй ссылки" in text
+    assert "ручной модерации" in text
+    assert "https://" not in text
 
 
-def test_editorial_prompt_hides_source_when_primary_link_is_missing() -> None:
+def test_editorial_prompt_does_not_name_the_publisher_as_a_citation() -> None:
     text: str = publisher_editorial_instructions("bild", sensitive=False)
 
     assert "Не пиши «по данным»" in text
     assert "по данным BILD" not in text
-    assert "самостоятельную сводку" in text
-    assert "ручной модерации" not in text

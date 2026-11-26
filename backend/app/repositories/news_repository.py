@@ -25,6 +25,7 @@ from app.services.relevance_filter_service import OFFICIAL_DATA_SOURCE_KEYS
 from app.services.rss_sources import (
     DEFAULT_RSS_SOURCES,
     is_source_allowed_for_publication,
+    is_source_eligible_for_processing,
     publication_allowed_sql_filter,
 )
 from app.services.urgent_brief import official_action_clause, official_action_published_after, qualifies_for_urgent_feed
@@ -339,7 +340,7 @@ class NewsRepository:
             source_key: str | None = (
                 raw_item.source.source_key if raw_item.source is not None else None
             )
-            if not is_source_allowed_for_publication(
+            if not is_source_eligible_for_processing(
                 source_key,
                 rights_verified=raw_item.rights_verified,
                 enabled_source_keys=settings.rss_enabled_source_keys,

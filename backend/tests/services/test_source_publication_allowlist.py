@@ -3,6 +3,7 @@ from __future__ import annotations
 from app.services.rss_sources import (
     allowed_rss_source_keys,
     is_source_allowed_for_publication,
+    is_source_eligible_for_processing,
 )
 
 
@@ -22,11 +23,11 @@ def test_allowed_rss_source_keys_fail_closed() -> None:
     assert allowed_rss_source_keys("destatis") == frozenset({"destatis"})
 
 
-def test_allowed_rss_source_keys_google_test_includes_unverified() -> None:
+def test_allowed_rss_source_keys_google_test_keeps_unlicensed_publishers_private() -> None:
     assert allowed_rss_source_keys(
         "welt,die_zeit,zdf,bild",
         allow_unverified=True,
-    ) == frozenset({"bild"})
+    ) == frozenset()
 
 
 def test_catalog_rss_requires_allowlist_and_rights() -> None:
@@ -47,39 +48,45 @@ def test_catalog_rss_requires_allowlist_and_rights() -> None:
     )
 
 
-def test_publisher_pending_permission_stays_blocked() -> None:
-    for source_key in ("die_zeit", "welt", "zdf"):
+def test_unlicensed_publishers_are_drafted_but_not_public() -> None:
+    for source_key in ("die_zeit", "welt", "zdf", "bild"):
         assert not is_source_allowed_for_publication(
             source_key,
-            rights_verified=True,
+            rights_verified=False,
             enabled_source_keys=f"{source_key},bild",
+            allow_unverified=True,
+        )
+        assert is_source_eligible_for_processing(
+            source_key,
+            rights_verified=False,
+            enabled_source_keys=source_key,
             allow_unverified=True,
         )
 
 
-def test_google_test_allows_listed_unverified_catalog() -> None:
+def test_google_test_does_not_publish_unverified_catalog() -> None:
     assert not is_source_allowed_for_publication(
         "die_zeit",
         rights_verified=False,
         enabled_source_keys="die_zeit,bild",
         allow_unverified=True,
     )
-    assert is_source_allowed_for_publication(
+    assert not is_source_allowed_for_publication(
         "bild",
         rights_verified=False,
         enabled_source_keys="die_zeit,bild",
         allow_unverified=True,
     )
-    assert not is_source_allowed_for_publication(
-        "welt",
+    assert is_source_eligible_for_processing(
+        "bild",
         rights_verified=False,
         enabled_source_keys="die_zeit,bild",
         allow_unverified=True,
     )
-    assert not is_source_allowed_for_publication(
-        "zdf",
-        rights_verified=True,
-        enabled_source_keys="zdf",
+    assert not is_source_eligible_for_processing(
+        "welt",
+        rights_verified=False,
+        enabled_source_keys="die_zeit,bild",
         allow_unverified=True,
     )
 
