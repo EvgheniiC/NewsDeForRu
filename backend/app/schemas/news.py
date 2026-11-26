@@ -157,13 +157,17 @@ class ModerationDailyStatsResponse(BaseModel):
     """Daily counters for the moderator page (Europe/Berlin calendar day).
 
     ``download_count`` is the all-time unique Android install count and does not
-    depend on ``date``.
+    depend on ``date``. ``visit_count`` is every consented open that day.
+    ``site_visit_count`` and ``app_visit_count`` split that total by surface.
+    Opens stored before the split stay only in ``visit_count``.
     """
 
     date: date
     published_count: int
     moderation_count: int
     visit_count: int
+    site_visit_count: int
+    app_visit_count: int
     download_count: int
 
 

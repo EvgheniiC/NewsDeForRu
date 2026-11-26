@@ -80,9 +80,10 @@ export function PrivacyContentDe(): JSX.Element {
             </tr>
             <tr>
               <td>
-                <code>nga_anonymous_user_id</code>, <code>nga_session_id</code>, Events und App-Besuch
-                (eine Sitzung pro Tag); auf Android zusätzlich <code>nga_install_id</code> — einmaliges
-                erstes Öffnen der Installation
+                <code>nga_anonymous_user_id</code>, <code>nga_session_id</code>, Events und Besuch der
+                Website oder der App (eine Sitzung pro Tag, gekennzeichnet als Website oder App); auf
+                Android zusätzlich <code>nga_install_id</code> — einmaliges erstes Öffnen der
+                Installation
               </td>
               <td>Nutzungsstatistik</td>
               <td>Art. 6 Abs. 1 lit. a (Einwilligung)</td>

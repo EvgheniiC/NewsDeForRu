@@ -83,7 +83,8 @@ def post_app_visit(
     body: AppVisitRequest,
     db: Session = Depends(get_db_session),
 ) -> AppVisitResponse:
-    recorded: bool = record_app_visit(db, body.session_id, berlin_today())
+    surface: str | None = body.surface.value if body.surface is not None else None
+    recorded: bool = record_app_visit(db, body.session_id, berlin_today(), surface)
     return AppVisitResponse(recorded=recorded)
 
 

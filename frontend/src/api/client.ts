@@ -324,14 +324,21 @@ export interface ModerationDailyStats {
   published_count: number;
   moderation_count: number;
   visit_count: number;
+  site_visit_count?: number;
+  app_visit_count?: number;
   download_count: number;
 }
 
-export async function postAppVisit(sessionId: string): Promise<{ recorded: boolean }> {
+export type VisitSurface = "web" | "android";
+
+export async function postAppVisit(
+  sessionId: string,
+  surface: VisitSurface,
+): Promise<{ recorded: boolean }> {
   return fetchJson<{ recorded: boolean }>("/engagement/visits", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ session_id: sessionId }),
+    body: JSON.stringify({ session_id: sessionId, surface }),
   });
 }
 

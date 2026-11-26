@@ -15,18 +15,22 @@ vi.mock("../api/client", () => ({
     date: "2026-10-12",
     published_count: 1,
     moderation_count: 2,
-    visit_count: 3,
+    visit_count: 12,
+    site_visit_count: 4,
+    app_visit_count: 5,
     download_count: 7,
   })),
 }));
 
+const auth = vi.hoisted(() => ({
+  user: { can_moderate: true },
+  logout: async (): Promise<void> => {},
+  withModerationAccess: async <T,>(run: (accessToken: string) => Promise<T>): Promise<T> =>
+    run("token"),
+}));
+
 vi.mock("../context/AuthContext", () => ({
-  useAuth: () => ({
-    user: { can_moderate: true },
-    logout: async (): Promise<void> => {},
-    withModerationAccess: async <T,>(run: (accessToken: string) => Promise<T>): Promise<T> =>
-      run("token"),
-  }),
+  useAuth: () => auth,
 }));
 
 import { StatisticsPage } from "./StatisticsPage";
@@ -47,4 +51,9 @@ test("StatisticsPage shows how many people installed the app", async (): Promise
   expect(
     screen.getByText(/Сколько человек установили Android-приложение/),
   ).toBeTruthy();
+  expect(screen.getByText("Посещения сайта")).toBeTruthy();
+  expect(screen.getByText("4")).toBeTruthy();
+  expect(screen.getByText("Посещения приложения")).toBeTruthy();
+  expect(screen.getByText("5")).toBeTruthy();
+  expect(screen.getByText(/до разделения сайта и приложения/)).toBeTruthy();
 });

@@ -1,4 +1,6 @@
-import { postAppVisit } from "../api/client";
+import { Capacitor } from "@capacitor/core";
+
+import { postAppVisit, type VisitSurface } from "../api/client";
 import { berlinTodayYmd } from "../lib/dateTimeBerlin";
 import { hasAnalyticsConsent, subscribeAnalyticsConsent } from "../lib/analyticsConsent";
 import { getSessionId } from "../lib/sessionId";
@@ -21,6 +23,14 @@ function rememberRecordedDay(day: string): void {
   }
 }
 
+/** Website, or the Android app. Other shells are counted with the website. */
+export function currentVisitSurface(): VisitSurface {
+  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android") {
+    return "android";
+  }
+  return "web";
+}
+
 /** One visit per browser session and Berlin day, after analytics consent. */
 export async function recordAppVisitIfNeeded(): Promise<void> {
   if (!hasAnalyticsConsent()) {
@@ -30,7 +40,7 @@ export async function recordAppVisitIfNeeded(): Promise<void> {
   if (recordedDay() === day) {
     return;
   }
-  await postAppVisit(getSessionId());
+  await postAppVisit(getSessionId(), currentVisitSurface());
   rememberRecordedDay(day);
 }
 

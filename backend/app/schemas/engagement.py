@@ -8,7 +8,7 @@ from uuid import UUID
 
 from pydantic import AliasChoices, BaseModel, Field, field_validator
 
-from app.models.engagement import EngagementEventType
+from app.models.engagement import EngagementEventType, VisitSurface
 
 
 class RawEngagementEvent(BaseModel):
@@ -62,6 +62,7 @@ class EngagementBatchResponse(BaseModel):
 
 class AppVisitRequest(BaseModel):
     session_id: str = Field(min_length=36, max_length=36)
+    surface: VisitSurface | None = None
 
     model_config = {"extra": "forbid"}
 

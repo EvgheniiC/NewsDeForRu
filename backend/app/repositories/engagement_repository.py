@@ -1,10 +1,10 @@
-"""Persist engagement/analytics batches, daily app visits, and Android installs."""
+"""Persist engagement/analytics batches, daily site and app visits, and Android installs."""
 
 from __future__ import annotations
 
 from datetime import date
 
-from sqlalchemy import func, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -69,7 +69,12 @@ def insert_engagement_batch(
     return inserted, skipped
 
 
-def record_app_visit(db: Session, session_id: str, visit_date: date) -> bool:
+def record_app_visit(
+    db: Session,
+    session_id: str,
+    visit_date: date,
+    surface: str | None = None,
+) -> bool:
     """Insert one visit for this session and Berlin day. False when it already exists."""
     existing_id: int | None = db.scalar(
         select(AppVisit.id).where(
@@ -80,7 +85,7 @@ def record_app_visit(db: Session, session_id: str, visit_date: date) -> bool:
     if existing_id is not None:
         return False
 
-    db.add(AppVisit(session_id=session_id, visit_date=visit_date))
+    db.add(AppVisit(session_id=session_id, visit_date=visit_date, surface=surface))
     try:
         db.commit()
     except IntegrityError:
@@ -89,10 +94,14 @@ def record_app_visit(db: Session, session_id: str, visit_date: date) -> bool:
     return True
 
 
-def count_app_visits_on(db: Session, visit_date: date) -> int:
-    result: int | None = db.scalar(
-        select(func.count(AppVisit.id)).where(AppVisit.visit_date == visit_date)
+def count_app_visits_on(db: Session, visit_date: date, surface: str | None = None) -> int:
+    """Count visits on a Berlin day. ``surface`` limits the count to the site or the app."""
+    statement: Select[tuple[int]] = select(func.count(AppVisit.id)).where(
+        AppVisit.visit_date == visit_date
     )
+    if surface is not None:
+        statement = statement.where(AppVisit.surface == surface)
+    result: int | None = db.scalar(statement)
     return int(result or 0)
 
 

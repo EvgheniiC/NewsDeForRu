@@ -18,6 +18,14 @@ function formatCount(loading: boolean, value: number | null): string {
   return String(value);
 }
 
+function unspecifiedVisitCount(total: number | null, site: number | null, app: number | null): number {
+  if (total === null || site === null || app === null) {
+    return 0;
+  }
+  const remainder: number = total - site - app;
+  return remainder > 0 ? remainder : 0;
+}
+
 export function StatisticsPage(): JSX.Element {
   const navigate = useNavigate();
   const { user, withModerationAccess, logout } = useAuth();
@@ -25,10 +33,13 @@ export function StatisticsPage(): JSX.Element {
   const [publishedCount, setPublishedCount] = useState<number | null>(null);
   const [moderationCount, setModerationCount] = useState<number | null>(null);
   const [visitCount, setVisitCount] = useState<number | null>(null);
+  const [siteVisitCount, setSiteVisitCount] = useState<number | null>(null);
+  const [appVisitCount, setAppVisitCount] = useState<number | null>(null);
   const [downloadCount, setDownloadCount] = useState<number | null>(null);
   const [statsLoading, setStatsLoading] = useState<boolean>(true);
   const [statsError, setStatsError] = useState<string>("");
   const todayYmd: string = berlinTodayYmd();
+  const olderVisitCount: number = unspecifiedVisitCount(visitCount, siteVisitCount, appVisitCount);
   const statsRequestIdRef: MutableRefObject<number> = useRef<number>(0);
 
   const loadDailyStats = useCallback(
@@ -46,6 +57,12 @@ export function StatisticsPage(): JSX.Element {
         setPublishedCount(stats.published_count);
         setModerationCount(stats.moderation_count);
         setVisitCount(stats.visit_count);
+        setSiteVisitCount(
+          typeof stats.site_visit_count === "number" ? stats.site_visit_count : null,
+        );
+        setAppVisitCount(
+          typeof stats.app_visit_count === "number" ? stats.app_visit_count : null,
+        );
         setDownloadCount(typeof stats.download_count === "number" ? stats.download_count : null);
         setStatsError("");
       } catch (fetchError: unknown) {
@@ -61,6 +78,8 @@ export function StatisticsPage(): JSX.Element {
           setPublishedCount(null);
           setModerationCount(null);
           setVisitCount(null);
+          setSiteVisitCount(null);
+          setAppVisitCount(null);
           setDownloadCount(null);
           setStatsError("Сервер ещё не отдаёт статистику. Обновите backend и перезапустите его.");
           return;
@@ -68,6 +87,8 @@ export function StatisticsPage(): JSX.Element {
         setPublishedCount(null);
         setModerationCount(null);
         setVisitCount(null);
+        setSiteVisitCount(null);
+        setAppVisitCount(null);
         setDownloadCount(null);
         setStatsError(
           fetchError instanceof Error ? fetchError.message : "Не удалось загрузить статистику.",
@@ -143,14 +164,28 @@ export function StatisticsPage(): JSX.Element {
             </p>
           </article>
           <article className="moderation-daily-stats-card">
-            <p className="moderation-daily-stats-value">{formatCount(statsLoading, visitCount)}</p>
-            <p className="moderation-daily-stats-label">Посещения</p>
+            <p className="moderation-daily-stats-value">{formatCount(statsLoading, siteVisitCount)}</p>
+            <p className="moderation-daily-stats-label">Посещения сайта</p>
             <p className="moderation-daily-stats-hint">
-              Одно открытие приложения на сессию. Учитываются только посетители, которые согласились на
+              Одно открытие сайта на сессию. Учитываются только посетители, которые согласились на
               статистику.
             </p>
           </article>
+          <article className="moderation-daily-stats-card">
+            <p className="moderation-daily-stats-value">{formatCount(statsLoading, appVisitCount)}</p>
+            <p className="moderation-daily-stats-label">Посещения приложения</p>
+            <p className="moderation-daily-stats-hint">
+              Одно открытие Android-приложения на сессию. Учитываются только посетители, которые
+              согласились на статистику.
+            </p>
+          </article>
         </div>
+        {!statsLoading && olderVisitCount > 0 && (
+          <p className="moderation-daily-stats-hint">
+            Ещё {olderVisitCount} посещений записаны до разделения сайта и приложения и не входят в
+            эти две цифры.
+          </p>
+        )}
       </section>
     </section>
   );

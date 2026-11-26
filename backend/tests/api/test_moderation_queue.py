@@ -263,6 +263,8 @@ def test_daily_stats_counts_feed_and_moderation_for_selected_day(
     assert before_body["published_count"] == 2
     assert before_body["moderation_count"] == 2
     assert before_body["visit_count"] == 0
+    assert before_body["site_visit_count"] == 0
+    assert before_body["app_visit_count"] == 0
     assert before_body["download_count"] == 0
     assert waiting_id > 0
 
@@ -329,6 +331,56 @@ def test_app_visit_is_counted_once_per_session_and_day(
     )
     assert after.status_code == 200
     assert int(after.json()["visit_count"]) == before_visits + 2
+    assert int(after.json()["site_visit_count"]) == int(before.json()["site_visit_count"])
+    assert int(after.json()["app_visit_count"]) == int(before.json()["app_visit_count"])
+
+
+def test_site_and_app_visits_are_counted_separately(
+    api_client: TestClient,
+    bearer_ops_headers: dict[str, str],
+) -> None:
+    today: str = berlin_today().isoformat()
+    web_session_id: str = "55555555-5555-4555-8555-555555555555"
+    app_session_id: str = "66666666-6666-4666-8666-666666666666"
+
+    before = api_client.get(
+        "/moderation/daily-stats",
+        headers=bearer_ops_headers,
+        params={"date": today},
+    )
+    assert before.status_code == 200
+    before_body: dict[str, object] = before.json()
+
+    web_visit = api_client.post(
+        "/engagement/visits",
+        json={"session_id": web_session_id, "surface": "web"},
+    )
+    assert web_visit.status_code == 200
+    assert web_visit.json()["recorded"] is True
+
+    app_visit = api_client.post(
+        "/engagement/visits",
+        json={"session_id": app_session_id, "surface": "android"},
+    )
+    assert app_visit.status_code == 200
+    assert app_visit.json()["recorded"] is True
+
+    invalid = api_client.post(
+        "/engagement/visits",
+        json={"session_id": web_session_id, "surface": "ios"},
+    )
+    assert invalid.status_code == 422
+
+    after = api_client.get(
+        "/moderation/daily-stats",
+        headers=bearer_ops_headers,
+        params={"date": today},
+    )
+    assert after.status_code == 200
+    after_body: dict[str, object] = after.json()
+    assert int(after_body["visit_count"]) == int(before_body["visit_count"]) + 2
+    assert int(after_body["site_visit_count"]) == int(before_body["site_visit_count"]) + 1
+    assert int(after_body["app_visit_count"]) == int(before_body["app_visit_count"]) + 1
 
 
 def test_app_install_is_counted_once_per_install_id(

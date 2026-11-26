@@ -48,8 +48,15 @@ class UserEngagementEvent(Base):
     processed_news: Mapped["ProcessedNews"] = relationship(back_populates="user_engagement_events")
 
 
+class VisitSurface(StrEnum):
+    """Where a consented session was opened. Older rows have no surface."""
+
+    WEB = "web"
+    ANDROID = "android"
+
+
 class AppVisit(Base):
-    """One app open per browser session and Berlin calendar day."""
+    """One site or Android open per browser session and Berlin calendar day."""
 
     __tablename__ = "app_visits"
     __table_args__ = (
@@ -60,6 +67,8 @@ class AppVisit(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     session_id: Mapped[str] = mapped_column(String(36), nullable=False)
     visit_date: Mapped[date] = mapped_column(Date, nullable=False)
+    # Null for visits stored before the site and app were counted separately.
+    surface: Mapped[str | None] = mapped_column(String(16), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
 

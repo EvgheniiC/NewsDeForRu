@@ -81,8 +81,8 @@ export function PrivacyContentRu(): JSX.Element {
             <tr>
               <td>
                 <code>nga_anonymous_user_id</code>, <code>nga_session_id</code>, события и посещение
-                приложения (одна сессия в день); на Android ещё <code>nga_install_id</code> — одно
-                первое открытие установки
+                сайта или приложения (одна сессия в день, с пометкой «сайт» или «приложение»); на
+                Android ещё <code>nga_install_id</code> — одно первое открытие установки
               </td>
               <td>Статистика использования</td>
               <td>Согласие (a), баннер</td>

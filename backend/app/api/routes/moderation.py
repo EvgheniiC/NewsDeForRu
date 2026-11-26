@@ -7,6 +7,7 @@ from app.api.deps.auth import require_moderator
 from app.core.database import get_db_session
 from app.models.app_user import AppUser
 from app.models.news import PipelineStatus, ProcessedNews
+from app.models.engagement import VisitSurface
 from app.repositories.engagement_repository import count_app_installs, count_app_visits_on
 from app.repositories.news_repository import NewsRepository
 from app.schemas.news import (
@@ -54,12 +55,24 @@ def daily_stats(
         created_at_end=day_end,
     )
     visit_count: int = count_app_visits_on(db_session, selected_day)
+    site_visit_count: int = count_app_visits_on(
+        db_session,
+        selected_day,
+        surface=VisitSurface.WEB.value,
+    )
+    app_visit_count: int = count_app_visits_on(
+        db_session,
+        selected_day,
+        surface=VisitSurface.ANDROID.value,
+    )
     download_count: int = count_app_installs(db_session)
     return ModerationDailyStatsResponse(
         date=selected_day,
         published_count=published_count,
         moderation_count=moderation_count,
         visit_count=visit_count,
+        site_visit_count=site_visit_count,
+        app_visit_count=app_visit_count,
         download_count=download_count,
     )
 
