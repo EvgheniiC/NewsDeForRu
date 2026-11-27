@@ -29,20 +29,21 @@ describe("NewsAttributionBlock", () => {
     );
   });
 
-  it("hides the source line when the card has no primary source", () => {
+  it("omits the footer when the card has no source", () => {
     const view = render(
       <NewsAttributionBlock
-        publishedAt="2026-08-02T10:00:00Z"
+        publishedAt="2026-11-27T16:09:18Z"
+        retrievedAt="2026-11-27T17:00:06Z"
         sourceName=""
         sourceUrl=""
       />
     );
 
     const text: string = view.container.textContent ?? "";
-    expect(view.container.querySelector(".news-attribution__source")).toBeNull();
-    expect(text.includes("Источник:")).toBe(false);
-    expect(view.container.querySelector("a.news-attribution__link")).toBeNull();
-    expect(text.includes("Опубликовано:")).toBe(true);
+    expect(view.container.querySelector(".news-attribution")).toBeNull();
+    expect(text.includes("Опубликовано:")).toBe(false);
+    expect(text.includes("Краткая сводка")).toBe(false);
+    expect(text.includes("Получено:")).toBe(false);
   });
 
   it("links the original article without naming the publisher", (): void => {

@@ -21,6 +21,31 @@ interface NewsAttributionBlockProps {
   onSourceClick?: () => void;
 }
 
+function trimmed(value: string | null | undefined): string {
+  return (value ?? "").trim();
+}
+
+/** Moderation cards name no publisher. Dates and the automatic-summary line are not a source credit. */
+function hasReaderFacingAttribution(
+  sourceName: string,
+  sourceUrl: string,
+  originalTitle: string | null | undefined,
+  licence: string | null | undefined,
+  copyrightHolder: string | null | undefined,
+  changesNotice: string | null | undefined
+): boolean {
+  if (trimmed(sourceName).length > 0 || trimmed(sourceUrl).length > 0) {
+    return true;
+  }
+  const legalLines: readonly (string | null | undefined)[] = [
+    originalTitle,
+    licence,
+    copyrightHolder,
+    changesNotice
+  ];
+  return legalLines.some((line: string | null | undefined): boolean => trimmed(line).length > 0);
+}
+
 export function NewsAttributionBlock({
   sourceName,
   sourceUrl,
@@ -35,7 +60,20 @@ export function NewsAttributionBlock({
   changesNotice,
   variant = "detail",
   onSourceClick
-}: NewsAttributionBlockProps): JSX.Element {
+}: NewsAttributionBlockProps): JSX.Element | null {
+  if (
+    !hasReaderFacingAttribution(
+      sourceName,
+      sourceUrl,
+      originalTitle,
+      licence,
+      copyrightHolder,
+      changesNotice
+    )
+  ) {
+    return null;
+  }
+
   const publishedLabel: string =
     variant === "compact" ? formatDateRuBerlin(publishedAt) : formatDateTimeRuBerlin(publishedAt);
   const hasSourceName: boolean = sourceName.trim().length > 0;
